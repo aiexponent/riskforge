@@ -18,7 +18,7 @@ Both paths are documented in detail in [`docs/contributing/`](docs/contributing/
 ## Development Setup
 
 ```bash
-git clone https://github.com/aiexponenthq/riskforge
+git clone https://github.com/aiexponent/riskforge
 cd riskforge
 make dev-setup      # pip install -e ".[dev]" + pre-commit install
 make test           # run the full test suite (all tests must pass; run `pytest --collect-only -q` for the current count)

@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-13
+
 ### Security
 
 - WeasyPrint pinned to 70.0, up from 68.0, closing PYSEC-2026-3940 (CVE-2026-55073, GHSA-r543-q48m-4c9j). The advisory covers two `write_pdf()` parameters, `xmp_metadata` and `stylesheets`, that built a fresh permissive URL fetcher instead of using the document's configured one, so a caller passing an attacker-controlled URL to either could read local files or reach internal hosts. RiskForge is not exposed: `PDFExporter` calls `HTML(string=...).write_pdf()` with neither parameter and renders a bundled template against the operator's own local data. The pin moves anyway, because a compliance tool should not ship a dependency with a live unpatched advisory. Verified with a before-and-after render of both `examples/` fixtures: identical page count, identical extracted text, identical glyph bounding boxes, and pixel-identical rasterisation of all twelve pages. The `examples/*/expected.json` goldens did not drift.
@@ -15,6 +17,8 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 - `ci.yml` accepts `workflow_dispatch`, so CI on `main` can be re-run on demand. A `main` branch whose last run predates a newly published advisory previously had no way to surface that advisory without an unrelated push.
 
+- GitHub URLs now use the current `aiexponent` organisation name. The org was renamed from `aiexponenthq`, and although the old paths still redirect, the stale name was visible on the PyPI project page through the five `[project.urls]` entries and the README logo, which is served from `raw.githubusercontent.com`. The README, the contributing guide, and the two `docs/` guides were updated in the same pass. Older entries that record the earlier rename are left as written, since they describe what happened at the time.
+
 ## [1.1.2] - 2026-07-19
 
 ### Changed
@@ -22,8 +26,6 @@ Versioning: [Semantic Versioning](https://semver.org/)
 - Documentation links now point at the in-repo guides. The package `Documentation` URL and the README's docs link previously targeted the product overview page, and the README link was relative, which resolves to a 404 on the PyPI project page. Both now point at the repository `docs/` folder, which renders the full user guide, the EU AI Act Article 9 mapping, and the audit-chain design (including the architecture diagrams) on GitHub. A `docs/README.md` index was added as the folder landing.
 
 ## [1.1.1] - 2026-07-19
-
-### Changed
 
 - The RMF JSON Schema now requires a non-empty `disclosure` field (`required` plus `minLength: 1`). The mandatory not-legal-advice disclosure was always injected by the export path, but the schema did not enforce it, so a hand-crafted or downstream-tampered Risk Management File could validate without it. Export already fails loud when the disclosure is absent, and any downstream consumer validating against the bundled schema now rejects a disclosure-less document.
 
@@ -40,8 +42,6 @@ performance gaps found in the 2026-07 evaluation. Reclassified to Production/Sta
 - A full user guide at `docs/user-guide.md`: install and system dependencies, a worked quickstart, a command reference with exit codes, the non-interactive answers-file format, a CI-integration recipe, plugin authoring, interpreting the RMF, limitations, and an FAQ. Linked from the README.
 - An `examples/` directory with worked sample systems (CV screening, credit scoring), each with a `config.yaml`, a non-interactive `answers.yaml`, and a golden RMF. `scripts/eval.py` (`make eval` / `make eval-update`) runs every example headless through init, classify, assess, accept, and export, then diffs the normalised RMF against its golden. Wired into CI via `tests/integration/test_examples.py`, so a change to scoring, questions, or the schema surfaces as a golden drift.
 - A `benchmarks/` performance harness (`make bench`, `benchmarks/perf.py`) measuring audit-append and `add_risk` scaling, with documented numbers in `benchmarks/README.md`.
-
-### Changed
 
 - Reclassified the package `Development Status` from Production/Stable to Beta while a release-hardening pass is in progress ahead of v1.1.0.
 - The optional API server (`riskforge serve`) is now clearly marked experimental: it prints a not-security-hardened warning at startup and in `--help`/README, and `--allow-external` is now enforced (binding to a non-localhost host without it is refused, where the flag previously only warned). The server will be hardened and tested before it leaves experimental status.
@@ -84,8 +84,6 @@ First Production/Stable release. PyPI classifier flipped to `Development Status 
 
 - **Click 8.3 incompatibility broke `riskforge --version` and other Typer-dispatched outputs in fresh installs.** Click 8.3 (released after RiskForge v0.1.4) changed the `is_eager` callback dispatch path in a way that Typer 0.12.3 cannot reach. The version callback ran but produced no output; subprocess-based integration tests captured empty stdout. **Fix:** `click>=8.1,<8.2` hard pin in `pyproject.toml`. Verified 2026-05-10 on Python 3.12.2.
 
-### Changed
-
 - `[tool.coverage.report] fail_under` raised from `24` to `35`, calibrated to the
   unit-test-only CI matrix (CI runs `pytest --cov --ignore=tests/integration/` per
   `.github/workflows/ci.yml`, yielding ~37% coverage). Locally with integration
@@ -117,7 +115,6 @@ First Production/Stable release. PyPI classifier flipped to `Development Status 
 
 ## [0.1.4] - 2026-04-18
 
-### Changed
 - README rewritten with Mermaid diagrams and tighter structure (Head of AI / Google review pass)
 - README and brand surfaces aligned to AiExponent brand kit v4 — two-tone A mark + teal badges
 - Code style: applied `ruff format` (CI-pinned 0.4.4) to all 57 source and test files —
@@ -148,7 +145,6 @@ First Production/Stable release. PyPI classifier flipped to `Development Status 
 - Three residual `I001` import-ordering errors in test files
 - Unused `qid` variable in `assess.py` (`F841`)
 
-### Changed
 - CI workflow excludes integration tests on push (subprocess output unreliable in
   non-TTY CI runners); the 52 unit/contract/boundary tests cover the same code paths
   reliably. Integration tests still run locally.

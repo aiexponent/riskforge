@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://aiexponent.com"><img src="https://raw.githubusercontent.com/aiexponenthq/riskforge/main/.github/brand/logo-full-light.png" alt="AI Exponent" width="560"></a>
+  <a href="https://aiexponent.com"><img src="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png" alt="AI Exponent" width="560"></a>
 </p>
 
 <h1 align="center">RiskForge</h1>
@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg" alt="PyPI version"></a>
-  <a href="https://github.com/aiexponenthq/riskforge/actions"><img src="https://github.com/aiexponenthq/riskforge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://github.com/aiexponent/riskforge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg" alt="License: Apache 2.0"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg" alt="Python 3.11+"></a>
   <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg" alt="EU AI Act Article 9"></a>
@@ -22,7 +22,7 @@ Answer 37 guided questions across 8 EU AI Act risk dimensions. RiskForge produce
 
 Built by [AI Exponent LLC](https://aiexponent.com). Apache 2.0. Runs entirely offline after `pip install`.
 
-**Documentation:** the [full documentation](https://github.com/aiexponenthq/riskforge/tree/main/docs) covers installation, the command reference with exit codes, the EU AI Act Article 9 mapping, CI integration, plugin authoring, the audit-chain design, and an FAQ.
+**Documentation:** the [full documentation](https://github.com/aiexponent/riskforge/tree/main/docs) covers installation, the command reference with exit codes, the EU AI Act Article 9 mapping, CI integration, plugin authoring, the audit-chain design, and an FAQ.
 
 ---
 
@@ -254,7 +254,7 @@ Before every export, `riskforge validate` runs 8 gates:
 **Fix a bug or add a feature**, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
-git clone https://github.com/aiexponenthq/riskforge
+git clone https://github.com/aiexponent/riskforge
 cd riskforge
 make dev-setup   # pip install -e ".[dev]" + pre-commit install
 make test        # 57 tests, all must pass
@@ -279,15 +279,15 @@ Your AI system's risk data never leaves your machine unless you explicitly deplo
 
 | Version | Highlights |
 |---|---|
-| **[v1.1.2](https://github.com/aiexponenthq/riskforge/releases/tag/v1.1.2)** | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
-| [v1.1.1](https://github.com/aiexponenthq/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |
-| [v1.1.0](https://github.com/aiexponenthq/riskforge/releases/tag/v1.1.0) | Release-hardening pass: six correctness fixes, O(n) audit append, worked examples with a determinism harness, a full user guide, benchmarks, and single-source versioning. |
-| [v1.0.0](https://github.com/aiexponenthq/riskforge/releases/tag/v1.0.0) | First Production/Stable release. Click 8.3 regression fixed; LICENSE realigned to canonical SPDX; PRD amended to ship reality (37 questions, 6 patterns); coverage floor 24→55. |
-| [v0.1.4](https://github.com/aiexponenthq/riskforge/releases/tag/v0.1.4) | CI fixes: lint version compat, format alignment, `--sys-version` rename |
-| [v0.1.3](https://github.com/aiexponenthq/riskforge/releases/tag/v0.1.3) | Superseded by v0.1.4 (ruff format alignment) |
-| [v0.1.2](https://github.com/aiexponenthq/riskforge/releases/tag/v0.1.2) | OSS hardening: LICENSE, CONTRIBUTING, SECURITY, issue templates, full integration tests |
-| [v0.1.1](https://github.com/aiexponenthq/riskforge/releases/tag/v0.1.1) | `riskforge assess` fully implemented; PDF exporter fix; audit chain integrity fixes |
-| [v0.1.0](https://github.com/aiexponenthq/riskforge/releases/tag/v0.1.0) | Initial release |
+| **[v1.1.2](https://github.com/aiexponent/riskforge/releases/tag/v1.1.2)** | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
+| [v1.1.1](https://github.com/aiexponent/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |
+| [v1.1.0](https://github.com/aiexponent/riskforge/releases/tag/v1.1.0) | Release-hardening pass: six correctness fixes, O(n) audit append, worked examples with a determinism harness, a full user guide, benchmarks, and single-source versioning. |
+| [v1.0.0](https://github.com/aiexponent/riskforge/releases/tag/v1.0.0) | First Production/Stable release. Click 8.3 regression fixed; LICENSE realigned to canonical SPDX; PRD amended to ship reality (37 questions, 6 patterns); coverage floor 24→55. |
+| [v0.1.4](https://github.com/aiexponent/riskforge/releases/tag/v0.1.4) | CI fixes: lint version compat, format alignment, `--sys-version` rename |
+| [v0.1.3](https://github.com/aiexponent/riskforge/releases/tag/v0.1.3) | Superseded by v0.1.4 (ruff format alignment) |
+| [v0.1.2](https://github.com/aiexponent/riskforge/releases/tag/v0.1.2) | OSS hardening: LICENSE, CONTRIBUTING, SECURITY, issue templates, full integration tests |
+| [v0.1.1](https://github.com/aiexponent/riskforge/releases/tag/v0.1.1) | `riskforge assess` fully implemented; PDF exporter fix; audit chain integrity fixes |
+| [v0.1.0](https://github.com/aiexponent/riskforge/releases/tag/v0.1.0) | Initial release |
 
 ---
 
@@ -300,6 +300,6 @@ Built by [AI Exponent LLC](https://aiexponent.com), `hello@aiexponent.com`
 ---
 
 *Part of the AiExponent open-source AI governance toolchain:
-[license-compliance-checker](https://github.com/aiexponenthq/license-compliance-checker) ·
-[rag-benchmarking](https://github.com/aiexponenthq/rag-benchmarking) ·
+[license-compliance-checker](https://github.com/aiexponent/license-compliance-checker) ·
+[rag-benchmarking](https://github.com/aiexponent/rag-benchmarking) ·
 **RiskForge***

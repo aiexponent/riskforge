@@ -519,6 +519,6 @@ Status: design discussion only.
 If you find a discrepancy between this document and the source of truth
 (`src/riskforge/engine/audit.py`, `src/riskforge/storage/filesystem.py`),
 the source of truth wins and this document needs a patch. File an issue at
-<https://github.com/aiexponenthq/riskforge/issues>.
+<https://github.com/aiexponent/riskforge/issues>.
 
 Last verified against the codebase on **2026-05-10**.
