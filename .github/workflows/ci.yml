@@ -5,6 +5,10 @@ on:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main"]
+  # Manual trigger. Without it a CI failure on `main` that came from a newly
+  # published advisory rather than a new commit could not be reproduced on
+  # demand, only by pushing an unrelated commit.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -109,9 +113,6 @@ jobs:
         #  PYSEC-2026-2132 (click, CVE-2026-7246): command injection in click.edit(). RiskForge never
         #    calls click.edit() or launches an editor. The fix is click 8.3.3, which breaks Typer 0.12.3
         #    --version dispatch (the reason for the click<8.2 pin). Not exposed; cannot upgrade.
-        #  PYSEC-2026-3412 (weasyprint): CSS injection via the presentational-hint `background` attribute.
-        #    RiskForge does not enable presentational_hints and renders its own template with the
-        #    operator's own data locally. No fixed version exists.
         #  PYSEC-2026-3447 (setuptools, CVE-2026-59890): MANIFEST.in exclusion bypass. setuptools is not a
         #    build or runtime dependency of RiskForge (hatchling backend). Not exposed.
         run: |
@@ -122,7 +123,6 @@ jobs:
           # not be on PyPI yet during a release.
           pip-audit \
             --ignore-vuln PYSEC-2026-2132 \
-            --ignore-vuln PYSEC-2026-3412 \
             --ignore-vuln PYSEC-2026-3447
 
   boundary-test:

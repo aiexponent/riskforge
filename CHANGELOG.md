@@ -6,6 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Security
+
+- WeasyPrint pinned to 70.0, up from 68.0, closing PYSEC-2026-3940 (CVE-2026-55073, GHSA-r543-q48m-4c9j). The advisory covers two `write_pdf()` parameters, `xmp_metadata` and `stylesheets`, that built a fresh permissive URL fetcher instead of using the document's configured one, so a caller passing an attacker-controlled URL to either could read local files or reach internal hosts. RiskForge is not exposed: `PDFExporter` calls `HTML(string=...).write_pdf()` with neither parameter and renders a bundled template against the operator's own local data. The pin moves anyway, because a compliance tool should not ship a dependency with a live unpatched advisory. Verified with a before-and-after render of both `examples/` fixtures: identical page count, identical extracted text, identical glyph bounding boxes, and pixel-identical rasterisation of all twelve pages. The `examples/*/expected.json` goldens did not drift.
+- The pip-audit waiver for PYSEC-2026-3412 (weasyprint presentational-hint CSS injection) was removed. The waiver comment said no fixed version existed; WeasyPrint 69.0 shipped the fix, and the 70.0 pin carries it. `pip-audit` on the pinned tree now reports only the click advisory, which remains waived and documented.
+
+### Changed
+
+- `ci.yml` accepts `workflow_dispatch`, so CI on `main` can be re-run on demand. A `main` branch whose last run predates a newly published advisory previously had no way to surface that advisory without an unrelated push.
+
 ## [1.1.2] - 2026-07-19
 
 ### Changed
