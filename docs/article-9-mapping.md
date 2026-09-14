@@ -721,7 +721,7 @@ mapping back to `docs/contributing/add-jurisdiction.md` (planned).
 ## Verification & feedback
 
 If you find a regulatory mis-citation in this document, file an issue at
-<https://github.com/aiexponenthq/riskforge/issues> with the EUR-Lex paragraph
+<https://github.com/aiexponent/riskforge/issues> with the EUR-Lex paragraph
 reference and the proposed correction. Authenticity is non-negotiable; we
 would rather correct than be quietly wrong.
 
