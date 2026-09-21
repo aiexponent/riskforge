@@ -6,7 +6,7 @@ dev-setup:
 
 lock:
 	uv lock
-	uv export --frozen --no-dev -o requirements.lock
+	uv export --frozen --no-dev --no-emit-project --no-hashes -o requirements.lock
 
 install:
 	pip install -e .

@@ -37,7 +37,7 @@ To maintain strict regulatory evidence stability (PRD NFR-6) — ensuring an Art
 
 When upgrading dependencies:
 
-1. Update the range in `pyproject.toml` if needed, then re-lock via `make lock` (or `uv lock && uv export --frozen --no-dev -o requirements.lock`).
+1. Update the range in `pyproject.toml` if needed, then re-lock via `make lock` (or `uv lock && uv export --frozen --no-dev --no-emit-project --no-hashes -o requirements.lock`).
 2. Run the test and evaluation suites (`make test && make eval`) to confirm no breaking behavioral drift.
 3. Verify CI is green.
 4. Add a CHANGELOG line under `[Unreleased]` naming the dependency change and the rationale.
