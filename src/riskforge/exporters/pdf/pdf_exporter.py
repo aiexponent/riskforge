@@ -41,6 +41,19 @@ class PDFExporter(Exporter):
         )
 
         try:
+            import os
+            import sys
+
+            if sys.platform == "darwin":
+                # Ensure Homebrew library paths are available for dyld / ctypes / cffi
+                for path in ("/opt/homebrew/lib", "/usr/local/lib"):
+                    if os.path.isdir(path):
+                        curr = os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", "")
+                        if path not in curr.split(":"):
+                            os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = (
+                                f"{path}:{curr}" if curr else path
+                            )
+
             from weasyprint import HTML
 
             return HTML(string=html_content).write_pdf()
