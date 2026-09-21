@@ -55,7 +55,12 @@ jobs:
             libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
 
       - name: Install RiskForge with dev extras
-        run: pip install -e ".[dev]"
+        run: |
+          if [ -f requirements.lock ]; then
+            pip install -c requirements.lock -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
 
       - name: Run test suite
         run: pytest --cov --cov-report=xml --cov-report=term-missing
@@ -116,7 +121,11 @@ jobs:
         #  PYSEC-2026-3447 (setuptools, CVE-2026-59890): MANIFEST.in exclusion bypass. setuptools is not a
         #    build or runtime dependency of RiskForge (hatchling backend). Not exposed.
         run: |
-          pip install -e ".[dev]"
+          if [ -f requirements.lock ]; then
+            pip install -c requirements.lock -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
           # Not --strict: pip-audit still exits non-zero on any real vulnerability in
           # an auditable dependency, but a non-strict run does not fail on the
           # editable-installed project itself (riskforge), whose bumped version may
@@ -137,7 +146,12 @@ jobs:
           cache: pip
 
       - name: Install RiskForge
-        run: pip install -e ".[test]"
+        run: |
+          if [ -f requirements.lock ]; then
+            pip install -c requirements.lock -e ".[test]"
+          else
+            pip install -e ".[test]"
+          fi
 
       - name: Run boundary tests
         run: pytest tests/boundary/ -v

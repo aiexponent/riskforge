@@ -1,8 +1,12 @@
-.PHONY: dev-setup test test-fast lint format pdf-preview schema-validate eval eval-update bench clean install audit
+.PHONY: dev-setup test test-fast lint format pdf-preview schema-validate eval eval-update bench clean install audit lock
 
 dev-setup:
-	pip install -e ".[dev]"
+	if [ -f requirements.lock ]; then pip install -c requirements.lock -e ".[dev]"; else pip install -e ".[dev]"; fi
 	pre-commit install
+
+lock:
+	uv lock
+	uv export --frozen --no-dev -o requirements.lock
 
 install:
 	pip install -e .

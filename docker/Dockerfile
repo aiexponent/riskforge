@@ -3,12 +3,16 @@
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md requirements.lock* ./
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir hatchling && \
-    pip install --no-cache-dir ".[server]"
+    if [ -f requirements.lock ]; then \
+        pip install --no-cache-dir -c requirements.lock ".[server]"; \
+    else \
+        pip install --no-cache-dir ".[server]"; \
+    fi
 
 # Stage 2: runtime
 FROM python:3.11-slim AS runtime

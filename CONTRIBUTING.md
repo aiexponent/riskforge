@@ -27,16 +27,20 @@ make lint           # ruff check + format
 
 Requirements: Python 3.11+, Git.
 
-### Why dependencies are hard-pinned
+### Dependency Management: Resilient Ranges & Reproducible Lockfiles
 
-Every runtime dependency in `pyproject.toml` uses `==` (not `>=,<`). This is intentional and required by PRD NFR-6 (line 371): a RiskForge build that produces an Article 9 Risk Management File in May must produce a byte-identical RMF for the same inputs in August, regardless of upstream package drift. Regulatory evidence has to be reproducible.
+Runtime dependencies in `pyproject.toml` use bounded semantic version ranges (`>=`, `<`) rather than hard-pinned exact versions (`==`). This ensures enterprise users can seamlessly install `riskforge` in shared environments without package conflicts (e.g., compatible Pydantic 2.8+, Jinja 3.1.5+, Rich, or Typer).
 
-When upgrading a pin:
+To maintain strict regulatory evidence stability (PRD NFR-6) — ensuring an Article 9 Risk Management File (RMF) generated in May is byte-identical to one generated in August for the same inputs — builds are locked and validated via lockfiles (`uv.lock` and `requirements.lock`):
+- `uv.lock` provides cross-platform locked dependency resolution for `uv` workflows.
+- `requirements.lock` provides pip-compatible constraints used by CI and Docker builds.
 
-1. Open a PR titled `deps: bump <pkg> <old> → <new>`
-2. Verify CI (especially `release.yml` SBOM diff) is green
-3. Add a CHANGELOG line under `[Unreleased]` naming the upgrade and the reason
-4. If the bump is a major version, run a sample `riskforge assess → export → verify` end-to-end and confirm the JSON/PDF artefacts match the prior release for the same inputs
+When upgrading dependencies:
+
+1. Update the range in `pyproject.toml` if needed, then re-lock via `make lock` (or `uv lock && uv export --frozen --no-dev -o requirements.lock`).
+2. Run the test and evaluation suites (`make test && make eval`) to confirm no breaking behavioral drift.
+3. Verify CI is green.
+4. Add a CHANGELOG line under `[Unreleased]` naming the dependency change and the rationale.
 
 ---
 
