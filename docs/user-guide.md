@@ -36,8 +36,9 @@ RiskForge requires Python 3.11 or 3.12. JSON and Markdown export need nothing
 beyond the `pip install`. **PDF export** additionally needs the Pango, cairo, and
 GDK-PixBuf system libraries (used by WeasyPrint):
 
-- Debian/Ubuntu: `apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0`
-- macOS: `brew install pango`
+- Debian/Ubuntu: `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+- macOS: `brew install pango cairo gdk-pixbuf libffi`
+- Windows: WSL2 (Ubuntu) recommended with the Debian/Ubuntu packages above, or GTK3 runtime for native Windows
 
 RiskForge makes zero outbound network calls in CLI mode. This is enforced in the
 test suite with `pytest-socket`.
@@ -207,6 +208,11 @@ then fail the build if either the audit chain or the exported file has been alte
 To re-run an assessment on a model change without a human at the terminal, keep an
 `answers.yaml` in the repo and run `riskforge assess <id> --answers answers.yaml`
 followed by `riskforge validate <id>`.
+
+If your CI pipeline exports PDF reports (`riskforge export -f pdf`), install the
+system dependencies prior to running `riskforge`:
+- Linux runners (`ubuntu-latest`): `sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+- macOS runners (`macos-latest`): `brew install pango cairo gdk-pixbuf libffi`
 
 ---
 

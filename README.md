@@ -32,7 +32,13 @@ Built by [AI Exponent LLC](https://aiexponent.com). Apache 2.0. Runs entirely of
 pip install riskforge
 ```
 
-> **PDF export** additionally needs the Pango, cairo, and GDK-PixBuf system libraries (used by WeasyPrint). On Debian/Ubuntu: `apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0`; on macOS: `brew install pango`. JSON and Markdown export need nothing beyond `pip install`.
+> [!NOTE]
+> **PDF export prerequisites:** PDF generation uses WeasyPrint, which requires underlying system graphical libraries (Pango, Cairo, GDK-PixBuf, libffi):
+> - **Debian / Ubuntu:** `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+> - **macOS:** `brew install pango cairo gdk-pixbuf libffi`
+> - **Windows:** WSL2 (Ubuntu) is recommended with the Debian/Ubuntu packages above. For native Windows, install the GTK3 runtime libraries.
+>
+> JSON and Markdown export require no additional system libraries beyond `pip install`.
 
 ```bash
 # 1. Register your AI system
