@@ -6,6 +6,12 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Changed
+
+- Transitioned runtime and server dependencies in `pyproject.toml` from hard-pinned exact versions (`==`) to bounded semantic version ranges (`>=`, `<`), enabling clean installation in shared environments containing modern compatible libraries (e.g., Pydantic 2.8+, Jinja 3.1.5+, Rich, Typer).
+- Introduced reproducible lockfiles (`uv.lock` and `requirements.lock`) to preserve bit-identical Article 9 Risk Management File (RMF) evidence reproducibility for formal audits (PRD NFR-6) across CI and Docker builds.
+- Updated Dockerfile and CI workflows to enforce constraints via `requirements.lock` when present.
+
 ## [1.1.3] - 2026-09-13
 
 ### Security
@@ -16,7 +22,6 @@ Versioning: [Semantic Versioning](https://semver.org/)
 ### Changed
 
 - `ci.yml` accepts `workflow_dispatch`, so CI on `main` can be re-run on demand. A `main` branch whose last run predates a newly published advisory previously had no way to surface that advisory without an unrelated push.
-
 - GitHub URLs now use the current `aiexponent` organisation name. The org was renamed from `aiexponenthq`, and although the old paths still redirect, the stale name was visible on the PyPI project page through the five `[project.urls]` entries and the README logo, which is served from `raw.githubusercontent.com`. The README, the contributing guide, and the two `docs/` guides were updated in the same pass. Older entries that record the earlier rename are left as written, since they describe what happened at the time.
 
 ## [1.1.2] - 2026-07-19
