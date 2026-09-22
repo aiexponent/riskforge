@@ -1,8 +1,8 @@
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/og.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png">
-    <img src="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png" alt="RiskForge — EU AI Act Article 9 Risk Management System" width="100%"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/og-riskforge-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/og-riskforge-light.png">
+    <img src="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/og-riskforge-dark.png" alt="RiskForge — EU AI Act Article 9 Risk Management System" width="100%"/>
   </picture>
   <h1 align="center">RiskForge</h1>
   <p align="center"><em>EU AI Act Article 9 risk management, as a developer workflow.</em></p>
