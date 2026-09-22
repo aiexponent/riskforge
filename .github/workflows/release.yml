@@ -3,6 +3,7 @@ name: Release to PyPI
 on:
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 permissions:
   id-token: write    # PyPI OIDC trusted publishing
@@ -21,10 +22,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install WeasyPrint system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
+            libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+
       - name: Install dev dependencies + build frontend
         run: |
           pip install build pip-audit bandit
-          pip install ".[dev]"
+          if [ -f requirements.lock ]; then
+            pip install -c requirements.lock -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
 
       - name: Security gates
         # Same posture as ci.yml: bandit gates on medium+; pip-audit gates with the

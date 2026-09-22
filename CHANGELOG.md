@@ -6,23 +6,31 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-22
+
+### Added
+
+- **Multi-OS CI Runner Validation (PRD-179)**: Expanded GitHub Actions test matrix to run across both `ubuntu-latest` and `macos-latest` on Python 3.11 and 3.12, ensuring WeasyPrint system dependencies (Pango, Cairo, GDK-PixBuf, libffi) link and render correctly across platforms.
+- **Dedicated PDF Generation Tests (PRD-179)**: Added `tests/unit/test_pdf_exporter.py` exercising `PDFExporter.render()` with full RMF data, validating standard `%PDF-` header, `%%EOF` marker, and error handling.
+- **Automated Dependabot Security Updates (PRD-187)**: Added `.github/dependabot.yml` configured for weekly scanning of Python dependencies and GitHub Actions.
+- **Open-Source Standards Contract Tests (PRD-187)**: Added `tests/contract/test_ecosystem_standards.py` enforcing badge styling, Dependabot schema, and 5-tool reciprocal cross-link integrity.
+- **Reproducible Build Lockfiles (PRD-177)**: Added `uv.lock` and `requirements.lock` constraints to guarantee byte-identical Article 9 Risk Management File (RMF) evidence reproducibility for formal audits (PRD NFR-6) across CI and Docker builds.
+
 ### Changed
 
-- Transitioned runtime and server dependencies in `pyproject.toml` from hard-pinned exact versions (`==`) to bounded semantic version ranges (`>=`, `<`), enabling clean installation in shared environments containing modern compatible libraries (e.g., Pydantic 2.8+, Jinja 3.1.5+, Rich, Typer).
-- Introduced reproducible lockfiles (`uv.lock` and `requirements.lock`) to preserve bit-identical Article 9 Risk Management File (RMF) evidence reproducibility for formal audits (PRD NFR-6) across CI and Docker builds.
-- Updated Dockerfile and CI workflows to enforce constraints via `requirements.lock` when present.
-
-## [1.1.3] - 2026-09-13
+- **Resilient Dependency Version Ranges (PRD-177)**: Transitioned runtime and server dependencies in `pyproject.toml` from hard-pinned exact versions (`==`) to bounded semantic version ranges (`>=`, `<`), enabling clean installation in shared enterprise environments containing modern compatible libraries (e.g., Pydantic 2.8+, Jinja 3.1.5+, Rich, Typer).
+- **Reciprocal 5-Tool Ecosystem Footer (PRD-187)**: Updated `README.md` footer to link the full open-source governance suite (`litmusai`, `license-compliance-checker`, `rag-benchmarking`, `riskforge`, and `agentic-document-analyser`).
+- **Standardized Flat-Square Badges (PRD-187)**: Aligned all top README badges to `style=flat-square` with brand teal `#0D5463`.
+- **macOS Apple Silicon Library Fallback (PRD-179)**: Configured `PDFExporter` on macOS to automatically register `/opt/homebrew/lib` and `/usr/local/lib` in `DYLD_FALLBACK_LIBRARY_PATH` before importing WeasyPrint.
+- Cleaned up `Repository` URL in `pyproject.toml` by removing the trailing `.git` suffix.
+- `ci.yml` and `release.yml` accept `workflow_dispatch`, enabling manual on-demand execution.
+- GitHub URLs updated to use the canonical `aiexponent` organization name.
 
 ### Security
 
-- WeasyPrint pinned to 70.0, up from 68.0, closing PYSEC-2026-3940 (CVE-2026-55073, GHSA-r543-q48m-4c9j). The advisory covers two `write_pdf()` parameters, `xmp_metadata` and `stylesheets`, that built a fresh permissive URL fetcher instead of using the document's configured one, so a caller passing an attacker-controlled URL to either could read local files or reach internal hosts. RiskForge is not exposed: `PDFExporter` calls `HTML(string=...).write_pdf()` with neither parameter and renders a bundled template against the operator's own local data. The pin moves anyway, because a compliance tool should not ship a dependency with a live unpatched advisory. Verified with a before-and-after render of both `examples/` fixtures: identical page count, identical extracted text, identical glyph bounding boxes, and pixel-identical rasterisation of all twelve pages. The `examples/*/expected.json` goldens did not drift.
-- The pip-audit waiver for PYSEC-2026-3412 (weasyprint presentational-hint CSS injection) was removed. The waiver comment said no fixed version existed; WeasyPrint 69.0 shipped the fix, and the 70.0 pin carries it. `pip-audit` on the pinned tree now reports only the click advisory, which remains waived and documented.
-
-### Changed
-
-- `ci.yml` accepts `workflow_dispatch`, so CI on `main` can be re-run on demand. A `main` branch whose last run predates a newly published advisory previously had no way to surface that advisory without an unrelated push.
-- GitHub URLs now use the current `aiexponent` organisation name. The org was renamed from `aiexponenthq`, and although the old paths still redirect, the stale name was visible on the PyPI project page through the five `[project.urls]` entries and the README logo, which is served from `raw.githubusercontent.com`. The README, the contributing guide, and the two `docs/` guides were updated in the same pass. Older entries that record the earlier rename are left as written, since they describe what happened at the time.
+- WeasyPrint pinned to `>=70.0,<71.0` (with 70.0 in lockfile), closing PYSEC-2026-3940 (CVE-2026-55073, GHSA-r543-q48m-4c9j).
+- Removed stale pip-audit waiver for PYSEC-2026-3412 as WeasyPrint 70.0 carries the upstream fix.
+- Dropped stale references to un-shipped storage backends in docs and Docker.
 
 ## [1.1.2] - 2026-07-19
 
