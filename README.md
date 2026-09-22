@@ -1,28 +1,45 @@
-<p align="center">
-  <a href="https://aiexponent.com"><img src="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png" alt="AI Exponent" width="560"></a>
-</p>
-
-<h1 align="center">RiskForge</h1>
-<p align="center"><em>EU AI Act Article 9 risk management, as a developer workflow.</em></p>
-
-<p align="center">
-  <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg?style=flat-square&color=0D5463" alt="PyPI version"></a>
-  <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://img.shields.io/github/actions/workflow/status/aiexponent/riskforge/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg?style=flat-square" alt="License: Apache 2.0"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg?style=flat-square" alt="Python 3.11+"></a>
-  <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg?style=flat-square" alt="EU AI Act Article 9"></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg?style=flat-square" alt="Zero telemetry"></a>
-</p>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/og.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png">
+    <img src="https://raw.githubusercontent.com/aiexponent/riskforge/main/.github/brand/logo-full-light.png" alt="RiskForge — EU AI Act Article 9 Risk Management System" width="100%"/>
+  </picture>
+  <h1 align="center">RiskForge</h1>
+  <p align="center"><em>EU AI Act Article 9 risk management, as a developer workflow.</em></p>
+  <p align="center">
+    <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg?style=flat-square&color=0D5463" alt="PyPI version"></a>
+    <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://img.shields.io/github/actions/workflow/status/aiexponent/riskforge/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg?style=flat-square" alt="License: Apache 2.0"></a>
+    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg?style=flat-square" alt="Python 3.11+"></a>
+    <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg?style=flat-square" alt="EU AI Act Article 9"></a>
+    <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg?style=flat-square" alt="Zero telemetry"></a>
+    <a href="#evidence-status"><img src="https://img.shields.io/badge/evidence_status-VALIDATED-B68A2E.svg?style=flat-square" alt="Evidence status: VALIDATED"></a>
+  </p>
+</div>
 
 ---
 
-**RiskForge** is an open-source CLI that turns EU AI Act Article 9 compliance from a consultant invoice into a 30-minute developer workflow.
+> **RiskForge produces structured, hash-chained regulatory evidence for EU AI Act Article 9 (Risk Management System) and Annex IV (Technical Documentation). Apache 2.0, AS IS.**
+>
+> RiskForge turns high-risk compliance into a 30-minute developer workflow, outputting a cryptographic self-verifying SHA-256 digest designed for technical documentation packs and conformity audits. RiskForge is an engineering workflow tool that automates evidence production and governance controls; it is **not** a notified body and does not constitute formal legal certification.
 
-Answer 37 guided questions across 8 EU AI Act risk dimensions. RiskForge produces a tamper-evident Risk Management File (JSON, PDF, or Markdown) carrying a SHA-256 self-verifying digest, suitable for inclusion in your Annex IV technical documentation pack and ready for your legal team and downstream compliance toolchain. (Not a substitute for notified-body conformity assessment.)
+---
+
+## The Problem
+
+Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers and deployers of **high-risk AI systems** (governed by Article 6 and Annex III) face mandatory statutory obligations to establish, document, and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
+
+* **Provisional Enforcement Deadline**: Stand-alone high-risk systems under Annex III must comply by **2 December 2027** (under the Digital Omnibus simplification package).
+* **Statutory Non-Compliance Penalties**: Fines up to **€15,000,000 or 3% of total worldwide annual turnover**.
+* **The Compliance Bottleneck**: Engineering and MLOps teams cannot afford multi-month, €100K+ Big 4 advisory engagements for every model iteration or system change.
+
+**RiskForge** answers the essential high-risk compliance requirement directly in your terminal or CI/CD pipeline:
+
+> *"How do we continuously assess, mitigate, and mathematically prove Article 9 compliance without blocking product velocity?"*
+
+Run through a guided, 37-question evaluation across **8 statutory risk dimensions**. RiskForge produces a tamper-evident Risk Management File (JSON, PDF, or Markdown) with an unbroken SHA-256 hash chain and cross-regulatory mappings (ISO/IEC 42001, NIST AI RMF) — in under 30 minutes, 100% offline, and with zero telemetry.
 
 Built by [AI Exponent LLC](https://aiexponent.com). Apache 2.0. Runs entirely offline after `pip install`.
-
-**Documentation:** the [full documentation](https://github.com/aiexponent/riskforge/tree/main/docs) covers installation, the command reference with exit codes, the EU AI Act Article 9 mapping, CI integration, plugin authoring, the audit-chain design, and an FAQ.
 
 ---
 
@@ -86,44 +103,55 @@ riskforge export <system-id> --format json --output rmf.json
 riskforge verify --file rmf.json
 ```
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/aiexponent/.github/main/profile/assets/terminals/riskforge-terminal.svg" alt="RiskForge CLI Terminal Execution Preview — 8-Dimension Risk Assessment" width="100%"/>
+</p>
+
 ---
 
 ## Why RiskForge
 
-EU AI Act Article 9 requires providers of **high-risk AI systems** to maintain a documented risk management system throughout the system's lifecycle.
-
-The current alternatives:
-
-| Option | Cost | Time | Repeatable |
-|---|---|---|---|
-| Big 4 consulting | €80K–€350K per system¹ | Weeks | No |
-| Enterprise GRC platforms | $60K–$200K/year¹ | Months | Partial |
-| Spreadsheets | Free | Days | No |
-| **RiskForge** | **Free** | **~30 min** | **Yes** |
+| Evaluation Method | Cost | Turnaround | Deterministic / Repeatable? | Offline / Zero-Telemetry? |
+| :--- | :--- | :--- | :--- | :--- |
+| **Big 4 Consulting** | €80K–€350K per system¹ | Weeks | ❌ No (Advisory opinion) | ❌ No (NDAs & data sharing) |
+| **Enterprise GRC Platforms** | $60K–$200K/year¹ | Months | ⚠️ Partial | ❌ No (Transfers data to cloud) |
+| **Internal Spreadsheets** | "Free" | Days | ❌ No (Human error) | ⚠️ Manual |
+| **RiskForge** | **Free (Apache 2.0)** | **~30 min** | **✅ Yes (Deterministic hash)** | **✅ Yes (100% offline, zero network)** |
 
 <sup>¹ Indicative market figures gathered from public Big-4 governance-engagement quotes and 2024–2026 enterprise GRC pricing pages. Not a benchmark study; your mileage will vary by scope, jurisdiction, and incumbent advisor.</sup>
 
 ---
 
-## Architecture
+## System Architecture
 
-RiskForge has four strictly-decoupled layers with CI-enforced import boundaries:
+RiskForge has four strictly-decoupled layers with CI-enforced import boundaries (ADR-02):
 
 ```mermaid
-graph TD
-    CLI["CLI (Typer)<br/>riskforge init / assess / validate / export / verify"]
-    Engine["Engine Layer<br/>AuditEngine · RiskEngine · ValidateEngine<br/>AssessEngine · ExportEngine · TestDerivationEngine"]
-    Storage["Storage (FileStore)<br/>YAML + JSONL · chmod 600/700 · async · pluggable ABC"]
-    Adapters["Integration Adapters<br/>RAGBenchmarkingAdapter · TraceForgeAdapter<br/>Discovered via Python entry_points"]
+graph TB
+    subgraph UI ["1. Interface Layer"]
+        CLI["CLI (Typer)<br/><code>riskforge init / assess / validate / export / verify</code>"]
+    end
 
-    CLI -->|"calls engine functions"| Engine
-    Engine -->|"reads/writes via StorageBackend ABC"| Storage
-    Engine -->|"adapter pattern, no hard imports"| Adapters
+    subgraph Core ["2. Decoupled Engine Layer"]
+        ENG["AuditEngine · RiskEngine · ValidateEngine<br/>AssessEngine · ExportEngine · TestDerivationEngine"]
+    end
 
-    style CLI fill:#1e3a5f,color:#fff
-    style Engine fill:#1e3a5f,color:#fff
-    style Storage fill:#1e3a5f,color:#fff
-    style Adapters fill:#1e3a5f,color:#fff
+    subgraph Persistence ["3. Pluggable Storage Layer"]
+        STORE["Storage (FileStore ABC)<br/><code>YAML + JSONL · chmod 600/700 · atomic locks</code>"]
+    end
+
+    subgraph Extensibility ["4. Integration Adapters"]
+        ADAPT["RAGBenchmarkingAdapter · Ecosystem Adapters<br/><em>Discovered via Python entry_points</em>"]
+    end
+
+    CLI -->|"calls engine functions"| ENG
+    ENG -->|"reads/writes via StorageBackend ABC"| STORE
+    ENG -->|"adapter pattern, no hard imports"| ADAPT
+
+    style UI fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
+    style Core fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style Persistence fill:#FAF0E6,stroke:#B68A2E,color:#0F1419
+    style Extensibility fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
 ```
 
 **State on disk:**
@@ -139,41 +167,38 @@ your-project/
 │       ├── system.yaml
 │       ├── register.yaml
 │       └── mitigations.yaml
-└── rmf-<id>-<export>.json             exports land where --output says (default: here)
+└── rmf-<id>-<export>.json             exports land where --output specifies (default: working directory)
 ```
 
 Plain YAML plus JSONL: readable by regulators without RiskForge installed, and diff-able in GitHub PRs.
 
 ---
 
-## AI Exponent compliance toolchain, planned integration
+## AI Exponent Governance Toolchain
 
-RiskForge is designed to integrate with the broader AI Exponent toolchain. Today, only RiskForge and rag-benchmarking are available on PyPI. The other nodes below are on the public roadmap and will integrate via plain JSON files when they ship.
+RiskForge operates as the Risk Management System (Article 9) cornerstone within the open-source AiExponent governance toolchain:
 
 ```mermaid
 graph LR
-    RAG["rag-benchmarking<br/>(accuracy evidence)<br/><i>shipped</i>"]
-    TF["TraceForge<br/>(data governance)<br/><i>roadmap</i>"]
-    RF["RiskForge<br/>(Art. 9 RMS)<br/><i>shipped</i>"]
-    TD["TransparencyDeck<br/>(Art. 13 docs)<br/><i>roadmap</i>"]
-    CB["ConformityBot<br/>(Art. 43 cert)<br/><i>roadmap</i>"]
-    CCO["Compliance Officer<br/>(PDF)"]
+    LIT["litmusai<br/><i>(Art. 5 Prohibited AI)</i><br/><code>SARIF / JSON</code>"]
+    LCC["license-compliance-checker<br/><i>(Art. 53 GPAI & Models)</i><br/><code>CycloneDX / JSON</code>"]
+    RAG["rag-benchmarking<br/><i>(Art. 15 Accuracy & Robustness)</i><br/><code>BenchmarkReport JSON</code>"]
+    RF["riskforge<br/><i>(Art. 9 Risk Management)</i><br/><b>Signed PDF / rmf.json</b>"]
+    ADA["agentic-document-analyser<br/><i>(Art. 9 / Annex IV)</i><br/><code>Audit Blocks / Layout JSON</code>"]
 
+    LIT -.->|"prohibited practice clearance"| RF
+    LCC -.->|"model & training risk"| RF
     RAG -->|"benchmark_report.json"| RF
-    TF  -.->|"trace_report.json (planned)"| RF
-    RF  -->|"rmf.pdf"| CCO
-    RF  -.->|"rmf.json (planned)"| TD
-    RF  -.->|"rmf.json (planned)"| CB
+    RF -->|"rmf.json / rmf.pdf"| ADA
 
-    style RF fill:#c9a84c,color:#000,stroke:#c9a84c
-    style RAG fill:#1e3a5f,color:#fff
-    style TF fill:#6b7685,color:#fff,stroke-dasharray:5
-    style TD fill:#6b7685,color:#fff,stroke-dasharray:5
-    style CB fill:#6b7685,color:#fff,stroke-dasharray:5
-    style CCO fill:#2d5a2d,color:#fff
+    style RF fill:#E6F4F1,stroke:#0D5463,color:#0D5463,stroke-width:2px
+    style LIT fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
+    style LCC fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
+    style RAG fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
+    style ADA fill:#F5F4EF,stroke:#E4E2DC,color:#0F1419
 ```
 
-All current connections are plain JSON files on disk. RiskForge never calls external APIs.
+All interactions occur via plain JSON artifacts on disk. RiskForge never calls external cloud APIs.
 
 ---
 
@@ -189,24 +214,26 @@ graph LR
     A9_9["Art. 9(9)<br/>Vulnerable groups"] --> VG["Dedicated questions<br/>Mandatory flag"]
     A9_10["Art. 9(10)<br/>Documentation"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
 
-    style A9_1 fill:#1e3a5f,color:#fff
-    style A9_2a fill:#1e3a5f,color:#fff
-    style A9_2b fill:#1e3a5f,color:#fff
-    style A9_4 fill:#1e3a5f,color:#fff
-    style A9_6_8 fill:#1e3a5f,color:#fff
-    style A9_9 fill:#1e3a5f,color:#fff
-    style A9_10 fill:#1e3a5f,color:#fff
+    style A9_1 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_2a fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_2b fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_4 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_6_8 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_9 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_10 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
 ```
 
-Cross-maps to: **NIST AI RMF** (GOVERN/MAP/MEASURE/MANAGE) · **ISO/IEC 42001** (Clauses 6.1, 8.4, A.6–A.9) · **Colorado AI Act (SB 24-205, reset by SB 26-189)** · **Texas HB 149 (TRAIGA)**
-
-> **Disclaimer:** RiskForge produces documented evidence for Article 9 compliance. It does not substitute for qualified legal counsel or notified body conformity assessment.
+Cross-maps to:
+* **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
+* **ISO/IEC 42001:2023**: Clauses 6.1, 8.4, and Annex Controls A.6–A.9
+* **Colorado AI Act**: SB 24-205 (reset by SB 26-189)
+* **Texas AI Framework**: Texas HB 149 (TRAIGA)
 
 ---
 
 ## Validation Gates
 
-Before every export, `riskforge validate` runs 8 gates:
+Before every export, `riskforge validate` runs 8 automated gates:
 
 | Gate | Check |
 |---|---|
@@ -221,6 +248,117 @@ Before every export, `riskforge validate` runs 8 gates:
 
 ---
 
+## Interactive Artifact Previews
+
+<details>
+  <summary><b>📄 View Starter <code>system.yaml</code> Template</b></summary>
+
+```yaml
+id: "e9b271d4-8521-4f1a-9694-81d3d6e5a401"
+name: "Loan Scoring Model"
+sys_version: "2.1"
+purpose: "Automated credit scoring for retail loan applications."
+provider: "Acme Financial Services"
+category: "essential_services"
+annex_iii_reference: "Annex III point 5(b) (Creditworthiness assessment)"
+lifecycle_stage: "development"
+created_at: "2026-09-22T08:00:00Z"
+```
+</details>
+
+<details>
+  <summary><b>🔍 View Audit-Ready Risk Management File (<code>rmf.json</code>)</b></summary>
+
+```json
+{
+  "$schema": "https://schemas.aiexponent.com/riskforge/rmf/v1.0.0",
+  "id": "e9b271d4-8521-4f1a-9694-81d3d6e5a401",
+  "rmf_schema_version": "1.0.0",
+  "generated_at": "2026-09-22T09:00:00Z",
+  "sha256_hash": "4e9a3b8d1f2c6e7a0b5d8f3e2a1c9b8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
+  "audit_entry_hash": "a7c8e9f0123456789abcdef0123456789abcdef0123456789abcdef012345678",
+  "register": {
+    "system": {
+      "name": "Loan Scoring Model",
+      "annex_iii_reference": "Annex III point 5(b) (Creditworthiness assessment)"
+    },
+    "dimension_summary": {
+      "discrimination": { "residual_risk": "ACCEPTABLE" },
+      "human_oversight": { "residual_risk": "LOW" },
+      "data_governance": { "residual_risk": "LOW" },
+      "transparency": { "residual_risk": "LOW" }
+    }
+  },
+  "cross_references": [
+    {
+      "article_ref": "Art.9(2)(a)",
+      "iso42001_ref": "Clause A.7",
+      "nist_rmf_ref": "MEASURE 2.9"
+    }
+  ]
+}
+```
+</details>
+
+---
+
+## CI/CD Integration & Exit Codes
+
+Add RiskForge to your GitHub Actions pipeline as an automated compliance and integrity gate:
+
+```yaml
+# .github/workflows/article9-gate.yml
+name: EU AI Act Article 9 Compliance Gate
+on: [pull_request, push]
+
+jobs:
+  rmf-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install RiskForge
+        run: pip install riskforge
+      - name: Validate Article 9 Gates
+        run: riskforge validate <system-id>
+      - name: Verify Audit Chain Integrity
+        run: riskforge verify
+```
+
+### Exit Code Contract
+
+RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
+
+| Exit Code | Meaning | CI Behavior |
+| :--- | :--- | :--- |
+| `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
+| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). |
+| `2` | **TAMPER DETECTED** | Cryptographic audit log or export verification failed; hash chain discrepancy detected. |
+| `3` | **SCHEMA / INPUT ERROR** | Malformed YAML/JSON syntax, missing required fields, or unrecognised system ID. |
+
+---
+
+## CLI Command Reference
+
+| Command | Description |
+| :--- | :--- |
+| `riskforge init` | Initialize a new RiskForge project or register an AI system definition. |
+| `riskforge system classify <id>` | Document and confirm Article 6(2) Annex III self-classification. |
+| `riskforge assess <id>` | Run the interactive 8-dimension guided assessment (supports `--answers`). |
+| `riskforge risk mitigate <id> <risk-id>` | Document preventive/corrective mitigation controls and re-score residual risk. |
+| `riskforge risk accept <id> <risk-id>` | Formally accept residual risk with documented business/technical rationale. |
+| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks. |
+| `riskforge validate <id>` | Execute the 8 completeness and quality gates before report generation. |
+| `riskforge export <id>` | Export Risk Management File to `pdf`, `json`, or `markdown`. |
+| `riskforge verify` | Verify cryptographic SHA-256 hash-chain integrity of audit log and exports. |
+| `riskforge risk list <id>` | List all identified risks, severity scores, and mitigation statuses. |
+| `riskforge serve` | Launch local inspection web server (*experimental local network use only*). |
+| `riskforge --version` | Display version, telemetry status, and licensing information. |
+
+---
+
 ## Features
 
 | Feature | Detail |
@@ -229,7 +367,7 @@ Before every export, `riskforge validate` runs 8 gates:
 | **Hash-chained audit** | Every mutation appended to `audit.jsonl` with atomic file locks; `riskforge verify` exits code 2 on tampering |
 | **Schema-validated exports** | Every JSON export validated against `rmf.schema.json` before writing |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
-| **Pattern matching** | 6 pre-built risk patterns for common Annex III use cases (credit scoring, hiring, facial recognition, medical imaging, content moderation, criminal risk assessment), community contributions extend the library |
+| **Pattern matching** | 6 pre-built risk patterns for common Annex III use cases (credit scoring, hiring, facial recognition, medical imaging, content moderation, criminal risk assessment) |
 | **Plugin extensible** | Add question banks, exporters, adapters via `pip install`, no config edit required |
 | **Git-friendly state** | YAML + JSONL files, human-readable, diff-able, merge-conflict-resolvable |
 
@@ -263,21 +401,50 @@ Before every export, `riskforge validate` runs 8 gates:
 git clone https://github.com/aiexponent/riskforge
 cd riskforge
 make dev-setup   # pip install -e ".[dev]" + pre-commit install
-make test        # 57 tests, all must pass
+make test        # 105 tests, all must pass
 make lint        # ruff check + format
 ```
 
 ---
 
-## Privacy
+## Documentation
 
-RiskForge makes **zero outbound network connections** in CLI mode, enforced in CI with `pytest-socket --disable-socket`.
+- [User Guide](docs/user-guide.md) — Comprehensive guide covering CLI workflow, configuration, and mitigations.
+- [Article 9 Statutory Mapping](docs/article-9-mapping.md) — Statutory clause mapping and question bank alignment.
+- [Audit Chain Architecture & Design](docs/audit-chain-design.md) — Cryptographic SHA-256 hash chaining, concurrency locks, and verification.
+- [Architecture Decision Records (ADRs)](docs/adr/) — Design principles, boundaries, and technical decisions.
+- [Contributing Guide](CONTRIBUTING.md) — How to contribute questions, patterns, and code.
+
+---
+
+## Important Disclaimers
+
+<a name="evidence-status"></a>
+
+### Technical Documentation & Legal Status
+
+> **REGULATORY EVIDENCE GENERATOR — NOT A NOTIFIED BODY**
+>
+> RiskForge produces documented evidence and audit logs to satisfy EU AI Act Article 9 and Annex IV technical documentation requirements. It is a technical workflow utility authored to support engineering and governance teams.
+>
+> **RiskForge does not constitute legal advice and is not a notified body.** Using RiskForge does not replace mandatory third-party conformity assessment where required under Article 43 of the EU AI Act.
+
+---
+
+## Privacy & Zero-Network Guarantee
+
+<a name="privacy"></a>
+
+RiskForge makes **zero outbound network connections** in CLI mode. Your risk registers, architecture descriptions, mitigation plans, and audit logs remain strictly on your local machine.
 
 ```
 RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
 ```
 
-Your AI system's risk data never leaves your machine unless you explicitly deploy the optional API server (`pip install riskforge[server]`). That server is **experimental**: it is not security-hardened and is not part of the flagship test suite, so run it only on a trusted, local network.
+*Zero-network guarantee enforced in automated CI via `pytest-socket --disable-socket`.*
+
+> [!WARNING]
+> The optional API server (`pip install riskforge[server]`) is **experimental**: it is not security-hardened and is not part of the flagship test suite, so run it only on a trusted, local network.
 
 ---
 
