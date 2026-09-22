@@ -60,7 +60,7 @@ server = [
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.29.0,<1.0.0",
     "prometheus-client>=0.20.0,<1.0.0",
-    "structlog>=24.1.0,<25.0.0",
+    "structlog>=24.1.0,<27.0.0",
     "slowapi>=0.1.9,<1.0.0",
 ]
 dev = ["riskforge[server,test]", "pre-commit>=3.7.1,<5.0.0", "hatch>=1.9.4,<2.0.0", "pip-audit>=2.7.3,<3.0.0"]
