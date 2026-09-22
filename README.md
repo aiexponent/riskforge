@@ -6,12 +6,12 @@
 <p align="center"><em>EU AI Act Article 9 risk management, as a developer workflow.</em></p>
 
 <p align="center">
-  <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg" alt="PyPI version"></a>
-  <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://github.com/aiexponent/riskforge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg" alt="License: Apache 2.0"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg" alt="Python 3.11+"></a>
-  <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg" alt="EU AI Act Article 9"></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg" alt="Zero telemetry"></a>
+  <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg?style=flat-square&color=0D5463" alt="PyPI version"></a>
+  <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://img.shields.io/github/actions/workflow/status/aiexponent/riskforge/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg?style=flat-square" alt="License: Apache 2.0"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg?style=flat-square" alt="Python 3.11+"></a>
+  <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg?style=flat-square" alt="EU AI Act Article 9"></a>
+  <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg?style=flat-square" alt="Zero telemetry"></a>
 </p>
 
 ---
@@ -305,7 +305,19 @@ Built by [AI Exponent LLC](https://aiexponent.com), `hello@aiexponent.com`
 
 ---
 
-*Part of the AiExponent open-source AI governance toolchain:
-[license-compliance-checker](https://github.com/aiexponent/license-compliance-checker) ·
-[rag-benchmarking](https://github.com/aiexponent/rag-benchmarking) ·
-**RiskForge***
+*Part of the AiExponent open-source AI governance toolchain:*  
+[litmusai](https://github.com/aiexponent/litmusai) (Art. 5) · 
+[license-compliance-checker](https://github.com/aiexponent/license-compliance-checker) (Art. 53) · 
+[rag-benchmarking](https://github.com/aiexponent/rag-benchmarking) (Art. 15) · 
+**riskforge** (Art. 9) · 
+[agentic-document-analyser](https://github.com/aiexponent/agentic-document-analyser) (Art. 9 / Annex IV)
+
+---
+
+<div align="center">
+  <sub>
+    <a href="https://aiexponent.com">aiexponent.com</a> ·
+    <a href="mailto:hello@aiexponent.com">hello@aiexponent.com</a> ·
+    Built in the open · Apache 2.0
+  </sub>
+</div>
