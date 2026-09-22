@@ -52,9 +52,14 @@ def test_readme_badges_and_reciprocal_ecosystem_footer() -> None:
     for tool in sibling_tools:
         assert tool in content, f"Missing tool '{tool}' in README reciprocal ecosystem"
 
-    assert "https://github.com/aiexponent/litmusai" in content
-    assert "https://github.com/aiexponent/license-compliance-checker" in content
-    assert "https://github.com/aiexponent/rag-benchmarking" in content
-    assert "https://github.com/aiexponent/agentic-document-analyser" in content
-    assert "https://aiexponent.com" in content
+    expected_links = [
+        "https://github.com/aiexponent/litmusai",
+        "https://github.com/aiexponent/license-compliance-checker",
+        "https://github.com/aiexponent/rag-benchmarking",
+        "https://github.com/aiexponent/agentic-document-analyser",
+    ]
+    for link in expected_links:
+        assert link in content, f"Missing reciprocal link '{link}' in README.md"
+
+    assert '<a href="https://aiexponent.com">aiexponent.com</a>' in content
     assert "aiexponenthq" not in content, "Deprecated 'aiexponenthq' found in README.md"
