@@ -1,13 +1,41 @@
 version: 2
+
+# One grouped PR per ecosystem for routine minor and patch bumps, and one
+# grouped PR for security fixes. Routine major bumps are not proposed for pip:
+# they are migrations and get planned by hand. Security updates are not
+# affected by that rule. The cooldown keeps versions published in the last
+# week out of version PRs.
+
 updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      pip-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+      pip-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      actions:
+        patterns: ["*"]
