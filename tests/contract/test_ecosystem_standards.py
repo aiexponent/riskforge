@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_dependabot_configuration() -> None:
-    """Ensure .github/dependabot.yml exists and defines weekly pip and github-actions scans."""
+    """Ensure .github/dependabot.yml exists and defines monthly pip and github-actions scans (PRD-315)."""
     dependabot_path = REPO_ROOT / ".github" / "dependabot.yml"
     assert dependabot_path.is_file(), ".github/dependabot.yml does not exist"
 
@@ -29,8 +29,8 @@ def test_dependabot_configuration() -> None:
         "github-actions" in ecosystems
     ), "Missing 'github-actions' package-ecosystem in dependabot.yml"
 
-    assert ecosystems["pip"].get("schedule", {}).get("interval") == "weekly"
-    assert ecosystems["github-actions"].get("schedule", {}).get("interval") == "weekly"
+    assert ecosystems["pip"].get("schedule", {}).get("interval") == "monthly"
+    assert ecosystems["github-actions"].get("schedule", {}).get("interval") == "monthly"
 
 
 def test_readme_badges_and_reciprocal_ecosystem_footer() -> None:
