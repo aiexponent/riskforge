@@ -281,3 +281,43 @@ def test_corrupt_system_file_is_not_a_usage_error(tmp_path: Path) -> None:
 def _first_risk_id(project: Path) -> str:
     register = next((project / ".riskforge" / "systems").glob("*/register.yaml")).read_text()
     return re.search(r"- id: ([0-9a-f]{8})", register).group(1)
+
+
+RAG_BENCHMARK_REPORT = REPO / "tests/fixtures/upstream/rag_benchmarking_benchmark_report.json"
+
+
+def test_import_of_a_real_rag_benchmarking_report(tmp_path: Path) -> None:
+    """Control for the NaN case below: the unmodified report imports (PRD-330)."""
+    sid = _init(tmp_path)
+    _assess(tmp_path, sid)
+    result = run_rf(
+        ["import", sid, "-a", "rag-benchmarking", "-r", str(RAG_BENCHMARK_REPORT)]
+        + ["--project-dir", str(tmp_path)]
+    )
+    assert result.returncode == 0, result.output
+    assert "Imported 2 risk item(s)" in result.output, result.output
+    register = next((tmp_path / ".riskforge" / "systems").glob("*/register.yaml")).read_text()
+    assert register.count("source_ref: rag:riskforge-fixture-001") == 2, register
+
+
+def test_import_refuses_a_nan_metric_and_leaves_the_register(tmp_path: Path) -> None:
+    import json
+
+    sid = _init(tmp_path)
+    _assess(tmp_path, sid)
+    register = next((tmp_path / ".riskforge" / "systems").glob("*/register.yaml"))
+    audit_log = tmp_path / ".riskforge" / "audit.jsonl"
+    before = register.read_bytes()
+    audit_before = audit_log.read_bytes()
+    assert audit_before
+    report = json.loads(RAG_BENCHMARK_REPORT.read_text(encoding="utf-8"))
+    report["metrics"]["faithfulness"] = float("nan")
+    path = tmp_path / "nan-report.json"
+    path.write_text(json.dumps(report))
+    result = run_rf(
+        ["import", sid, "-a", "rag-benchmarking", "-r", str(path)]
+        + ["--project-dir", str(tmp_path)]
+    )
+    _assert_clean(result, 3, "faithfulness")
+    assert register.read_bytes() == before
+    assert audit_log.read_bytes() == audit_before
