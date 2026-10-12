@@ -162,7 +162,7 @@ async def _run_assess(
         await store.write_register(system_id, register)
 
     # ── Header ─────────────────────────────────────────────────────────────────
-    console.print(Rule("[bold]RiskForge — EU AI Act Article 9 Assessment[/bold]"))
+    console.print(Rule("[bold]RiskForge: EU AI Act Article 9 Assessment[/bold]"))
     console.print(f"  System:   [bold]{system.name} v{system.version}[/bold]")
     console.print(f"  Assessor: {assessor_name} ({assessor_role})")
     if system.annex_iii_category:
