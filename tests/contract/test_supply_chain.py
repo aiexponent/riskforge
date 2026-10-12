@@ -7,6 +7,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import yaml
 from packaging.requirements import Requirement
 
 REPO = Path(__file__).resolve().parents[2]
@@ -55,3 +56,20 @@ def test_release_waives_exactly_what_ci_waives() -> None:
         return set(re.findall(r"--ignore-vuln (\S+)", text))
 
     assert waivers("release.yml") == waivers("ci.yml")
+
+
+def test_ci_tests_every_declared_python_version() -> None:
+    """The CI test matrix and the package classifiers list the same versions (PRD-355)."""
+    project = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    prefix = "Programming Language :: Python :: 3."
+    declared = {
+        c.removeprefix("Programming Language :: Python :: ")
+        for c in project["classifiers"]
+        if c.startswith(prefix)
+    }
+    ci = yaml.safe_load((REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+    matrix = ci["jobs"]["test"]["strategy"]["matrix"]
+
+    assert set(matrix["python-version"]) == declared
+    assert {"3.11", "3.12", "3.13"} <= declared
+    assert set(matrix["os"]) == {"ubuntu-latest", "macos-latest"}

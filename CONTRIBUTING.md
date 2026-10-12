@@ -25,7 +25,7 @@ make test           # run the full test suite (all tests must pass; run `pytest 
 make lint           # ruff check + format
 ```
 
-Requirements: Python 3.11+, Git.
+Requirements: Python 3.11, 3.12 or 3.13, Git.
 
 ### Dependency Management: Resilient Ranges & Reproducible Lockfiles
 

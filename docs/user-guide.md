@@ -32,7 +32,7 @@ export carries a non-removable disclosure to that effect.
 pip install riskforge
 ```
 
-RiskForge requires Python 3.11 or 3.12. JSON and Markdown export need nothing
+RiskForge requires Python 3.11, 3.12 or 3.13. JSON and Markdown export need nothing
 beyond the `pip install`. **PDF export** additionally needs the Pango, cairo, and
 GDK-PixBuf system libraries (used by WeasyPrint):
 

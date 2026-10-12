@@ -15,6 +15,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 - `pip install riskforge` no longer installs `keyring`, `python-dotenv` or `pydantic-settings`, which RiskForge no longer imports (`pydantic-settings` was used only by the removed server), along with the packages `keyring` pulled in. Code that relied on RiskForge to bring these in must declare them itself (PRD-329).
 - The license compatibility scan now fails the build on a license violation instead of only warning, and the release workflow waives the same `pip-audit` advisories as CI, without the stale `PYSEC-2026-3412` waiver (PRD-329).
+- Python 3.13 is now tested and supported. CI runs the test suite on Python 3.11, 3.12 and 3.13 on Ubuntu and macOS, and the package metadata lists Python 3.13 (PRD-355).
 
 ### Fixed
 
