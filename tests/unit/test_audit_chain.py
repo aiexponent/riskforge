@@ -57,7 +57,6 @@ async def _bootstrap(store: FileStore, system: AISystem) -> str:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_empty_audit_chain_is_valid(tmp_path: Path) -> None:
     """An empty audit log is considered valid."""
     store = FileStore(tmp_path)
@@ -68,7 +67,6 @@ async def test_empty_audit_chain_is_valid(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_audit_chain_valid_after_multiple_writes(tmp_path: Path) -> None:
     """Adding several risk items must produce a valid hash chain."""
     store = FileStore(tmp_path)
@@ -88,7 +86,6 @@ async def test_audit_chain_valid_after_multiple_writes(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_tampered_entry_detected(tmp_path: Path) -> None:
     """Modifying a stored audit entry must make verify_chain fail."""
     store = FileStore(tmp_path)
@@ -114,7 +111,6 @@ async def test_tampered_entry_detected(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_seq_numbering_starts_at_zero(tmp_path: Path) -> None:
     """First audit entry must have seq=0 and prev_hash='0000000000'."""
     store = FileStore(tmp_path)
@@ -198,7 +194,6 @@ def test_pdf_exporter_uses_items_not_system() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_record_rejects_tampered_tail(tmp_path: Path) -> None:
     """A record onto a chain whose tail entry was tampered must be refused."""
     store = FileStore(tmp_path)

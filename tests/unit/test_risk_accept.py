@@ -72,7 +72,6 @@ async def _engine_with_items(tmp_path: Path, items: list[RiskItem]) -> tuple[Ris
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_accept_by_full_id(tmp_path: Path) -> None:
     item = _item()
     engine, sid = await _engine_with_items(tmp_path, [item])
@@ -82,7 +81,6 @@ async def test_accept_by_full_id(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_accept_by_8char_prefix(tmp_path: Path) -> None:
     """The 8-char prefix that `risk list` displays must resolve."""
     item = _item()
@@ -93,7 +91,6 @@ async def test_accept_by_8char_prefix(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_accept_unknown_id_raises_not_found(tmp_path: Path) -> None:
     engine, sid = await _engine_with_items(tmp_path, [_item()])
     with pytest.raises(RiskNotFoundError):
@@ -101,7 +98,6 @@ async def test_accept_unknown_id_raises_not_found(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.enable_socket
 async def test_accept_ambiguous_prefix_raises(tmp_path: Path) -> None:
     a = _item("aaaaaaaa-0000-0000-0000-000000000001")
     b = _item("aaaaaaaa-0000-0000-0000-000000000002")

@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from riskforge.cli.main import app
 from typer.testing import CliRunner
 
 
-@pytest.mark.enable_socket  # asyncio.run() opens a loop socketpair
 def test_verify_success_message_has_no_em_dash(tmp_path: Path) -> None:
     runner = CliRunner()
     project_dir = str(tmp_path)
