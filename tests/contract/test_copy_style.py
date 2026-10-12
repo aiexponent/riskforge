@@ -15,6 +15,7 @@ EM_DASH = chr(0x2014)
 def _hits(paths: list[Path]) -> list[str]:
     hits = []
     for root in paths:
+        assert root.exists(), root
         files = [root] if root.is_file() else sorted(root.rglob("*"))
         for path in files:
             if path.is_file() and path.suffix in SUFFIXES:

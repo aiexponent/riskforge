@@ -377,7 +377,7 @@ async def _run_assess(
     if open_items:
         summary.add_row(
             "Open (above threshold):",
-            f"[red]{len(open_items)}[/red], require mitigation or acceptance",
+            f"[red]{len(open_items)}[/red] (require mitigation or acceptance)",
         )
     console.print(summary)
 
