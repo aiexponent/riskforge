@@ -20,8 +20,12 @@ The engine layer has zero imports from CLI or server. The server has zero import
 
 ## Enforcement
 
-`tests/boundary/test_import_boundaries.py` uses `ast.parse()` to statically verify that `riskforge.engine.*` source files contain no `import riskforge.cli` or `import riskforge.server` statements. This runs in CI on every PR.
+`tests/boundary/test_import_boundaries.py` uses `ast.parse()` to statically verify that `riskforge.engine.*` source files contain no `import riskforge.cli` statements. This runs in CI on every PR.
 
 ## Consequence
 
 Engine code that needs information from configuration must accept it as constructor arguments. No environment variable reads in engine modules — those happen in CLI and are passed in.
+
+## Update (2.0.0)
+
+The experimental server layer and its optional install extra were removed in 2.0.0 (PRD-354). The rule that the engine never imports the CLI still applies, and the boundary test now checks only that rule.

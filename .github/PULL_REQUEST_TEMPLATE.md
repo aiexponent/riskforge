@@ -17,7 +17,7 @@
 - [ ] New tests added for code changes
 - [ ] CHANGELOG.md updated
 - [ ] No business logic added to CLI commands
-- [ ] No imports across layer boundaries (CLI ↔ Engine ↔ Server)
+- [ ] No imports across layer boundaries (the engine never imports the CLI)
 
 ## For question bank changes
 

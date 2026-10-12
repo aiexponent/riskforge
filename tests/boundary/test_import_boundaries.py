@@ -1,8 +1,7 @@
-"""Engine must not import CLI or server modules.
+"""Engine must not import CLI modules.
 
 ADR-02 mandates strict import boundary separation:
 - riskforge.engine.* must not import from riskforge.cli.*
-- riskforge.engine.* must not import from riskforge.server.*
 
 This test suite is parametrised over all engine submodules and enforces
 the boundary by introspecting the loaded module's global namespace and
@@ -50,18 +49,6 @@ def test_engine_does_not_import_cli(module: str) -> None:
 
 
 @pytest.mark.parametrize("module", ENGINE_MODULES)
-def test_engine_does_not_import_server(module: str) -> None:
-    """Engine module must not directly import from riskforge.server.*"""
-    m = importlib.import_module(module)
-    for _name, obj in vars(m).items():
-        if hasattr(obj, "__module__") and obj.__module__ is not None:
-            assert "riskforge.server" not in obj.__module__, (
-                f"{module} imports {obj.__module__} from riskforge.server — "
-                "import boundary violated (ADR-02)"
-            )
-
-
-@pytest.mark.parametrize("module", ENGINE_MODULES)
 def test_engine_source_has_no_cli_string(module: str) -> None:
     """Engine source file must not contain 'from riskforge.cli' or 'import riskforge.cli'."""
     import ast
@@ -81,17 +68,9 @@ def test_engine_source_has_no_cli_string(module: str) -> None:
                     f"{module} ({source_file}:{node.lineno}): "
                     f"'import {alias.name}' violates CLI import boundary (ADR-02)"
                 )
-                assert not alias.name.startswith("riskforge.server"), (
-                    f"{module} ({source_file}:{node.lineno}): "
-                    f"'import {alias.name}' violates server import boundary (ADR-02)"
-                )
         elif isinstance(node, ast.ImportFrom):
             module_str = node.module or ""
             assert not module_str.startswith("riskforge.cli"), (
                 f"{module} ({source_file}:{node.lineno}): "
                 f"'from {module_str} import ...' violates CLI import boundary (ADR-02)"
-            )
-            assert not module_str.startswith("riskforge.server"), (
-                f"{module} ({source_file}:{node.lineno}): "
-                f"'from {module_str} import ...' violates server import boundary (ADR-02)"
             )

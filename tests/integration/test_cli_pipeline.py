@@ -547,24 +547,6 @@ def test_risk_mitigate_flags_vague() -> None:
 
 
 @pytest.mark.enable_socket
-def test_serve_refuses_external_bind_without_allow_external() -> None:
-    """serve refuses a non-localhost host unless --allow-external is passed (honest guard).
-
-    Uses a timeout so a regression that starts the server fails the test instead of hanging.
-    """
-    result = subprocess.run(
-        [_RF_BIN, "serve", "--host", "0.0.0.0", "--port", "8099"],
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
-    out = result.stdout + result.stderr
-    assert result.returncode == 1, f"expected refuse (exit 1), got {result.returncode}:\n{out}"
-    assert "allow-external" in out.lower()
-    assert "EXPERIMENTAL" in out
-
-
-@pytest.mark.enable_socket
 def test_rmf_export_structure_is_locked() -> None:
     """Lock the exported RMF top-level + mitigation key sets (guards model/schema drift, e.g. B1)."""
     import asyncio

@@ -36,7 +36,7 @@ RiskForge requires Python 3.11 or 3.12. JSON and Markdown export need nothing
 beyond the `pip install`. **PDF export** additionally needs the Pango, cairo, and
 GDK-PixBuf system libraries (used by WeasyPrint):
 
-- Debian/Ubuntu: `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+- Debian/Ubuntu: `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info`
 - macOS: `brew install pango cairo gdk-pixbuf libffi`
 - Windows: WSL2 (Ubuntu) recommended with the Debian/Ubuntu packages above, or GTK3 runtime for native Windows
 
@@ -159,7 +159,6 @@ Question ids come from the bundled question bank (see the files under
 | `riskforge verify [--file rmf.json] [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
-| `riskforge serve [--host H] [--port P] [--allow-external]` | Start the optional, experimental API server (`pip install riskforge[server]`). |
 
 Risk ids accept the first 8 characters shown by `riskforge risk list`. The
 `--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
@@ -211,7 +210,7 @@ followed by `riskforge validate <id>`.
 
 If your CI pipeline exports PDF reports (`riskforge export -f pdf`), install the
 system dependencies prior to running `riskforge`:
-- Linux runners (`ubuntu-latest`): `sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+- Linux runners (`ubuntu-latest`): `sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info`
 - macOS runners (`macos-latest`): `brew install pango cairo gdk-pixbuf libffi`
 
 ---
@@ -260,8 +259,6 @@ entry points, so you extend it by `pip install`-ing a package, with no config ed
   separate process.
 - It does not decide whether a system is high-risk under Annex III. It records the
   provider's Article 6(2) self-classification (gate G2); it does not make it.
-- The optional API server is experimental, not security-hardened, and not part of
-  the flagship test suite. Run it only on a trusted, local network.
 
 Every export carries this non-removable disclosure: the document was produced using
 RiskForge, represents the team's documented risk assessment, has not been reviewed
@@ -271,8 +268,7 @@ by a qualified legal professional, and does not constitute legal advice.
 
 ## FAQ
 
-**Does my risk data leave my machine?** No. RiskForge makes zero outbound calls in
-CLI mode. The only exception is if you explicitly run the optional API server.
+**Does my risk data leave my machine?** No. RiskForge makes zero outbound calls.
 
 **Can I edit the state files by hand?** They are plain YAML and JSONL, readable and
 diff-able. Editing the `.riskforge/audit.jsonl` chain will be detected by

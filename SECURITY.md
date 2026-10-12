@@ -28,7 +28,6 @@ We follow coordinated disclosure: we will work with you to understand and fix th
 
 In scope:
 - `riskforge` CLI — arbitrary code execution, path traversal, file permission bypasses
-- `riskforge serve` (API server) — authentication bypass, injection, SSRF
 - Audit chain integrity — hash chain bypass or forgery
 - Supply chain — dependency vulnerabilities in published wheels
 
@@ -50,5 +49,4 @@ RiskForge is designed with security in mind:
 
 ## Known Limitations
 
-- The optional `riskforge serve` API server is not hardened for public-internet exposure. It requires explicit `--allow-external` to bind to `0.0.0.0`. Use a reverse proxy (nginx, Caddy) with TLS for production server deployments.
 - Risk management files contain sensitive system architecture information. Do not commit `.riskforge/` to public repositories. RiskForge adds this to `.gitignore` automatically on `init`.
