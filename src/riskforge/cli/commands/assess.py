@@ -1,4 +1,4 @@
-"""riskforge assess — interactive 8-dimension Article 9 risk assessment."""
+"""riskforge assess: interactive 8-dimension Article 9 risk assessment."""
 
 import asyncio
 from datetime import UTC, datetime, timedelta
@@ -17,24 +17,24 @@ console = Console()
 
 # ── Likelihood / Severity choice menus ────────────────────────────────────────
 _LIKELIHOOD_CHOICES = [
-    "1 — Rare          (almost impossible under normal operation)",
-    "2 — Unlikely      (could happen, but not expected)",
-    "3 — Possible      (might occur during normal operation)",
-    "4 — Likely        (expected to occur in most circumstances)",
-    "5 — Almost Certain (will occur in almost all circumstances)",
+    "1: Rare (almost impossible under normal operation)",
+    "2: Unlikely (could happen, but not expected)",
+    "3: Possible (might occur during normal operation)",
+    "4: Likely (expected to occur in most circumstances)",
+    "5: Almost Certain (will occur in almost all circumstances)",
 ]
 _SEVERITY_CHOICES = [
-    "1 — Negligible (no meaningful harm)",
-    "2 — Minor      (limited harm, easily corrected)",
-    "3 — Moderate   (significant harm to individuals or groups)",
-    "4 — Major      (serious harm, potential legal consequences)",
-    "5 — Critical   (severe/irreversible harm, fundamental rights breach)",
+    "1: Negligible (no meaningful harm)",
+    "2: Minor (limited harm, easily corrected)",
+    "3: Moderate (significant harm to individuals or groups)",
+    "4: Major (serious harm, potential legal consequences)",
+    "5: Critical (severe/irreversible harm, fundamental rights breach)",
 ]
 _APPLIES_CHOICES = [
-    "yes     — add as a risk item with scoring",
-    "no      — not applicable to this system",
-    "unknown — flag as knowledge gap (test requirement will be generated)",
-    "skip    — defer this question (will appear as incomplete)",
+    "yes: add as a risk item with scoring",
+    "no: not applicable to this system",
+    "unknown: flag as a knowledge gap (a test requirement can be generated)",
+    "skip: defer this question (it stays incomplete)",
 ]
 
 _BAND_COLOUR = {
@@ -180,7 +180,7 @@ async def _run_assess(
     console.print(
         "\nFor each question answer [green]yes[/green] / [red]no[/red] / "
         "[yellow]unknown[/yellow] / [dim]skip[/dim]. "
-        "Press Ctrl+C at any time — progress is saved after each item.\n"
+        "Press Ctrl+C at any time. Progress is saved after each item.\n"
     )
 
     # ── Pattern matching ───────────────────────────────────────────────────────
@@ -377,14 +377,14 @@ async def _run_assess(
     if open_items:
         summary.add_row(
             "Open (above threshold):",
-            f"[red]{len(open_items)}[/red] — require mitigation or acceptance",
+            f"[red]{len(open_items)}[/red], require mitigation or acceptance",
         )
     console.print(summary)
 
     if total_added == 0 and not matched_patterns:
         console.print(
             "\n[yellow]⚠[/yellow]  No risk items were added. "
-            "This is unusual — review your answers before exporting."
+            "This is unusual. Review your answers before exporting."
         )
 
     console.print("\n[bold]Next steps:[/bold]")

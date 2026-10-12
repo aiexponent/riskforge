@@ -1,4 +1,4 @@
-"""PDF exporter — renders RMF to PDF via WeasyPrint and Jinja2."""
+"""PDF exporter: renders RMF to PDF via WeasyPrint and Jinja2."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ class PDFExporter(Exporter):
 
     The HTML template lives at exporters/pdf/templates/report.html.
     Brand changes are CSS-only: edit templates/report.css.
-    No LibreOffice or wkhtmltopdf required — pure Python.
+    No LibreOffice or wkhtmltopdf required, pure Python.
     """
 
     def __init__(self) -> None:

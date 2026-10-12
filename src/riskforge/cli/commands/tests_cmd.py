@@ -1,4 +1,4 @@
-"""riskforge tests — test requirement management subcommands."""
+"""riskforge tests: test requirement management subcommands."""
 
 from __future__ import annotations
 
@@ -31,5 +31,5 @@ def generate_tests(
     for req in requirements:
         console.print(
             f"  • [bold]{req.metric_type}[/bold] {req.threshold_range} "
-            f"({req.article_ref}) — risk {str(req.risk_item_id)[:8]}"
+            f"({req.article_ref}), risk {str(req.risk_item_id)[:8]}"
         )

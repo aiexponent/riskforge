@@ -1,4 +1,4 @@
-"""FileStore — OSS storage backend using YAML + JSONL files.
+"""FileStore: OSS storage backend using YAML + JSONL files.
 
 All data is persisted under ``<project_dir>/.riskforge/`` using a combination
 of YAML files (human-readable, diffable) and JSONL for the append-only audit
@@ -9,10 +9,10 @@ Directory layout
 ::
 
     <project_dir>/
-    ├── riskforge.yaml          chmod 600  — project manifest
+    ├── riskforge.yaml          chmod 600  # project manifest
     └── .riskforge/             chmod 700
-        ├── audit.jsonl         chmod 600  — append-only audit chain
-        ├── .nodelete                      — sentinel preventing accidental deletion
+        ├── audit.jsonl         chmod 600  # append-only audit chain
+        ├── .nodelete                      # sentinel preventing accidental deletion
         └── systems/
             └── <system_id>/
                 ├── system.yaml
@@ -280,8 +280,8 @@ class FileStore(StorageBackend):
         """Persist a :class:`RiskRegister` as two files.
 
         Writes:
-        - ``systems/{system_id}/register.yaml`` — register metadata + risk items
-        - ``systems/{system_id}/mitigations.yaml`` — flat mitigation catalogue
+        - ``systems/{system_id}/register.yaml``: register metadata + risk items
+        - ``systems/{system_id}/mitigations.yaml``: flat mitigation catalogue
           with back-links to each parent risk item
         """
 
@@ -470,7 +470,7 @@ class FileStore(StorageBackend):
                 return True, []
 
             errors: list[str] = []
-            prev_hash = "0000000000"  # genesis value — must match AuditEngine._last_entry_hash
+            prev_hash = "0000000000"  # genesis value, must match AuditEngine._last_entry_hash
             expected_seq = 0
 
             for lineno, line in enumerate(
@@ -482,27 +482,27 @@ class FileStore(StorageBackend):
                 try:
                     raw = json.loads(line)
                 except json.JSONDecodeError as exc:
-                    errors.append(f"Line {lineno}: JSON parse error — {exc}")
+                    errors.append(f"Line {lineno}: JSON parse error: {exc}")
                     continue
                 try:
                     entry = AuditEntry.model_validate(raw)
                 except Exception as exc:
-                    errors.append(f"Line {lineno}: validation error — {exc}")
+                    errors.append(f"Line {lineno}: validation error: {exc}")
                     continue
 
                 if entry.seq != expected_seq:
                     errors.append(
-                        f"Line {lineno}: sequence gap — expected {expected_seq}, got {entry.seq}."
+                        f"Line {lineno}: sequence gap: expected {expected_seq}, got {entry.seq}."
                     )
                 if entry.prev_hash != prev_hash:
                     errors.append(
-                        f"Line {lineno} (seq={entry.seq}): prev_hash mismatch — "
+                        f"Line {lineno} (seq={entry.seq}): prev_hash mismatch: "
                         f"expected {prev_hash!r}, stored {entry.prev_hash!r}."
                     )
                 computed = FileStore._compute_hash(entry.prev_hash, entry)
                 if computed != entry.entry_hash:
                     errors.append(
-                        f"Line {lineno} (seq={entry.seq}): entry_hash mismatch — "
+                        f"Line {lineno} (seq={entry.seq}): entry_hash mismatch: "
                         f"computed {computed!r}, stored {entry.entry_hash!r}."
                     )
 
@@ -511,9 +511,9 @@ class FileStore(StorageBackend):
 
             ok = len(errors) == 0
             if ok:
-                logger.info("Audit chain verified — %d entries, no errors.", expected_seq)
+                logger.info("Audit chain verified: %d entries, no errors.", expected_seq)
             else:
-                logger.warning("Audit chain verification failed — %d error(s).", len(errors))
+                logger.warning("Audit chain verification failed: %d error(s).", len(errors))
             return ok, errors
 
         return await asyncio.to_thread(_sync)

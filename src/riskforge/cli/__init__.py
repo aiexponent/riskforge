@@ -1,1 +1,1 @@
-"""RiskForge CLI — Typer command interface. Zero business logic."""
+"""RiskForge CLI: Typer command interface. Zero business logic."""

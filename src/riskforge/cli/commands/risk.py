@@ -1,10 +1,10 @@
-"""riskforge risk — risk item management subcommands."""
+"""riskforge risk: risk item management subcommands."""
 
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional  # noqa: UP007 — Typer 0.12.3 compat
+from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
@@ -29,7 +29,7 @@ def list_risks(
 
     items = [i for i in register.items if dim_filter is None or i.dimension == dim_filter]
 
-    table = Table(title=f"Risk Items — {system_id}")
+    table = Table(title=f"Risk items for {system_id}")
     table.add_column("ID", style="dim", max_width=8)
     table.add_column("Dimension")
     table.add_column("Title", max_width=40)
@@ -143,7 +143,7 @@ def mitigate_risk(
     except AmbiguousRiskIdError as exc:
         fail(exc.args[0])
 
-    vague = " [yellow](flagged vague — replace with a specific control)[/yellow]"
+    vague = " [yellow](flagged vague: replace with a specific control)[/yellow]"
     note = vague if item.mitigations[-1].is_vague else ""
     console.print(
         f"[green]✓[/green] Mitigation added to risk [bold]{str(item.id)[:8]}[/bold].{note} "

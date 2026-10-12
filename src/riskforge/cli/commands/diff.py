@@ -1,4 +1,4 @@
-"""riskforge diff — compare two risk register snapshots."""
+"""riskforge diff: compare two risk register snapshots."""
 
 from __future__ import annotations
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Risk Management File — {{ system.name }} v{{ system.version }}</title>
+  <title>Risk Management File: {{ system.name }} v{{ system.version }}</title>
   <link rel="stylesheet" href="report.css">
 </head>
 <body>
@@ -45,7 +45,7 @@
       {% endif %}
     </p>
     <p><strong>Self-Classification Documented:</strong>
-      {{ 'Yes' if system.annex_iii_self_classification_documented else 'No — see Gate G2' }}
+      {{ 'Yes' if system.annex_iii_self_classification_documented else 'No, see Gate G2' }}
     </p>
     <p><strong>Total Risk Items:</strong> {{ register.items | length }}</p>
     <p><strong>Open Items (above appetite threshold of {{ register.risk_appetite_threshold }}):</strong>
@@ -118,7 +118,7 @@
                 <ul>
                   {% for m in item.mitigations %}
                     <li class="{{ 'vague-mitigation' if m.is_vague else '' }}">
-                      <strong>{{ m.control_type.title() }}</strong> [{{ m.status }}] —
+                      <strong>{{ m.control_type.title() }}</strong> [{{ m.status }}]:
                       {{ m.description }}
                       {% if m.is_vague %}<span class="vague-flag">(flagged: generic language)</span>{% endif %}
                     </li>
@@ -133,7 +133,7 @@
             {% endif %}
             {% if item.knowledge_gap %}
               <div class="knowledge-gap-notice">
-                Knowledge gap — test requirements derived. See Section 5.
+                Knowledge gap: test requirements derived. See Section 5.
               </div>
             {% endif %}
           </div>

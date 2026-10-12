@@ -15,6 +15,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 - Common mistakes print one line saying what to do and exit 3, instead of a Python traceback: running `validate`, `export`, `import`, `risk list` or `tests generate` before `assess`; an unknown `--category`, `--dimension`, `--format` or adapter; a second `init`; a missing report or answers file; an unknown system or risk id; a bad value in an answers file; a file passed to `verify --file` or `diff` that is not a JSON RMF file; and interactive `assess` without a terminal. `riskforge verify` in a directory with no project now exits 3 instead of reporting the audit chain as verified. `system classify` without `--confirm` and a failed `--sign` also exit 3 now, not 1 (PRD-326).
 - Interactive `riskforge assess` no longer crashes at its first prompt with `RuntimeError: asyncio.run() cannot be called from a running event loop`. The prompts now run on the command's event loop, and Ctrl+C keeps the answers given so far (PRD-325).
+- CLI output, help text, the PDF report, the bundled question bank and patterns, and audit-chain error messages no longer contain em-dashes, so the output can be quoted as is. The assess menus now read `1: Rare (...)` and `yes: add as a risk item with scoring`, and pattern names read `Credit scoring: demographic bias risk`. A contract test keeps em-dashes out of these files (PRD-327).
 - The Debian and Ubuntu install line for PDF export now names `libgdk-pixbuf-2.0-0`. The old name `libgdk-pixbuf2.0-0` has no install candidate on Debian trixie (PRD-354).
 
 ## [1.1.3] - 2026-09-22

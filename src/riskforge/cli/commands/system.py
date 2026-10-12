@@ -1,10 +1,10 @@
-"""riskforge system — AI system management subcommands."""
+"""riskforge system: AI system management subcommands."""
 
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional  # noqa: UP007 — Typer 0.12.3 compat
+from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
