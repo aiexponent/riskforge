@@ -36,7 +36,7 @@ def cmd(
     is_valid, violations = asyncio.run(store.verify_chain())
 
     if is_valid:
-        console.print("[green]✓[/green] Audit chain verified — no tampering detected.")
+        console.print("[green]✓[/green] Audit chain verified: no tampering detected.")
         raise typer.Exit(0)
     else:
         console.print("[red]✗[/red] Audit chain CORRUPT. Tampering or corruption detected:")
