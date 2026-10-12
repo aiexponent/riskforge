@@ -1,0 +1,12 @@
+mitigations:
+- id: fe64d1fe-5fee-46f5-a3d1-c9c80f406081
+  description: Remove postcode feature; block release when demographic parity difference
+    exceeds 0.10
+  control_type: preventive
+  owner: ML Platform
+  status: implemented
+  evidence_refs: []
+  is_vague: false
+  article_ref: ''
+  nist_rmf_ref: ''
+  _risk_item_id: 660512ac-5242-47c3-82e0-0753e2620d8b

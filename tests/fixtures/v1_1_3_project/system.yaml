@@ -1,0 +1,14 @@
+id: 1a28b6ac-7d16-446f-a615-cd94a199a4bc
+name: CreditFlow Scoring Engine
+version: 2.1.0
+purpose: Automated credit scoring for retail loan and mortgage underwriting decisions.
+intended_users: []
+inputs: []
+outputs: []
+deployment_context: ''
+annex_iii_category: essential_services
+annex_iii_self_classification_documented: true
+provider_name: Acme Financial Services
+provider_contact: ''
+created_at: '2026-10-12T18:01:19.795704Z'
+schema_version: 1.0.0
