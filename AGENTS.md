@@ -12,7 +12,7 @@ The output goes to auditors and regulators. Accuracy and reproducibility matter 
 
 ## Setup
 
-Python 3.11 or 3.12.
+Python 3.11, 3.12 or 3.13.
 
 ```bash
 make dev-setup        # installs .[dev] (using requirements.lock when present) and the pre-commit hooks
