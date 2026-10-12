@@ -46,6 +46,7 @@ def test_license_scan_gates_the_build() -> None:
         encoding="utf-8"
     )
     assert "|| true" not in workflow
+    assert "continue-on-error" not in workflow
 
 
 def test_release_waives_exactly_what_ci_waives() -> None:
