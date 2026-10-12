@@ -9,6 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 ### Breaking changes
 
 - Removed the experimental `riskforge serve` API server: the `serve` command, the `riskforge.server` package, the `[server]` install extra (`pip install riskforge[server]`) and the Docker files that ran it (`docker/Dockerfile`, `docker/docker-compose.yml`). Most of its routes were unimplemented and it was untested. The CLI and engine are unchanged (PRD-354).
+- Exit codes follow one contract: 0 success, 1 a validation gate failed (or an unexpected crash), 2 integrity failure, 3 usage or input error. A mistyped option, a missing required option or an unknown command now exits 3 instead of 2, so a CI job that reads 2 as "tampered" no longer mistakes a typo for tampering. Scripts that checked for 2 on a usage error must check for 3 (PRD-326).
 
 ### Fixed
 

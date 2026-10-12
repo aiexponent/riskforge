@@ -68,7 +68,7 @@ test = [
 ]
 
 [project.scripts]
-riskforge = "riskforge.cli.main:app"
+riskforge = "riskforge.cli.main:run"
 
 [project.entry-points."riskforge.question_banks"]
 health_safety      = "riskforge.plugins.builtin:HealthSafetyBank"
