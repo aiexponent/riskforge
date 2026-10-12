@@ -21,7 +21,7 @@ Project state lives in `.riskforge/` (YAML + JSONL files). Not SQLite. Not Postg
 
 ## Trade-offs Accepted
 
-No concurrent writes in CLI mode. Concurrent multi-user access is not supported today: the optional, experimental `riskforge serve` still reads and writes the same file-based store. The `StorageBackend` ABC leaves room for a concurrent backend (for example a relational database) in a future release, but none ships yet.
+No concurrent writes in CLI mode. Concurrent multi-user access is not supported. The `StorageBackend` ABC leaves room for a concurrent backend (for example a relational database) in a future release, but none ships yet.
 
 ## Enforcement
 

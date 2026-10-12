@@ -33,7 +33,7 @@ Runtime dependencies in `pyproject.toml` use bounded semantic version ranges (`>
 
 To maintain strict regulatory evidence stability (PRD NFR-6) — ensuring an Article 9 Risk Management File (RMF) generated in May is byte-identical to one generated in August for the same inputs — builds are locked and validated via lockfiles (`uv.lock` and `requirements.lock`):
 - `uv.lock` provides cross-platform locked dependency resolution for `uv` workflows.
-- `requirements.lock` provides pip-compatible constraints used by CI and Docker builds.
+- `requirements.lock` provides pip-compatible constraints used by CI.
 
 When upgrading dependencies:
 
@@ -110,13 +110,12 @@ Implement the `Exporter` ABC and register via entry point. See [`docs/contributi
 
 ## Architecture
 
-RiskForge has four strictly-decoupled layers. **Never import across boundaries:**
+RiskForge has three strictly-decoupled layers. **Never import across boundaries:**
 
 ```
 CLI (riskforge/cli/):       thin commands; calls engine functions only
-Engine (riskforge/engine/): all business logic; no CLI/server imports
+Engine (riskforge/engine/): all business logic; no CLI imports
 Storage (riskforge/storage/): FileStore and StorageBackend ABC
-Server (riskforge/server/): optional FastAPI; never imported by CLI
 ```
 
 The CI pipeline enforces this with AST-based import boundary tests (ADR-02).

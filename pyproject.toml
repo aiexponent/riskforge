@@ -26,8 +26,8 @@ classifiers = [
 # Bounded runtime dependencies — enables flexible installation across enterprise
 # environments (preventing version conflicts with Pydantic, Jinja2, Rich, etc.),
 # while reproducible builds and bite-identical regulatory audit evidence for Article 9
-# RMF generation are guaranteed via lockfiles (uv.lock / requirements.lock) in CI
-# and Docker builds. CONTRIBUTING.md documents the lockfile and upgrade workflow.
+# RMF generation are guaranteed via lockfiles (uv.lock / requirements.lock) in CI.
+# CONTRIBUTING.md documents the lockfile and upgrade workflow.
 dependencies = [
     "typer>=0.12.3,<0.28.0",
     # Click 8.3+ broke is_eager callback dispatch for Typer 0.12.x — `riskforge --version`
@@ -56,14 +56,7 @@ Issues        = "https://github.com/aiexponent/riskforge/issues"
 Changelog     = "https://github.com/aiexponent/riskforge/releases"
 
 [project.optional-dependencies]
-server = [
-    "fastapi>=0.115.0,<1.0.0",
-    "uvicorn[standard]>=0.29.0,<1.0.0",
-    "prometheus-client>=0.20.0,<1.0.0",
-    "structlog>=24.1.0,<27.0.0",
-    "slowapi>=0.1.9,<1.0.0",
-]
-dev = ["riskforge[server,test]", "pre-commit>=3.7.1,<5.0.0", "hatch>=1.9.4,<2.0.0", "pip-audit>=2.7.3,<3.0.0"]
+dev = ["riskforge[test]", "pre-commit>=3.7.1,<5.0.0", "hatch>=1.9.4,<2.0.0", "pip-audit>=2.7.3,<3.0.0"]
 test = [
     "pytest>=8.0.0,<10.0.0",
     "pytest-cov>=5.0.0,<7.0.0",
@@ -131,7 +124,5 @@ branch = true
 [tool.coverage.report]
 # CI runs the FULL test suite (unit + integration + contract + boundary) via
 # `pytest --cov` in .github/workflows/ci.yml, so the measured number is the
-# full-suite coverage (~65% as of this pass). The floor is set with a small margin
-# below that. The main remaining gap is the optional, experimental `riskforge.server`
-# package; raise the floor further once it is tested (or excluded from the source).
+# full-suite coverage. The floor is set with a small margin below that.
 fail_under = 60

@@ -51,7 +51,7 @@ pip install riskforge
 
 > [!NOTE]
 > **PDF export prerequisites:** PDF generation uses WeasyPrint, which requires underlying system graphical libraries (Pango, Cairo, GDK-PixBuf, libffi):
-> - **Debian / Ubuntu:** `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+> - **Debian / Ubuntu:** `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info`
 > - **macOS:** `brew install pango cairo gdk-pixbuf libffi`
 > - **Windows:** WSL2 (Ubuntu) is recommended with the Debian/Ubuntu packages above. For native Windows, install the GTK3 runtime libraries.
 >
@@ -354,7 +354,6 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge export <id>` | Export Risk Management File to `pdf`, `json`, or `markdown`. |
 | `riskforge verify` | Verify cryptographic SHA-256 hash-chain integrity of audit log and exports. |
 | `riskforge risk list <id>` | List all identified risks, severity scores, and mitigation statuses. |
-| `riskforge serve` | Launch local inspection web server (*experimental local network use only*). |
 | `riskforge --version` | Display version, telemetry status, and licensing information. |
 
 ---
@@ -442,9 +441,6 @@ RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
 ```
 
 *Zero-network guarantee enforced in automated CI via `pytest-socket --disable-socket`.*
-
-> [!WARNING]
-> The optional API server (`pip install riskforge[server]`) is **experimental**: it is not security-hardened and is not part of the flagship test suite, so run it only on a trusted, local network.
 
 ---
 

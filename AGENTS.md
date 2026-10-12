@@ -28,7 +28,7 @@ PDF export needs WeasyPrint's system libraries. On Debian or Ubuntu:
 
 ```bash
 sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
-  libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+  libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
 ```
 
 ## Before you open a pull request
@@ -67,17 +67,15 @@ Rules that trip agents:
 
 ```
 cli/       thin Typer commands: parse input, call the engine, print with rich
-engine/    all business logic, never imports cli or server
+engine/    all business logic, never imports cli
 storage/   FileStore and the StorageBackend interface
-server/    optional FastAPI app, never imported by cli
 models/    Pydantic v2 models
 exporters/ JSON, PDF and Markdown exporters, loaded through entry points
 ```
 
-- `riskforge.engine` must not import `riskforge.cli` or `riskforge.server`. `tests/boundary/test_import_boundaries.py` enforces this. Engine code takes configuration as constructor arguments and does not read environment variables. See [docs/adr/ADR-02-import-boundaries.md](docs/adr/ADR-02-import-boundaries.md).
+- `riskforge.engine` must not import `riskforge.cli`. `tests/boundary/test_import_boundaries.py` enforces this. Engine code takes configuration as constructor arguments and does not read environment variables. See [docs/adr/ADR-02-import-boundaries.md](docs/adr/ADR-02-import-boundaries.md).
 - Keep business logic out of CLI commands.
 - Every change to a register goes through `RiskEngine`, which writes the register and then records an audit event through `AuditEngine.record()`. Never write `register.yaml` or `audit.jsonl` directly, and never edit or reorder existing audit entries.
-- The routes in `server/routers/` are scaffolds that return "Not yet implemented". Build on them only when a ticket asks for that.
 
 ## Hard rules
 

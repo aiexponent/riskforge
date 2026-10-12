@@ -46,7 +46,6 @@ from riskforge.cli.commands import (  # noqa: E402
     import_cmd,
     init,
     risk,
-    serve,
     system,
     tests_cmd,
     validate,
@@ -64,4 +63,3 @@ app.command("export")(export.cmd)
 app.command("verify")(verify.cmd)
 app.command("diff")(diff.cmd)
 app.command("import")(import_cmd.cmd)
-app.command("serve")(serve.cmd)

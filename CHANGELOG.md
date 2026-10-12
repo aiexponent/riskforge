@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Removed the experimental `riskforge serve` API server: the `serve` command, the `riskforge.server` package, the `[server]` install extra (`pip install riskforge[server]`) and the Docker files that ran it (`docker/Dockerfile`, `docker/docker-compose.yml`). Most of its routes were unimplemented and it was untested. The CLI and engine are unchanged (PRD-354).
+
+### Fixed
+
+- The Debian and Ubuntu install line for PDF export now names `libgdk-pixbuf-2.0-0`. The old name `libgdk-pixbuf2.0-0` has no install candidate on Debian trixie (PRD-354).
+
 ## [1.1.3] - 2026-09-22
 
 ### Added
