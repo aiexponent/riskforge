@@ -189,9 +189,14 @@ async def _run_assess(
             console.print(f"    • [bold]{p['name']}[/bold]")
         console.print()
 
-        add_patterns = questionary.confirm(
+        add_patterns = await questionary.confirm(
             "Add pattern-derived risk items to the register?", default=True
-        ).ask()
+        ).ask_async()
+
+        if add_patterns is None:
+            # Ctrl+C: stop here rather than reading it as "no" and starting the questions.
+            console.print("\n[yellow]Session interrupted. Progress saved.[/yellow]")
+            return
 
         if add_patterns:
             pattern_count = 0
@@ -278,11 +283,11 @@ async def _run_assess(
                 console.print(f"  [dim]Refs: {', '.join(question['article_refs'])}[/dim]")
 
             # ── Answer prompt ───────────────────────────────────────────────
-            answer = questionary.select(
+            answer = await questionary.select(
                 "  Does this risk apply to your system?",
                 choices=_APPLIES_CHOICES,
                 use_shortcuts=True,
-            ).ask()
+            ).ask_async()
 
             if answer is None:
                 # Ctrl+C inside questionary returns None
@@ -309,22 +314,22 @@ async def _run_assess(
                 )
             else:
                 # ── Likelihood ──────────────────────────────────────────────
-                lh_raw = questionary.select(
+                lh_raw = await questionary.select(
                     "  Likelihood:",
                     choices=_LIKELIHOOD_CHOICES,
                     use_shortcuts=True,
-                ).ask()
+                ).ask_async()
                 if lh_raw is None:
                     console.print("\n[yellow]Session interrupted. Progress saved.[/yellow]")
                     break
                 likelihood = int(lh_raw[0])
 
                 # ── Severity ────────────────────────────────────────────────
-                sv_raw = questionary.select(
+                sv_raw = await questionary.select(
                     "  Severity:",
                     choices=_SEVERITY_CHOICES,
                     use_shortcuts=True,
-                ).ask()
+                ).ask_async()
                 if sv_raw is None:
                     console.print("\n[yellow]Session interrupted. Progress saved.[/yellow]")
                     break
