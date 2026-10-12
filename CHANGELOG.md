@@ -11,6 +11,11 @@ Versioning: [Semantic Versioning](https://semver.org/)
 - Removed the experimental `riskforge serve` API server: the `serve` command, the `riskforge.server` package, the `[server]` install extra (`pip install riskforge[server]`) and the Docker files that ran it (`docker/Dockerfile`, `docker/docker-compose.yml`). Most of its routes were unimplemented and it was untested. The CLI and engine are unchanged (PRD-354).
 - Exit codes follow one contract: 0 success, 1 a validation gate failed (or an unexpected crash), 2 integrity failure, 3 usage or input error. A mistyped option, a missing required option or an unknown command now exits 3 instead of 2, so a CI job that reads 2 as "tampered" no longer mistakes a typo for tampering. Scripts that checked for 2 on a usage error must check for 3 (PRD-326).
 
+### Changed
+
+- `pip install riskforge` no longer installs `keyring`, `python-dotenv` or `pydantic-settings`, which RiskForge no longer imports (`pydantic-settings` was used only by the removed server), along with the packages `keyring` pulled in. Code that relied on RiskForge to bring these in must declare them itself (PRD-329).
+- The license compatibility scan now fails the build on a license violation instead of only warning, and the release workflow waives the same `pip-audit` advisories as CI, without the stale `PYSEC-2026-3412` waiver (PRD-329).
+
 ### Fixed
 
 - Common mistakes print one line saying what to do and exit 3, instead of a Python traceback: running `validate`, `export`, `import`, `risk list` or `tests generate` before `assess`; an unknown `--category`, `--dimension`, `--format` or adapter; a second `init`; a missing report or answers file; an unknown system or risk id; a bad value in an answers file; a file passed to `verify --file` or `diff` that is not a JSON RMF file; and interactive `assess` without a terminal. `riskforge verify` in a directory with no project now exits 3 instead of reporting the audit chain as verified. `system classify` without `--confirm` and a failed `--sign` also exit 3 now, not 1 (PRD-326).
