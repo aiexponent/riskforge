@@ -186,10 +186,12 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | Recoverable error, or a validation FAIL gate without `--force` |
+| 1 | A validation FAIL gate without `--force`, or an unexpected crash (prints a traceback) |
 | 2 | Audit chain corrupt or tampered, or an RMF file that does not match its digest |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, or interactive `assess` without a terminal |
 
-`verify` returns 2 on any tamper, which makes it usable as a CI gate.
+`verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
+exits 3, never 2, so a usage error cannot be mistaken for tampering.
 
 ---
 

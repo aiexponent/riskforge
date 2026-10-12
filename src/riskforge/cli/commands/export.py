@@ -28,23 +28,32 @@ def cmd(
     audit trail. The output file is written with chmod 600.
     """
 
+    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
+    from riskforge.cli.project import open_project, read_register_or_fail
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.export import ExportEngine, SigningError
     from riskforge.engine.validate import ValidateEngine
     from riskforge.models.audit import AuditActor
     from riskforge.models.rmf import RiskManagementFile
     from riskforge.plugins.registry import PluginRegistry
-    from riskforge.storage.filesystem import FileStore
 
-    store = FileStore(project_dir)
+    registry = PluginRegistry()
+    registry.load_all()
+    if fmt not in registry.list_exporters():
+        raise typer.BadParameter(
+            f"unknown format '{fmt}'. Available: {', '.join(registry.list_exporters())}.",
+            param_hint="'--format' / '-f'",
+        )
+
+    store = open_project(project_dir)
 
     # Pre-flight continuity check
     is_valid, violations = asyncio.run(store.verify_chain())
     if not is_valid:
         console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(2)
+        raise typer.Exit(EXIT_TAMPERED)
 
-    register = asyncio.run(store.read_register(system_id))
+    register = asyncio.run(read_register_or_fail(store, system_id))
 
     # Run validation gates unless --force
     if not force:
@@ -55,7 +64,7 @@ def cmd(
                 "[red]✗[/red] Validation failed. Run `riskforge validate` for details "
                 "or use --force to override."
             )
-            raise typer.Exit(1)
+            raise typer.Exit(EXIT_FAILED)
 
     # Build the RMF artefact, deriving test requirements and cross-references from
     # the register so they land in the exported file (both are deterministic).
@@ -76,10 +85,6 @@ def cmd(
         export_id = str(rmf.id)[:8]
         output = project_dir / f"rmf-{system_id[:8]}-{export_id}.{ext}"
 
-    # Load registry and run export
-    registry = PluginRegistry()
-    registry.load_all()
-
     actor = AuditActor(type="human", identity="cli")
     audit = AuditEngine(store, actor)
     engine = ExportEngine(registry, audit)
@@ -87,8 +92,7 @@ def cmd(
     try:
         result_path = asyncio.run(engine.export(rmf, fmt, output, sign_with=sign))
     except SigningError as exc:
-        console.print(f"[red]✗[/red] {exc}")
-        raise typer.Exit(1)
+        fail(str(exc))
 
     console.print(f"[green]✓[/green] Exported: [bold]{result_path}[/bold]")
     console.print(f"  SHA-256: [dim]{rmf.sha256_hash}[/dim]")

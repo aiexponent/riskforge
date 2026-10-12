@@ -9,9 +9,11 @@ Versioning: [Semantic Versioning](https://semver.org/)
 ### Breaking changes
 
 - Removed the experimental `riskforge serve` API server: the `serve` command, the `riskforge.server` package, the `[server]` install extra (`pip install riskforge[server]`) and the Docker files that ran it (`docker/Dockerfile`, `docker/docker-compose.yml`). Most of its routes were unimplemented and it was untested. The CLI and engine are unchanged (PRD-354).
+- Exit codes follow one contract: 0 success, 1 a validation gate failed (or an unexpected crash), 2 integrity failure, 3 usage or input error. A mistyped option, a missing required option or an unknown command now exits 3 instead of 2, so a CI job that reads 2 as "tampered" no longer mistakes a typo for tampering. Scripts that checked for 2 on a usage error must check for 3 (PRD-326).
 
 ### Fixed
 
+- Common mistakes print one line saying what to do and exit 3, instead of a Python traceback: running `validate`, `export`, `import`, `risk list` or `tests generate` before `assess`; an unknown `--category`, `--dimension`, `--format` or adapter; a second `init`; a missing report or answers file; an unknown system or risk id; a bad value in an answers file; a file passed to `verify --file` or `diff` that is not a JSON RMF file; and interactive `assess` without a terminal. `riskforge verify` in a directory with no project now exits 3 instead of reporting the audit chain as verified. `system classify` without `--confirm` and a failed `--sign` also exit 3 now, not 1 (PRD-326).
 - Interactive `riskforge assess` no longer crashes at its first prompt with `RuntimeError: asyncio.run() cannot be called from a running event loop`. The prompts now run on the command's event loop, and Ctrl+C keeps the answers given so far (PRD-325).
 - The Debian and Ubuntu install line for PDF export now names `libgdk-pixbuf-2.0-0`. The old name `libgdk-pixbuf2.0-0` has no install candidate on Debian trixie (PRD-354).
 

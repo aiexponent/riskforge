@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import sys
+
+import click
 import typer
+
+from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_USAGE
 
 
 def _version_callback(value: bool) -> None:
@@ -63,3 +68,39 @@ app.command("export")(export.cmd)
 app.command("verify")(verify.cmd)
 app.command("diff")(diff.cmd)
 app.command("import")(import_cmd.cmd)
+
+
+def _show_click_error(exc: click.ClickException) -> None:
+    """Print a Click error the way Typer's standalone mode does."""
+    from typer import rich_utils
+
+    rich_format_error = getattr(rich_utils, "rich_format_error", None)
+    if rich_format_error is None:
+        exc.show()
+    else:
+        rich_format_error(exc)
+
+
+def run() -> None:
+    """Console entry point.
+
+    Click reports usage errors with exit 2, which RiskForge reserves for integrity
+    failures, so they leave with EXIT_USAGE instead.
+    """
+    try:
+        code = app(prog_name="riskforge", standalone_mode=False)
+    except click.UsageError as exc:
+        # Click 8.2+ raises NoArgsIsHelpError for a bare `riskforge`: help, not an error.
+        no_args_is_help = getattr(click.exceptions, "NoArgsIsHelpError", None)
+        if no_args_is_help is not None and isinstance(exc, no_args_is_help):
+            exc.show()
+            sys.exit(EXIT_OK)
+        _show_click_error(exc)
+        sys.exit(EXIT_USAGE)
+    except click.ClickException as exc:
+        _show_click_error(exc)
+        sys.exit(exc.exit_code)
+    except click.exceptions.Abort:
+        click.echo("Aborted.", err=True)
+        sys.exit(EXIT_FAILED)
+    sys.exit(code if isinstance(code, int) else EXIT_OK)

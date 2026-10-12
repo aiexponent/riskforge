@@ -55,6 +55,13 @@ from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
 from riskforge.storage.base import StorageBackend
+from riskforge.storage.errors import (
+    InvalidSystemIdError,
+    ProjectExistsError,
+    ProjectNotFoundError,
+    RegisterNotFoundError,
+    SystemNotFoundError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +140,7 @@ class FileStore(StorageBackend):
             or "\\" in system_id
             or "\x00" in system_id
         ):
-            raise ValueError(
+            raise InvalidSystemIdError(
                 f"Invalid system id '{system_id}': must not contain path separators or '..'."
             )
         return self._systems_dir / system_id
@@ -185,8 +192,8 @@ class FileStore(StorageBackend):
 
         Raises
         ------
-        FileExistsError
-            If ``riskforge.yaml`` already exists.
+        ProjectExistsError
+            If ``riskforge.yaml`` already exists (a ``FileExistsError``).
         """
 
         def _sync() -> None:
@@ -194,9 +201,9 @@ class FileStore(StorageBackend):
             self._gitignore_check()
             manifest_path = self._root.parent / "riskforge.yaml"
             if manifest_path.exists():
-                raise FileExistsError(
-                    f"Project already initialised at {self._root.parent}. "
-                    "Delete '.riskforge/' and 'riskforge.yaml' to re-initialise."
+                raise ProjectExistsError(
+                    f"A RiskForge project already exists in {self._root.parent.resolve()} "
+                    "(riskforge.yaml found)."
                 )
             content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
             manifest_path.write_text(
@@ -207,6 +214,14 @@ class FileStore(StorageBackend):
             logger.info("Project '%s' initialised at %s", project_id, self._root.parent)
 
         await asyncio.to_thread(_sync)
+
+    def ensure_project(self) -> None:
+        """Raise ProjectNotFoundError unless ``riskforge.yaml`` exists."""
+        manifest = self._root.parent / "riskforge.yaml"
+        if not manifest.exists():
+            raise ProjectNotFoundError(
+                f"No RiskForge project in {self._root.parent.resolve()} (riskforge.yaml not found)."
+            )
 
     # ------------------------------------------------------------------ #
     # AI system CRUD                                                       #
@@ -235,14 +250,14 @@ class FileStore(StorageBackend):
 
         Raises
         ------
-        FileNotFoundError
-            If the YAML file does not exist.
+        SystemNotFoundError
+            If the YAML file does not exist (a ``FileNotFoundError``).
         """
 
         def _sync() -> AISystem:
             path = self._system_dir(system_id) / "system.yaml"
             if not path.exists():
-                raise FileNotFoundError(f"No system found for ID '{system_id}' at {path}")
+                raise SystemNotFoundError(f"No system '{system_id}' in this project.")
             return AISystem.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
         return await asyncio.to_thread(_sync)
@@ -319,14 +334,14 @@ class FileStore(StorageBackend):
 
         Raises
         ------
-        FileNotFoundError
-            If ``register.yaml`` does not exist for *system_id*.
+        RegisterNotFoundError
+            If ``register.yaml`` does not exist for *system_id* (a ``FileNotFoundError``).
         """
 
         def _sync() -> RiskRegister:
             reg_path = self._system_dir(system_id) / "register.yaml"
             if not reg_path.exists():
-                raise FileNotFoundError(f"No register found for system '{system_id}' at {reg_path}")
+                raise RegisterNotFoundError(f"System '{system_id}' has no risk register yet.")
             raw = yaml.safe_load(reg_path.read_text(encoding="utf-8"))
             return RiskRegister.model_validate(raw)
 

@@ -1,5 +1,5 @@
 """Support `python -m riskforge` invocation."""
 
-from riskforge.cli.main import app
+from riskforge.cli.main import run
 
-app()
+run()

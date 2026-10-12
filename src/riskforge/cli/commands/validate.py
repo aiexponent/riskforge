@@ -22,11 +22,12 @@ def cmd(
     All FAIL gates must pass before riskforge export will proceed
     (unless --force is supplied). WARN gates are advisory.
     """
+    from riskforge.cli.errors import EXIT_FAILED
+    from riskforge.cli.project import open_project, read_register_or_fail
     from riskforge.engine.validate import ValidateEngine
-    from riskforge.storage.filesystem import FileStore
 
-    store = FileStore(project_dir)
-    register = asyncio.run(store.read_register(system_id))
+    store = open_project(project_dir)
+    register = asyncio.run(read_register_or_fail(store, system_id))
 
     engine = ValidateEngine()
     results = engine.run(register)
@@ -51,7 +52,7 @@ def cmd(
     if engine.has_failures(results):
         console.print("\n[red]✗[/red] Validation failed. Fix FAIL gates before export.")
         if not force:
-            raise typer.Exit(1)
+            raise typer.Exit(EXIT_FAILED)
         else:
             console.print("[yellow]--force supplied: proceeding despite failures.[/yellow]")
     else:

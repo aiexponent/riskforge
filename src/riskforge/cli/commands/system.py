@@ -23,10 +23,10 @@ def show_system(
 
     from rich import print_json
 
-    from riskforge.storage.filesystem import FileStore
+    from riskforge.cli.project import open_project, read_system_or_fail
 
-    store = FileStore(project_dir)
-    system = asyncio.run(store.read_system(system_id))
+    store = open_project(project_dir)
+    system = asyncio.run(read_system_or_fail(store, system_id))
     print_json(json.dumps(system.model_dump(mode="json"), indent=2))
 
 
@@ -46,36 +46,22 @@ def classify_system(
     The provider, not the tool, decides whether a system is high-risk under Annex III.
     This records that determination and writes an audit entry. Re-run with --confirm.
     """
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import open_project, parse_category, read_system_or_fail
     from riskforge.engine.audit import AuditEngine
     from riskforge.models.audit import AuditActor
-    from riskforge.models.system import AnnexIIICategory
-    from riskforge.storage.filesystem import FileStore
 
     if not confirm:
-        console.print(
-            "[yellow]![/yellow] This records the provider's own determination that the system is "
-            "high-risk under Annex III (Article 6(2)). Re-run with [bold]--confirm[/bold] to record it."
+        fail(
+            "This records the provider's own determination that the system is "
+            "high-risk under Annex III (Article 6(2)). Re-run with --confirm to record it."
         )
-        raise typer.Exit(1)
 
-    cat_enum = None
-    if category is not None:
-        try:
-            cat_enum = AnnexIIICategory(category)
-        except ValueError:
-            valid = ", ".join(c.value for c in AnnexIIICategory)
-            console.print(f"[red]✗[/red] Unknown category '{category}'. Valid: {valid}")
-            raise typer.Exit(1)
+    cat_enum = parse_category(category)
+    store = open_project(project_dir)
 
     async def _run() -> None:
-        store = FileStore(project_dir)
-        try:
-            system = await store.read_system(system_id)
-        except FileNotFoundError:
-            console.print(
-                f"[red]✗[/red] System [bold]{system_id}[/bold] not found. Run riskforge init first."
-            )
-            raise typer.Exit(1)
+        system = await read_system_or_fail(store, system_id)
 
         system.annex_iii_self_classification_documented = True
         if cat_enum is not None:
