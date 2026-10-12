@@ -57,11 +57,11 @@ bandit -ll -r src/                  # CI job: Security Scan
 
 Rules that trip agents:
 
-- **Sockets are disabled.** `pytest` runs with `--disable-socket`. Any test that runs a CLI command or calls `asyncio.run()` needs `@pytest.mark.enable_socket`, because the event loop opens a local socket pair. See `tests/unit/test_cli_verify_output.py` for the pattern.
+- **Network sockets are disabled, including in CLI subprocesses.** `pytest` runs with `--disable-socket --allow-unix-socket`, so `asyncio.run()` works without any marker. Never add `@pytest.mark.enable_socket`, the `socket_enabled` fixture or `--force-enable-socket`: `tests/contract/test_offline_guard.py` fails the run if any test re-enables sockets.
 - **Markers are strict.** `--strict-markers` is on, so an unregistered marker fails the run.
 - **Golden files.** `tests/integration/test_examples.py` compares every example in `examples/*/` with its committed `expected.json`. If your change alters export content on purpose (including the version string in the disclosure), run `make eval-update` and check that the golden diff shows only the change you intended.
 - **Every bug fix gets a test that fails without the fix.** Confirm it fails by reverting the fix locally before you open the pull request.
-- Test CLI commands with Typer's `CliRunner` and a `tmp_path` project directory.
+- Test CLI commands end to end with `run_rf()` from `tests/rf_testkit.py` and a `tmp_path` project directory. It runs the installed `riskforge` with the network blocked and stdin closed, and goes through the real entry point, so exit codes match what users see. Typer's `CliRunner` skips that entry point (a usage error exits 2 there, not 3), so do not use it to assert exit codes.
 
 ## Architecture rules
 
