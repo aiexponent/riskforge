@@ -41,7 +41,6 @@ ruff check src/ tests/              # CI job: Lint & Format
 ruff format --check src/ tests/     # CI job: Lint & Format
 pytest --cov                        # CI job: Test (full suite, fails under 60% coverage)
 pytest tests/boundary/ -v           # CI job: Import Boundary Enforcement (ADR-02)
-pip install bandit                  # not part of the dev extras
 bandit -ll -r src/                  # CI job: Security Scan
 ```
 
