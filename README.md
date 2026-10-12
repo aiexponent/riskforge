@@ -334,9 +334,9 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | Exit Code | Meaning | CI Behavior |
 | :--- | :--- | :--- |
 | `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
-| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). |
+| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). An unexpected crash also exits 1 and prints a traceback. |
 | `2` | **TAMPER DETECTED** | Cryptographic audit log or export verification failed; hash chain discrepancy detected. |
-| `3` | **SCHEMA / INPUT ERROR** | Malformed YAML/JSON syntax, missing required fields, or unrecognised system ID. |
+| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 

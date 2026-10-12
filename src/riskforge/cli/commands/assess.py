@@ -3,12 +3,15 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional  # noqa: UP007 — Typer 0.12.3 compat
+from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 needs Optional)
 
 import typer
 from rich.console import Console
 from rich.rule import Rule
 from rich.table import Table
+
+if TYPE_CHECKING:
+    from riskforge.models.risk import RiskDimension
 
 console = Console()
 
@@ -69,6 +72,17 @@ def cmd(
         riskforge validate <system_id>
         riskforge export <system_id> --format pdf
     """
+    import sys
+
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import parse_dimension
+
+    dimension_enum = parse_dimension(dimension)
+    if answers is None and (sys.stdin is None or not sys.stdin.isatty()):
+        fail(
+            "Interactive assessment needs a terminal. Run it in a terminal, "
+            "or pass --answers FILE (format: docs/user-guide.md, Non-interactive assessment)."
+        )
     if answers is not None:
         asyncio.run(
             _run_noninteractive(
@@ -76,7 +90,7 @@ def cmd(
                 project_dir=project_dir,
                 assessor_name=assessor_name,
                 assessor_role=assessor_role,
-                dimension_filter=dimension,
+                dimension_filter=dimension_enum,
                 review_months=review_months,
                 answers_path=answers,
             )
@@ -88,7 +102,7 @@ def cmd(
             project_dir=project_dir,
             assessor_name=assessor_name,
             assessor_role=assessor_role,
-            dimension_filter=dimension,
+            dimension_filter=dimension_enum,
             review_months=review_months,
         )
     )
@@ -99,27 +113,28 @@ async def _run_assess(
     project_dir: Path,
     assessor_name: str,
     assessor_role: str,
-    dimension_filter: Optional[str],
+    dimension_filter: Optional["RiskDimension"],
     review_months: int,
 ) -> None:
     import questionary
 
+    from riskforge.cli.errors import EXIT_TAMPERED
+    from riskforge.cli.project import open_project, read_system_or_fail
     from riskforge.engine.assess import AssessEngine
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
     from riskforge.models.register import RiskRegister
     from riskforge.models.risk import Likelihood, RiskDimension, Severity
-    from riskforge.storage.filesystem import FileStore
 
     # ── Bootstrap storage + engines ───────────────────────────────────────────
-    store = FileStore(project_dir)
+    store = open_project(project_dir)
 
     # Pre-flight continuity check
     is_valid, violations = await store.verify_chain()
     if not is_valid:
         console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(2)
+        raise typer.Exit(EXIT_TAMPERED)
 
     actor = AuditActor(type="human", identity=assessor_name)
     audit = AuditEngine(store, actor)
@@ -132,14 +147,7 @@ async def _run_assess(
     assess = AssessEngine(data_dir)
 
     # ── Load system ────────────────────────────────────────────────────────────
-    try:
-        system = await store.read_system(system_id)
-    except FileNotFoundError:
-        console.print(
-            f"[red]✗[/red] System [bold]{system_id}[/bold] not found in {project_dir}.\n"
-            "Run [bold]riskforge init[/bold] first."
-        )
-        raise typer.Exit(1)
+    system = await read_system_or_fail(store, system_id)
 
     # ── Get or create register ─────────────────────────────────────────────────
     try:
@@ -225,17 +233,7 @@ async def _run_assess(
             console.print(f"[green]✓[/green] Added {pattern_count} pattern-derived risk item(s).\n")
 
     # ── Dimension question loop ────────────────────────────────────────────────
-    if dimension_filter:
-        try:
-            dims_to_run = [RiskDimension(dimension_filter)]
-        except ValueError:
-            valid = [d.value for d in RiskDimension]
-            console.print(
-                f"[red]✗[/red] Unknown dimension '{dimension_filter}'. Valid: {', '.join(valid)}"
-            )
-            raise typer.Exit(1)
-    else:
-        dims_to_run = list(RiskDimension)
+    dims_to_run = [dimension_filter] if dimension_filter else list(RiskDimension)
 
     # Pre-load all questions to know the total for progress display
     all_pairs: list[tuple[RiskDimension, dict]] = [
@@ -404,7 +402,7 @@ async def _run_noninteractive(
     project_dir: Path,
     assessor_name: str,
     assessor_role: str,
-    dimension_filter: Optional[str],
+    dimension_filter: Optional["RiskDimension"],
     review_months: int,
     answers_path: Path,
 ) -> None:
@@ -415,36 +413,35 @@ async def _run_noninteractive(
     """
     import yaml
 
+    from riskforge.cli.errors import EXIT_TAMPERED, fail
+    from riskforge.cli.project import open_project, read_system_or_fail
     from riskforge.engine.assess import AssessEngine
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
     from riskforge.models.register import RiskRegister
     from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
-    from riskforge.storage.filesystem import FileStore
 
-    if not answers_path.exists():
-        console.print(f"[red]✗[/red] Answers file not found: {answers_path}")
-        raise typer.Exit(1)
+    if not answers_path.is_file():
+        fail(f"Answers file not found: {answers_path}")
     try:
-        answers_doc = yaml.safe_load(answers_path.read_text()) or {}
+        answers_doc = yaml.safe_load(answers_path.read_text(encoding="utf-8")) or {}
+    except UnicodeDecodeError:
+        fail(f"Could not parse answers file: {answers_path} is not a text file.")
     except yaml.YAMLError as exc:
-        console.print(f"[red]✗[/red] Could not parse answers file: {exc}")
-        raise typer.Exit(1)
+        fail(f"Could not parse answers file: {' '.join(str(exc).split())}")
     if not isinstance(answers_doc, dict):
-        console.print("[red]✗[/red] Answers file must be a YAML mapping.")
-        raise typer.Exit(1)
+        fail("Answers file must be a YAML mapping.")
     answers = answers_doc.get("answers", {}) or {}
     if not isinstance(answers, dict):
-        console.print("[red]✗[/red] 'answers' must be a mapping of question id to answer.")
-        raise typer.Exit(1)
+        fail("'answers' must be a mapping of question id to answer.")
     add_patterns = bool(answers_doc.get("add_patterns", True))
 
-    store = FileStore(project_dir)
+    store = open_project(project_dir)
     is_valid, violations = await store.verify_chain()
     if not is_valid:
         console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(2)
+        raise typer.Exit(EXIT_TAMPERED)
 
     actor = AuditActor(type="human", identity=assessor_name)
     audit = AuditEngine(store, actor)
@@ -454,14 +451,7 @@ async def _run_noninteractive(
 
     assess = AssessEngine(Path(_data_pkg.__file__).parent)
 
-    try:
-        system = await store.read_system(system_id)
-    except FileNotFoundError:
-        console.print(
-            f"[red]✗[/red] System [bold]{system_id}[/bold] not found in {project_dir}. "
-            "Run riskforge init first."
-        )
-        raise typer.Exit(1)
+    system = await read_system_or_fail(store, system_id)
 
     try:
         register = await store.read_register(system_id)
@@ -506,17 +496,7 @@ async def _run_noninteractive(
                 )
                 pattern_count += 1
 
-    if dimension_filter:
-        try:
-            dims_to_run = [RiskDimension(dimension_filter)]
-        except ValueError:
-            valid = [d.value for d in RiskDimension]
-            console.print(
-                f"[red]✗[/red] Unknown dimension '{dimension_filter}'. Valid: {', '.join(valid)}"
-            )
-            raise typer.Exit(1)
-    else:
-        dims_to_run = list(RiskDimension)
+    dims_to_run = [dimension_filter] if dimension_filter else list(RiskDimension)
 
     risks_added = 0
     gaps_added = 0
@@ -531,8 +511,7 @@ async def _run_noninteractive(
                 skipped += 1
                 continue
             if not isinstance(ans, dict):
-                console.print(f"[red]✗[/red] Answer for {qid} must be a mapping.")
-                raise typer.Exit(1)
+                fail(f"Answer for {qid} must be a mapping.")
             # YAML parses bare yes/no as booleans; normalise them back.
             raw_applies = ans.get("applies", "skip")
             if raw_applies is True:
@@ -553,20 +532,16 @@ async def _run_noninteractive(
                 gaps_added += 1
             elif applies == "yes":
                 if "likelihood" not in ans or "severity" not in ans:
-                    console.print(
-                        f"[red]✗[/red] Answer for {qid} has applies: yes but no likelihood/severity."
-                    )
-                    raise typer.Exit(1)
-                likelihood = int(ans["likelihood"])
-                severity = int(ans["severity"])
+                    fail(f"Answer for {qid} has applies: yes but no likelihood/severity.")
+                likelihood = _answer_score(qid, "likelihood", ans["likelihood"])
+                severity = _answer_score(qid, "severity", ans["severity"])
                 is_unknown = False
                 risks_added += 1
             else:
-                console.print(
-                    f"[red]✗[/red] Answer for {qid} has invalid applies '{applies}' "
+                fail(
+                    f"Answer for {qid} has invalid applies '{applies}' "
                     "(use yes, no, unknown, or skip)."
                 )
-                raise typer.Exit(1)
             await risk_engine.add_risk(
                 system_id,
                 assess.question_to_risk_item(
@@ -587,3 +562,12 @@ async def _run_noninteractive(
         f"{skipped} skipped. Total in register: {len(register_now.items)}."
     )
     console.print(f"\nNext: [bold]riskforge validate {system_id}[/bold]")
+
+
+def _answer_score(qid: str, name: str, value: object) -> int:
+    """A 1-5 score from the answers file, or exit 3 naming the bad value."""
+    from riskforge.cli.errors import fail
+
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 5:
+        fail(f"Answer for {qid} has {name} {value!r}; use a whole number from 1 to 5.")
+    return value

@@ -205,6 +205,8 @@ algorithm.
 - `0` — chain intact.
 - `2` — chain corrupt. CI runners can pin `riskforge verify` as a
   required check; any tamper attempt bursts CI.
+- `3`: no RiskForge project in the directory, or another usage error.
+  Nothing was checked; this is never reported as tampering.
 
 The `2` exit code is documented in the v0.1.0 release notes (CHANGELOG
 line 131) and in the `AuditEngine` class docstring at

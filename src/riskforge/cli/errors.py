@@ -18,5 +18,5 @@ err_console = Console(stderr=True)
 
 def fail(message: str, code: int = EXIT_USAGE) -> NoReturn:
     """Print ``✗ message`` to stderr and exit with *code* (usage error by default)."""
-    err_console.print(f"[red]✗[/red] {escape(message)}", highlight=False)
+    err_console.print(f"[red]✗[/red] {escape(message)}", highlight=False, soft_wrap=True)
     raise typer.Exit(code)

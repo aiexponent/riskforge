@@ -213,7 +213,7 @@ def test_export_markdown_contains_risk_items() -> None:
 
 
 def test_risk_accept_by_prefix_and_clean_error() -> None:
-    """`risk accept` resolves the 8-char id from `risk list`; unknown ids exit 1 cleanly."""
+    """`risk accept` resolves the 8-char id from `risk list`; unknown ids exit 3 cleanly."""
     import asyncio
 
     from riskforge.storage.filesystem import FileStore
@@ -233,7 +233,7 @@ def test_risk_accept_by_prefix_and_clean_error() -> None:
         assert "accepted" in ok.output.lower()
 
         bad = _run(["risk", "accept", sid, "00000000", "-r", "x", "--project-dir", str(d)])
-        assert bad.returncode == 1, f"expected clean exit 1, got {bad.returncode}:\n{bad.output}"
+        assert bad.returncode == 3, f"expected clean exit 3, got {bad.returncode}:\n{bad.output}"
         assert "Traceback" not in bad.output, f"unhandled crash:\n{bad.output}"
         assert "No risk item matches" in bad.output
 
@@ -341,8 +341,8 @@ def test_assess_noninteractive_from_answers_file() -> None:
         assert any(i.knowledge_gap for i in reg.items), "knowledge-gap item missing"
 
 
-def test_assess_noninteractive_missing_file_exits_1() -> None:
-    """A missing answers file is a clean exit 1, not a traceback."""
+def test_assess_noninteractive_missing_file_exits_3() -> None:
+    """A missing answers file is a clean exit 3 (input error), not a traceback."""
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp)
         sid = _init_project(d, "Answers Missing System")
@@ -360,7 +360,7 @@ def test_assess_noninteractive_missing_file_exits_1() -> None:
                 str(d),
             ]
         )
-        assert res.returncode == 1, f"expected exit 1, got {res.returncode}:\n{res.output}"
+        assert res.returncode == 3, f"expected exit 3, got {res.returncode}:\n{res.output}"
         assert "Traceback" not in res.output
 
 

@@ -30,7 +30,10 @@ def cmd(
     import asyncio
     import uuid
 
-    from riskforge.models.system import AISystem, AnnexIIICategory
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import parse_category
+    from riskforge.models.system import AISystem
+    from riskforge.storage.errors import ProjectExistsError
     from riskforge.storage.filesystem import FileStore
 
     store = FileStore(project_dir)
@@ -41,7 +44,7 @@ def cmd(
         version=version,
         purpose=purpose,
         provider_name=provider,
-        annex_iii_category=AnnexIIICategory(category) if category else None,
+        annex_iii_category=parse_category(category),
     )
 
     async def _init() -> None:
@@ -51,10 +54,20 @@ def cmd(
         )
         await store.write_system(str(system.id), system)
 
-    asyncio.run(_init())
+    try:
+        asyncio.run(_init())
+    except ProjectExistsError as exc:
+        fail(
+            f"{exc} Delete .riskforge/ and riskforge.yaml to start again, "
+            "or use another --project-dir."
+        )
 
     console.print(f"[green]✓[/green] Initialised RiskForge project: [bold]{name} v{version}[/bold]")
-    console.print(f"  System ID: [dim]{system.id}[/dim]")
+    sid = str(system.id)
+    console.print(f"  System ID: [dim]{sid}[/dim]")
     console.print(f"  Project dir: [dim]{project_dir.resolve()}[/dim]")
     console.print("")
-    console.print("Next: [bold]riskforge assess[/bold]")
+    console.print(
+        f"Next: [bold]riskforge system classify {sid} --confirm[/bold], "
+        f"then [bold]riskforge assess {sid} -a NAME -r ROLE[/bold]"
+    )

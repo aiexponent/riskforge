@@ -18,11 +18,11 @@ def generate_tests(
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
     """Derive test requirements from the risk register."""
+    from riskforge.cli.project import open_project, read_register_or_fail
     from riskforge.engine.tests import TestDerivationEngine
-    from riskforge.storage.filesystem import FileStore
 
-    store = FileStore(project_dir)
-    register = asyncio.run(store.read_register(system_id))
+    store = open_project(project_dir)
+    register = asyncio.run(read_register_or_fail(store, system_id))
 
     engine = TestDerivationEngine()
     requirements = engine.derive(register.items)
