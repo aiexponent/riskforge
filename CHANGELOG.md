@@ -12,6 +12,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ### Fixed
 
+- Interactive `riskforge assess` no longer crashes at its first prompt with `RuntimeError: asyncio.run() cannot be called from a running event loop`. The prompts now run on the command's event loop, and Ctrl+C keeps the answers given so far (PRD-325).
 - The Debian and Ubuntu install line for PDF export now names `libgdk-pixbuf-2.0-0`. The old name `libgdk-pixbuf2.0-0` has no install candidate on Debian trixie (PRD-354).
 
 ## [1.1.3] - 2026-09-22
