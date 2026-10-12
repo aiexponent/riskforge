@@ -1,4 +1,4 @@
-"""riskforge verify — verify audit chain integrity."""
+"""riskforge verify: verify audit chain integrity."""
 
 from __future__ import annotations
 

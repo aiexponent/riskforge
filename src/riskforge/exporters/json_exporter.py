@@ -1,4 +1,4 @@
-"""JSON exporter — serialises RMF to canonical UTF-8 JSON."""
+"""JSON exporter: serialises RMF to canonical UTF-8 JSON."""
 
 from __future__ import annotations
 

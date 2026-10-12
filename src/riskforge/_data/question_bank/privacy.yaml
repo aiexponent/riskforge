@@ -24,7 +24,7 @@ questions:
     regulatory_status: settled
 
   - id: PR-003
-    text: "Is data minimisation enforced — does the model use only the minimum personal data necessary for the intended purpose?"
+    text: "Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?"
     guidance: "GDPR data minimisation and purpose limitation principles apply to AI systems processing personal data."
     annex_iii_categories: [biometric, employment, essential_services, education]
     default_likelihood_hint: 2

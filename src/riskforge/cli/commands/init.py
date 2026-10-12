@@ -1,9 +1,9 @@
-"""riskforge init — initialise a new risk management project."""
+"""riskforge init: initialise a new risk management project."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional  # noqa: UP007 — Typer 0.12.3 compat
+from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console

@@ -1,4 +1,4 @@
-"""riskforge import — import upstream tool reports into the risk register."""
+"""riskforge import: import upstream tool reports into the risk register."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Markdown exporter — produces a human-readable RMF summary."""
+"""Markdown exporter: produces a human-readable RMF summary."""
 
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 schema_version: "1.0.0"
 patterns:
   - pattern_id: CREDIT_SCORING_BIAS
-    name: "Credit Scoring — Demographic Bias Risk"
+    name: "Credit scoring: demographic bias risk"
     triggers:
       annex_iii_category: essential_services
       purpose_keywords: ["credit", "loan", "mortgage", "underwriting", "insurance"]
@@ -24,7 +24,7 @@ patterns:
         iso42001_ref: "Clause A.6"
 
   - pattern_id: HIRING_SCREENING
-    name: "Hiring / CV Screening — Multiple Risk Cluster"
+    name: "Hiring and CV screening: risk cluster"
     triggers:
       annex_iii_category: employment
       purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "interview", "candidate"]
@@ -55,7 +55,7 @@ patterns:
         iso42001_ref: "Clause A.9"
 
   - pattern_id: LAW_ENFORCEMENT_BIOMETRIC
-    name: "Law Enforcement — Biometric Identification Risk Cluster"
+    name: "Law enforcement: biometric identification risk cluster"
     triggers:
       annex_iii_category: law_enforcement
       purpose_keywords: ["facial recognition", "biometric", "identification", "surveillance", "matching"]
@@ -78,7 +78,7 @@ patterns:
         iso42001_ref: "Clause A.7"
 
   - pattern_id: EDUCATION_ASSESSMENT
-    name: "Education — Automated Student Assessment Risk"
+    name: "Education: automated student assessment risk"
     triggers:
       annex_iii_category: education
       purpose_keywords: ["assessment", "grading", "scoring", "evaluation", "exam", "test"]
@@ -101,7 +101,7 @@ patterns:
         iso42001_ref: "Clause A.6"
 
   - pattern_id: MEDICAL_DIAGNOSIS
-    name: "Healthcare — Medical Diagnosis or Clinical Decision Support"
+    name: "Healthcare: medical diagnosis or clinical decision support"
     triggers:
       annex_iii_category: essential_services
       purpose_keywords: ["diagnosis", "clinical", "medical", "patient", "triage", "prognosis", "screening"]
@@ -124,14 +124,14 @@ patterns:
         iso42001_ref: "Clause A.9"
 
   - pattern_id: MIGRATION_ASYLUM
-    name: "Migration / Asylum — Decision Support Risk Cluster"
+    name: "Migration and asylum: decision support risk cluster"
     triggers:
       annex_iii_category: migration
       purpose_keywords: ["asylum", "border", "visa", "migration", "refugee", "immigration"]
     risks:
       - dimension: fundamental_rights
         title: "AI-assisted asylum decisions affecting right to protection"
-        description: "Errors in AI-assisted migration decisions can result in refoulement — return of persons to places where they face persecution. This is an absolute fundamental rights violation."
+        description: "Errors in AI-assisted migration decisions can result in refoulement: return of persons to places where they face persecution. This is an absolute fundamental rights violation."
         likelihood_hint: 2
         severity_hint: 5
         article_refs: ["Art.9(2)(a)"]

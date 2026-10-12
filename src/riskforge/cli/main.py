@@ -23,7 +23,7 @@ def _version_callback(value: bool) -> None:
 
 app = typer.Typer(
     name="riskforge",
-    help="EU AI Act Article 9 Risk Management System — AI Exponent LLC",
+    help="EU AI Act Article 9 risk management system, by AI Exponent LLC",
     no_args_is_help=True,
 )
 
@@ -40,10 +40,10 @@ def main(
         help="Show version and exit.",
     ),
 ) -> None:
-    """RiskForge — EU AI Act Article 9 Risk Management System CLI."""
+    """RiskForge: EU AI Act Article 9 Risk Management System CLI."""
 
 
-# Register subcommands (lazy imports — no business logic at import time)
+# Register subcommands (lazy imports, no business logic at import time)
 from riskforge.cli.commands import (  # noqa: E402
     assess,
     diff,
