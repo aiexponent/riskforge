@@ -35,15 +35,14 @@ def open_project(project_dir: Path) -> FileStore:
 
 async def read_system_or_fail(store: FileStore, system_id: str) -> AISystem:
     """The stored system, or exit 3 naming the systems this project does have."""
-    from riskforge.storage.errors import SystemNotFoundError
+    from riskforge.storage.errors import InvalidSystemIdError, SystemNotFoundError
 
     try:
         return await store.read_system(system_id)
     except SystemNotFoundError:
         known = await store.list_systems()
         fail(f"No system '{system_id}' in this project. Systems: {', '.join(known) or 'none'}.")
-    except ValueError as exc:
-        # FileStore rejects ids that would leave the systems/ directory.
+    except InvalidSystemIdError as exc:
         fail(str(exc))
 
 

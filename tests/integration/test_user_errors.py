@@ -238,3 +238,46 @@ def test_diff_with_a_file_that_is_not_an_rmf(tmp_path: Path) -> None:
     markdown = tmp_path / "rmf.md"
     markdown.write_text("# not json\n")
     _assert_clean(run_rf(["diff", "x", str(markdown), str(markdown)]), 3, "not a JSON RMF file")
+
+
+def test_empty_acceptance_rationale(tmp_path: Path) -> None:
+    sid = _init(tmp_path)
+    _assess(tmp_path, sid)
+    rid = _first_risk_id(tmp_path)
+    result = run_rf(["risk", "accept", sid, rid, "-r", " ", "--project-dir", str(tmp_path)])
+    _assert_clean(result, 3, "rationale is required")
+
+
+def test_system_id_with_a_path_separator(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = run_rf(["system", "show", "../x", "--project-dir", str(tmp_path)])
+    _assert_clean(result, 3, "must not contain path separators")
+
+
+# A corrupted or hand-edited project file is not a user mistake: it must never exit 3.
+
+
+def test_corrupt_audit_log_is_not_a_usage_error(tmp_path: Path) -> None:
+    sid = _init(tmp_path)
+    _assess(tmp_path, sid)
+    rid = _first_risk_id(tmp_path)
+    audit = tmp_path / ".riskforge" / "audit.jsonl"
+    lines = audit.read_text().splitlines()
+    audit.write_text("\n".join(lines[:-1] + [lines[-1][: len(lines[-1]) // 2]]) + "\n")
+    result = run_rf(["risk", "accept", sid, rid, "-r", "ok", "--project-dir", str(tmp_path)])
+    assert result.returncode not in (0, 3), result.output
+
+
+def test_corrupt_system_file_is_not_a_usage_error(tmp_path: Path) -> None:
+    sid = _init(tmp_path)
+    system_file = tmp_path / ".riskforge" / "systems" / sid / "system.yaml"
+    text = system_file.read_text()
+    assert "annex_iii_category: essential_services" in text
+    system_file.write_text(text.replace("essential_services", "not_a_category"))
+    result = run_rf(["validate", sid, "--project-dir", str(tmp_path)])
+    assert result.returncode not in (0, 3), result.output
+
+
+def _first_risk_id(project: Path) -> str:
+    register = next((project / ".riskforge" / "systems").glob("*/register.yaml")).read_text()
+    return re.search(r"- id: ([0-9a-f]{8})", register).group(1)

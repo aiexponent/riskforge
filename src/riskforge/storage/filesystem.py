@@ -56,6 +56,7 @@ from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import (
+    InvalidSystemIdError,
     ProjectExistsError,
     ProjectNotFoundError,
     RegisterNotFoundError,
@@ -139,7 +140,7 @@ class FileStore(StorageBackend):
             or "\\" in system_id
             or "\x00" in system_id
         ):
-            raise ValueError(
+            raise InvalidSystemIdError(
                 f"Invalid system id '{system_id}': must not contain path separators or '..'."
             )
         return self._systems_dir / system_id

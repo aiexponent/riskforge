@@ -19,9 +19,5 @@ class RegisterNotFoundError(FileNotFoundError):
     """The AI system exists but has no risk register yet."""
 
 
-class AuditLogCorruptError(ValueError):
-    """The audit log holds a line that is not a valid audit entry."""
-
-
-class PendingChangeError(RuntimeError):
-    """A read-only project holds a change that an interrupted command left unfinished."""
+class InvalidSystemIdError(ValueError):
+    """A system id that would point outside the project's systems/ directory."""

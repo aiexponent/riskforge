@@ -62,7 +62,12 @@ def accept_risk(
     from riskforge.cli.errors import fail
     from riskforge.cli.project import open_project, read_register_or_fail
     from riskforge.engine.audit import AuditEngine
-    from riskforge.engine.risk import AmbiguousRiskIdError, RiskEngine, RiskNotFoundError
+    from riskforge.engine.risk import (
+        AmbiguousRiskIdError,
+        RationaleRequiredError,
+        RiskEngine,
+        RiskNotFoundError,
+    )
     from riskforge.models.audit import AuditActor
 
     store = open_project(project_dir)
@@ -77,7 +82,7 @@ def accept_risk(
         fail(_no_such_risk(system_id, risk_id))
     except AmbiguousRiskIdError as exc:
         fail(exc.args[0])
-    except ValueError as exc:
+    except RationaleRequiredError as exc:
         fail(str(exc))
 
     console.print(f"[green]✓[/green] Risk [bold]{str(item.id)[:8]}[/bold] accepted and audited.")
