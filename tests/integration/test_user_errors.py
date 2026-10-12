@@ -306,7 +306,10 @@ def test_import_refuses_a_nan_metric_and_leaves_the_register(tmp_path: Path) -> 
     sid = _init(tmp_path)
     _assess(tmp_path, sid)
     register = next((tmp_path / ".riskforge" / "systems").glob("*/register.yaml"))
+    audit_log = tmp_path / ".riskforge" / "audit.jsonl"
     before = register.read_bytes()
+    audit_before = audit_log.read_bytes()
+    assert audit_before
     report = json.loads(RAG_BENCHMARK_REPORT.read_text(encoding="utf-8"))
     report["metrics"]["faithfulness"] = float("nan")
     path = tmp_path / "nan-report.json"
@@ -317,3 +320,4 @@ def test_import_refuses_a_nan_metric_and_leaves_the_register(tmp_path: Path) -> 
     )
     _assert_clean(result, 3, "faithfulness")
     assert register.read_bytes() == before
+    assert audit_log.read_bytes() == audit_before

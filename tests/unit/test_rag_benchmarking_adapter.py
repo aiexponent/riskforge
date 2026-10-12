@@ -69,3 +69,28 @@ def test_unknown_major_schema_version_is_refused() -> None:
         RAGBenchmarkingAdapter().transform(
             {"schema_version": "2.0.0", "pipeline_id": "p", "metrics": {}}
         )
+
+
+def test_both_spellings_of_answer_relevancy_are_refused() -> None:
+    # Which value wins would depend on JSON key order, so neither is picked.
+    for metrics in (
+        {"answer_relevance": 0.9, "answer_relevancy": 0.1},
+        {"answer_relevancy": 0.1, "answer_relevance": 0.9},
+    ):
+        with pytest.raises(AdapterSchemaError, match="answer_relevance.*answer_relevancy"):
+            RAGBenchmarkingAdapter().transform({"run_id": "r", "metrics": metrics})
+
+
+@pytest.mark.parametrize("value", [-0.5, 1.5])
+def test_checked_metric_outside_zero_to_one_is_refused(value: float) -> None:
+    report = _load("rag_benchmarking_benchmark_report.json")
+    report["metrics"]["faithfulness"] = value
+    with pytest.raises(AdapterSchemaError, match=rf"faithfulness.*{value}"):
+        RAGBenchmarkingAdapter().transform(report)
+
+
+@pytest.mark.parametrize("value", [0, 1, 0.0, 1.0])
+def test_checked_metric_at_the_bounds_is_accepted(value: float) -> None:
+    report = _load("rag_benchmarking_benchmark_report.json")
+    report["metrics"]["faithfulness"] = value
+    RAGBenchmarkingAdapter().transform(report)

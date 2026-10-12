@@ -69,6 +69,16 @@ class RAGBenchmarkingAdapter:
                 )
             if isinstance(value, bool) or not isinstance(value, Real):
                 raise AdapterSchemaError(f"Metric '{raw_name}' is not a number: {value!r}.")
+            if not 0 <= value <= 1:
+                raise AdapterSchemaError(
+                    f"Metric '{raw_name}' is {value}, outside the score range 0 to 1."
+                )
+        for alias, name in self.ALIASES.items():
+            if alias in metrics and name in metrics:
+                raise AdapterSchemaError(
+                    f"The report has both '{alias}' and '{name}', which name the same "
+                    "metric. Keep one of them."
+                )
 
     def transform(self, data: dict) -> list[RiskItem]:
         self.validate(data)
