@@ -136,3 +136,26 @@ def test_ctrl_c_keeps_answers_given_so_far(tmp_path: Path) -> None:
     assert len(_items(tmp_path)) == 3
     verify = run_rf(["verify", "--project-dir", str(tmp_path)])
     assert verify.returncode == 0, verify.output
+
+
+def test_ctrl_c_at_pattern_prompt_stops_the_session(tmp_path: Path) -> None:
+    system_id = _init(tmp_path)
+    child = _spawn_assess(tmp_path, system_id)
+    try:
+        child.expect(r"Add pattern-derived risk items.*\(Y/n\)")
+        child.sendcontrol("c")
+        # Fail fast if Ctrl+C is read as "no" and the questions start.
+        shown = child.expect(["Session interrupted", MARKER])
+        assert shown == 0, "a question prompt was shown after Ctrl+C at the pattern prompt"
+        child.expect(pexpect.EOF)
+        rest = child.before
+        child.close()
+        assert child.exitstatus == 0, rest
+    finally:
+        child.close(force=True)
+    assert not re.search(MARKER, rest), rest
+    assert "Does this risk apply" not in rest
+    assert "Traceback" not in rest
+    assert _items(tmp_path) == []
+    verify = run_rf(["verify", "--project-dir", str(tmp_path)])
+    assert verify.returncode == 0, verify.output

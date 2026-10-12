@@ -193,6 +193,11 @@ async def _run_assess(
             "Add pattern-derived risk items to the register?", default=True
         ).ask_async()
 
+        if add_patterns is None:
+            # Ctrl+C: stop here rather than reading it as "no" and starting the questions.
+            console.print("\n[yellow]Session interrupted. Progress saved.[/yellow]")
+            return
+
         if add_patterns:
             pattern_count = 0
             for pattern in matched_patterns:
