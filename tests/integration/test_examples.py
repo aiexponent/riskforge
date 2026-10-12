@@ -12,18 +12,19 @@ import sys
 from pathlib import Path
 
 import pytest
+from rf_testkit import offline_env
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL = REPO_ROOT / "scripts" / "eval.py"
 
 
-@pytest.mark.enable_socket
 @pytest.mark.skipif(not EVAL.exists(), reason="run from a source checkout")
 def test_examples_match_goldens() -> None:
     result = subprocess.run(
         [sys.executable, str(EVAL)],
         capture_output=True,
         text=True,
+        env=offline_env(),
         timeout=240,
     )
     assert result.returncode == 0, (
