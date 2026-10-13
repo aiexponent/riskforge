@@ -1,3 +1,5 @@
+# The RiskForge 1.1.3 fixture is pinned byte for byte by its SHA256SUMS.
+exclude: ^tests/fixtures/v1_1_3_project/
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4

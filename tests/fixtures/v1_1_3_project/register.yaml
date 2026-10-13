@@ -1,0 +1,359 @@
+id: b27956e6-511a-4485-bb92-c4e8999352d5
+system:
+  id: 1a28b6ac-7d16-446f-a615-cd94a199a4bc
+  name: CreditFlow Scoring Engine
+  version: 2.1.0
+  purpose: Automated credit scoring for retail loan and mortgage underwriting decisions.
+  intended_users: []
+  inputs: []
+  outputs: []
+  deployment_context: ''
+  annex_iii_category: essential_services
+  annex_iii_self_classification_documented: true
+  provider_name: Acme Financial Services
+  provider_contact: ''
+  created_at: '2026-10-12T18:01:19.795704Z'
+  schema_version: 1.0.0
+items:
+- id: 660512ac-5242-47c3-82e0-0753e2620d8b
+  dimension: discrimination
+  title: Demographic bias in credit scoring outputs
+  description: Credit scoring models trained on historical data may encode systemic
+    biases against protected groups (age, gender, ethnicity). Article 9(9) requires
+    consideration of impacts on vulnerable groups.
+  source: pattern
+  likelihood: 3
+  severity: 4
+  mitigations:
+  - id: fe64d1fe-5fee-46f5-a3d1-c9c80f406081
+    description: Remove postcode feature; block release when demographic parity difference
+      exceeds 0.10
+    control_type: preventive
+    owner: ML Platform
+    status: implemented
+    evidence_refs: []
+    is_vague: false
+    article_ref: ''
+    nist_rmf_ref: ''
+  residual_likelihood: 2
+  residual_severity: 4
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.086590Z'
+  article_refs:
+  - Art.9(2)(a)
+  - Art.9(9)
+  - Art.10(2)(f)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: MEASURE 2.9
+  iso42001_ref: Clause A.7
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - pattern:CREDIT_SCORING_BIAS
+  notes: ''
+  risk_score: 12
+  residual_risk_score: 8
+  risk_band: high
+  residual_risk_band: medium
+- id: 822f78e7-3e1a-43a9-95f7-03c1ffc17d66
+  dimension: transparency
+  title: Lack of explanation for credit decisions
+  description: Automated credit decisions must be explainable to affected individuals
+    under GDPR Article 22. The system may not currently provide this.
+  source: pattern
+  likelihood: 3
+  severity: 3
+  mitigations: []
+  residual_likelihood: 3
+  residual_severity: 3
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.088506Z'
+  article_refs:
+  - Art.13
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: GOVERN 1.7
+  iso42001_ref: Clause A.6
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - pattern:CREDIT_SCORING_BIAS
+  notes: ''
+  risk_score: 9
+  residual_risk_score: 9
+  risk_band: medium
+  residual_risk_band: medium
+- id: ff516ec9-ec5a-4257-a64c-83a2d53e930b
+  dimension: health_safety
+  title: Could the system's outputs directly influence a clinical, safety, or physical
+    decision without mandatory human review?
+  description: Consider decisions about medication dosing, surgical planning, vehicle
+    operation, equipment control, or emergency dispatch.
+  source: question_bank
+  likelihood: 1
+  severity: 3
+  mitigations: []
+  residual_likelihood: 1
+  residual_severity: 3
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.092374Z'
+  article_refs:
+  - Art.9(2)(a)
+  - Art.14(1)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: MAP 1.5
+  iso42001_ref: Clause 6.1
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - HS-001
+  notes: ''
+  risk_score: 3
+  residual_risk_score: 3
+  risk_band: low
+  residual_risk_band: low
+- id: de3d47ad-6ef9-4de7-89a6-1a04732f135a
+  dimension: fundamental_rights
+  title: Has a fundamental rights impact assessment (FRIA) been conducted prior to
+    deployment?
+  description: Article 9(2)(a) requires identification of known and foreseeable risks
+    to fundamental rights. A FRIA is the standard mechanism for this.
+  source: question_bank
+  likelihood: 3
+  severity: 4
+  mitigations: []
+  residual_likelihood: 3
+  residual_severity: 4
+  accepted: true
+  acceptance_rationale: Residual within appetite after documented controls.
+  identified_at: '2026-10-12T18:01:20.096699Z'
+  article_refs:
+  - Art.9(2)(a)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: GOVERN 1.1
+  iso42001_ref: Clause 6.1
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - FR-001
+  notes: ''
+  risk_score: 12
+  residual_risk_score: 12
+  risk_band: high
+  residual_risk_band: high
+- id: c1ce4c31-05e1-45a2-9095-5385da064ba7
+  dimension: discrimination
+  title: Has the training dataset been audited for representation imbalances across
+    protected characteristics (gender, ethnicity,
+  description: Biased training data produces biased outputs. Article 10(2)(f) requires
+    data governance measures to address biases.
+  source: question_bank
+  likelihood: 4
+  severity: 5
+  mitigations: []
+  residual_likelihood: 4
+  residual_severity: 5
+  accepted: true
+  acceptance_rationale: Residual within appetite after documented controls.
+  identified_at: '2026-10-12T18:01:20.101791Z'
+  article_refs:
+  - Art.10(2)(f)
+  - Art.9(2)(a)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: MEASURE 2.9
+  iso42001_ref: Clause A.7
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - DI-001
+  notes: ''
+  risk_score: 20
+  residual_risk_score: 20
+  risk_band: critical
+  residual_risk_band: critical
+- id: adbcbaca-f8c0-4b1c-b874-e6e46e3019e4
+  dimension: privacy
+  title: Does the system process personal data or special category data (health, biometric,
+    ethnicity, religion)?
+  description: Processing of special category data triggers additional obligations
+    under GDPR Article 9 and EU AI Act Article 10(5).
+  source: question_bank
+  likelihood: 3
+  severity: 4
+  mitigations: []
+  residual_likelihood: 3
+  residual_severity: 4
+  accepted: true
+  acceptance_rationale: Residual within appetite after documented controls.
+  identified_at: '2026-10-12T18:01:20.107803Z'
+  article_refs:
+  - Art.10(5)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: GOVERN 1.6
+  iso42001_ref: Clause A.8
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - PR-001
+  notes: ''
+  risk_score: 12
+  residual_risk_score: 12
+  risk_band: high
+  residual_risk_band: high
+- id: 85ee7acf-52a1-4491-9fc6-987318053673
+  dimension: transparency
+  title: Are users notified that they are interacting with or being assessed by an
+    AI system?
+  description: Article 13 requires providers to ensure a sufficient level of transparency
+    to enable users to interpret the system's output. Notification is a baseline.
+  source: question_bank
+  likelihood: 3
+  severity: 3
+  mitigations: []
+  residual_likelihood: 3
+  residual_severity: 3
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.114278Z'
+  article_refs:
+  - Art.13(1)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: GOVERN 1.7
+  iso42001_ref: Clause A.6
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - TR-001
+  notes: ''
+  risk_score: 9
+  residual_risk_score: 9
+  risk_band: medium
+  residual_risk_band: medium
+- id: ebed15cc-216a-4739-975c-2f1c94edc669
+  dimension: human_oversight
+  title: Can a human operator override or stop the AI system's output in real time
+    without significant technical barriers?
+  description: Article 14(4)(e) requires the ability to intervene on or interrupt
+    AI system operation. This must be technically implemented, not just policy-stated.
+  source: question_bank
+  likelihood: 2
+  severity: 4
+  mitigations: []
+  residual_likelihood: 2
+  residual_severity: 4
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.121414Z'
+  article_refs:
+  - Art.14(4)(e)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: MANAGE 1.1
+  iso42001_ref: Clause A.9
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - HO-001
+  notes: ''
+  risk_score: 8
+  residual_risk_score: 8
+  risk_band: medium
+  residual_risk_band: medium
+- id: c3e8c682-0ccb-48d7-acc4-8f2ae6ca5080
+  dimension: robustness
+  title: Has the system been tested against out-of-distribution inputs, edge cases,
+    and adversarial perturbations?
+  description: Article 9(7) and Article 15 require testing of AI systems against the
+    intended purpose and reasonably foreseeable misuse.
+  source: question_bank
+  likelihood: 3
+  severity: 4
+  mitigations: []
+  residual_likelihood: 3
+  residual_severity: 4
+  accepted: true
+  acceptance_rationale: Residual within appetite after documented controls.
+  identified_at: '2026-10-12T18:01:20.129629Z'
+  article_refs:
+  - Art.9(7)
+  - Art.15
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: MEASURE 2.5
+  iso42001_ref: Clause A.9
+  regulatory_status: settled
+  knowledge_gap: false
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - RO-001
+  notes: ''
+  risk_score: 12
+  residual_risk_score: 12
+  risk_band: high
+  residual_risk_band: high
+- id: e1c6007e-6c5d-459e-b11b-964fabe4cdee
+  dimension: data_governance
+  title: Is the provenance of all training, validation, and test datasets documented
+    (source, collection date, license, version)?
+  description: Article 10(2) requires data governance practices including documentation
+    of dataset provenance. TraceForge can automate this.
+  source: question_bank
+  likelihood: 2
+  severity: 3
+  mitigations: []
+  residual_likelihood: 2
+  residual_severity: 3
+  accepted: false
+  acceptance_rationale: ''
+  identified_at: '2026-10-12T18:01:20.138453Z'
+  article_refs:
+  - Art.10(2)
+  - Art.10(3)
+  nist_rmf_refs: []
+  iso42001_refs: []
+  nist_rmf_ref: GOVERN 1.7
+  iso42001_ref: Clause A.8
+  regulatory_status: settled
+  knowledge_gap: true
+  knowledge_gap_reason: ''
+  source_ref: ''
+  tags:
+  - DG-001
+  notes: ''
+  risk_score: 6
+  residual_risk_score: 6
+  risk_band: medium
+  residual_risk_band: medium
+risk_appetite_threshold: 9
+assessor_name: Example Assessor
+assessor_role: AI Governance Lead
+assessment_date: '2026-10-12T18:01:20.082324Z'
+review_date: '2027-10-07T18:01:20.082456Z'
+question_bank_version: 1.0.0
+schema_version: 1.0.0

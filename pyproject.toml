@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "riskforge"
 version = "1.1.3"
-description = "EU AI Act Article 9 Risk Management System — open-source CLI"
+description = "EU AI Act Article 9 Risk Management System: open-source CLI"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.11"
@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Security",
     "Topic :: Software Development :: Quality Assurance",
@@ -26,8 +27,8 @@ classifiers = [
 # Bounded runtime dependencies — enables flexible installation across enterprise
 # environments (preventing version conflicts with Pydantic, Jinja2, Rich, etc.),
 # while reproducible builds and bite-identical regulatory audit evidence for Article 9
-# RMF generation are guaranteed via lockfiles (uv.lock / requirements.lock) in CI
-# and Docker builds. CONTRIBUTING.md documents the lockfile and upgrade workflow.
+# RMF generation are guaranteed via lockfiles (uv.lock / requirements.lock) in CI.
+# CONTRIBUTING.md documents the lockfile and upgrade workflow.
 dependencies = [
     "typer>=0.12.3,<0.28.0",
     # Click 8.3+ broke is_eager callback dispatch for Typer 0.12.x — `riskforge --version`
@@ -35,15 +36,12 @@ dependencies = [
     # 2026-05-10 on Python 3.12.2 against click 8.3.3 (broken) and 8.1.7 (working).
     "click>=8.1,<8.6",
     "pydantic>=2.7.1,<3.0.0",
-    "pydantic-settings>=2.2.1,<3.0.0",
     "pyyaml>=6.0.1,<7.0.0",
     "jsonschema>=4.20.0,<5.0.0",
     "weasyprint>=70.0,<71.0",
     "jinja2>=3.1.4,<4.0.0",
     "rich>=13.7.1,<16.0.0",
     "questionary>=2.0.1,<3.0.0",
-    "keyring>=25.2.1,<26.0.0",
-    "python-dotenv>=1.2.2,<2.0.0",
     "packaging>=24.0,<27.0",
     "filelock>=3.14.0,<5.0.0",
 ]
@@ -56,25 +54,18 @@ Issues        = "https://github.com/aiexponent/riskforge/issues"
 Changelog     = "https://github.com/aiexponent/riskforge/releases"
 
 [project.optional-dependencies]
-server = [
-    "fastapi>=0.115.0,<1.0.0",
-    "uvicorn[standard]>=0.29.0,<1.0.0",
-    "prometheus-client>=0.20.0,<1.0.0",
-    "structlog>=24.1.0,<27.0.0",
-    "slowapi>=0.1.9,<1.0.0",
-]
-dev = ["riskforge[server,test]", "pre-commit>=3.7.1,<5.0.0", "hatch>=1.9.4,<2.0.0", "pip-audit>=2.7.3,<3.0.0"]
+dev = ["riskforge[test]", "pre-commit>=3.7.1,<5.0.0", "hatch>=1.9.4,<2.0.0", "pip-audit>=2.7.3,<3.0.0"]
 test = [
     "pytest>=8.0.0,<10.0.0",
     "pytest-cov>=5.0.0,<7.0.0",
     "pytest-socket>=0.7.0,<1.0.0",
     "pytest-asyncio>=0.23.0,<2.0.0",
-    "httpx>=0.27.0,<1.0.0",
     "bandit>=1.7.8,<2.0.0",
+    "pexpect>=4.9.0,<5.0.0",
 ]
 
 [project.scripts]
-riskforge = "riskforge.cli.main:app"
+riskforge = "riskforge.cli.main:run"
 
 [project.entry-points."riskforge.question_banks"]
 health_safety      = "riskforge.plugins.builtin:HealthSafetyBank"
@@ -122,7 +113,7 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--strict-markers --disable-socket"
+addopts = "--strict-markers --disable-socket --allow-unix-socket"
 
 [tool.coverage.run]
 source = ["riskforge"]
@@ -131,7 +122,5 @@ branch = true
 [tool.coverage.report]
 # CI runs the FULL test suite (unit + integration + contract + boundary) via
 # `pytest --cov` in .github/workflows/ci.yml, so the measured number is the
-# full-suite coverage (~65% as of this pass). The floor is set with a small margin
-# below that. The main remaining gap is the optional, experimental `riskforge.server`
-# package; raise the floor further once it is tested (or excluded from the source).
+# full-suite coverage. The floor is set with a small margin below that.
 fail_under = 60

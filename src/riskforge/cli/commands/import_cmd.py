@@ -1,4 +1,4 @@
-"""riskforge import — import upstream tool reports into the risk register."""
+"""riskforge import: import upstream tool reports into the risk register."""
 
 from __future__ import annotations
 
@@ -16,7 +16,15 @@ def cmd(
     adapter: str = typer.Option(
         ..., "--adapter", "-a", help="Adapter name (e.g. rag-benchmarking)"
     ),
-    report: Path = typer.Option(..., "--report", "-r", help="Path to upstream report JSON"),
+    report: Path = typer.Option(
+        ...,
+        "--report",
+        "-r",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Path to upstream report JSON",
+    ),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
     """Import an upstream tool report and add derived risk items to the register.
@@ -25,20 +33,34 @@ def cmd(
     """
     import json
 
+    from riskforge.adapters.base import AdapterSchemaError
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import open_project, read_register_or_fail
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
     from riskforge.plugins.registry import PluginRegistry
-    from riskforge.storage.filesystem import FileStore
 
-    data = json.loads(report.read_text())
     registry = PluginRegistry()
     registry.load_all()
+    if adapter not in registry.list_adapters():
+        raise typer.BadParameter(
+            f"unknown adapter '{adapter}'. Available: {', '.join(registry.list_adapters())}.",
+            param_hint="'--adapter' / '-a'",
+        )
+    store = open_project(project_dir)
+    asyncio.run(read_register_or_fail(store, system_id))
+    try:
+        data = json.loads(report.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        fail(f"{report} is not a JSON report (it is binary).")
+    except json.JSONDecodeError as exc:
+        fail(f"{report} is not valid JSON: {exc}")
+    try:
+        risk_items = registry.get_adapter(adapter).transform(data)
+    except AdapterSchemaError as exc:
+        fail(f"{report}: {exc}")
 
-    upstream_adapter = registry.get_adapter(adapter)
-    risk_items = upstream_adapter.transform(data)
-
-    store = FileStore(project_dir)
     actor = AuditActor(type="human", identity="cli-import")
     audit = AuditEngine(store, actor)
     engine = RiskEngine(store, audit)

@@ -28,7 +28,6 @@ We follow coordinated disclosure: we will work with you to understand and fix th
 
 In scope:
 - `riskforge` CLI — arbitrary code execution, path traversal, file permission bypasses
-- `riskforge serve` (API server) — authentication bypass, injection, SSRF
 - Audit chain integrity — hash chain bypass or forgery
 - Supply chain — dependency vulnerabilities in published wheels
 
@@ -43,12 +42,11 @@ RiskForge is designed with security in mind:
 
 - **Zero outbound calls in CLI mode** — enforced by `pytest-socket` CI gate
 - **File permissions** — project files written with `chmod 600`; `.riskforge/` directory with `chmod 700`
-- **No secrets in project files** — API keys handled via OS keychain (`keyring`) or environment variables
+- **No secrets in project files**: RiskForge does not read or store API keys or other credentials
 - **Audit trail integrity** — SHA-256 hash chain; `riskforge verify` exits code 2 on tampering
 - **Git protection** — `riskforge init` auto-adds `.riskforge/` to `.gitignore`
 - **Supply chain** — `pip-audit` gate on every release; CycloneDX SBOM and Sigstore attestation attached to every release
 
 ## Known Limitations
 
-- The optional `riskforge serve` API server is not hardened for public-internet exposure. It requires explicit `--allow-external` to bind to `0.0.0.0`. Use a reverse proxy (nginx, Caddy) with TLS for production server deployments.
 - Risk management files contain sensitive system architecture information. Do not commit `.riskforge/` to public repositories. RiskForge adds this to `.gitignore` automatically on `init`.

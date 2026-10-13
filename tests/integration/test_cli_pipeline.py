@@ -11,37 +11,17 @@ here. AssessEngine is covered in unit/test_audit_chain.py.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
-import sys
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import pytest
-
-# Use sys.executable-relative path for the binary — reliable in all install modes.
-# sys.executable gives /path/to/venv/bin/python; the CLI entry point is in the same bin/.
-_RF_BIN = str(Path(sys.executable).parent / "riskforge")
-if not Path(_RF_BIN).exists():
-    _RF_BIN = shutil.which("riskforge") or _RF_BIN
+from rf_testkit import run_rf
 
 
 def _run(args: list[str], cwd: str | None = None) -> subprocess.CompletedProcess:
-    """Run riskforge <args> and return the completed process.
-
-    Returns a CompletedProcess with a combined .output attribute (stdout + stderr)
-    because Rich Console may write to either stream depending on TTY detection.
-    """
-    result = subprocess.run(
-        [_RF_BIN] + args,
-        capture_output=True,
-        text=True,
-        cwd=cwd,
-    )
-    # Attach combined output for convenience (Rich sometimes writes to stderr in CI)
-    result.output = result.stdout + result.stderr  # type: ignore[attr-defined]
-    return result
+    """Run riskforge <args> offline; the result carries ``.output``."""
+    return run_rf(args, cwd=cwd)
 
 
 def _init_project(tmp_dir: Path, name: str = "Pipeline Test System") -> str:
@@ -121,7 +101,6 @@ def _seed_register(tmp_dir: Path, sid: str, one_dim: bool = False, classify: boo
     asyncio.run(_run_async())
 
 
-@pytest.mark.enable_socket
 def test_version_shows_zero_telemetry() -> None:
     """riskforge --version must include the zero-telemetry trust signal."""
     result = _run(["--version"])
@@ -130,7 +109,6 @@ def test_version_shows_zero_telemetry() -> None:
     assert "Apache 2.0" in result.output
 
 
-@pytest.mark.enable_socket
 def test_init_creates_project_files() -> None:
     """riskforge init must create .riskforge/ and riskforge.yaml."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -141,7 +119,6 @@ def test_init_creates_project_files() -> None:
         assert len(sid) > 10, f"Unexpected system ID: {sid}"
 
 
-@pytest.mark.enable_socket
 def test_full_pipeline_init_validate_export_verify() -> None:
     """Full pipeline: init → seed → validate → export json → verify."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -207,7 +184,6 @@ def test_full_pipeline_init_validate_export_verify() -> None:
         assert "verified" in (verify_result.stdout + verify_result.stderr).lower()
 
 
-@pytest.mark.enable_socket
 def test_export_markdown_contains_risk_items() -> None:
     """Markdown export must contain actual risk item text."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -236,9 +212,8 @@ def test_export_markdown_contains_risk_items() -> None:
         assert "Integration test risk" in content
 
 
-@pytest.mark.enable_socket
 def test_risk_accept_by_prefix_and_clean_error() -> None:
-    """`risk accept` resolves the 8-char id from `risk list`; unknown ids exit 1 cleanly."""
+    """`risk accept` resolves the 8-char id from `risk list`; unknown ids exit 3 cleanly."""
     import asyncio
 
     from riskforge.storage.filesystem import FileStore
@@ -258,12 +233,11 @@ def test_risk_accept_by_prefix_and_clean_error() -> None:
         assert "accepted" in ok.output.lower()
 
         bad = _run(["risk", "accept", sid, "00000000", "-r", "x", "--project-dir", str(d)])
-        assert bad.returncode == 1, f"expected clean exit 1, got {bad.returncode}:\n{bad.output}"
+        assert bad.returncode == 3, f"expected clean exit 3, got {bad.returncode}:\n{bad.output}"
         assert "Traceback" not in bad.output, f"unhandled crash:\n{bad.output}"
         assert "No risk item matches" in bad.output
 
 
-@pytest.mark.enable_socket
 def test_system_classify_clears_g2() -> None:
     """`system classify --confirm` records Article 6(2) so validation gate G2 passes.
 
@@ -294,7 +268,6 @@ def test_system_classify_clears_g2() -> None:
         assert chain.returncode == 0, f"classify must not break the audit chain:\n{chain.output}"
 
 
-@pytest.mark.enable_socket
 def test_verify_file_detects_tampered_rmf() -> None:
     """`verify --file` validates a standalone RMF's digest: exit 0 clean, exit 2 tampered."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -320,7 +293,6 @@ def test_verify_file_detects_tampered_rmf() -> None:
         ), f"tampered RMF must exit 2, got {tampered.returncode}:\n{tampered.output}"
 
 
-@pytest.mark.enable_socket
 def test_assess_noninteractive_from_answers_file() -> None:
     """`assess --answers` builds the register non-interactively from a YAML file."""
     import asyncio
@@ -369,9 +341,8 @@ def test_assess_noninteractive_from_answers_file() -> None:
         assert any(i.knowledge_gap for i in reg.items), "knowledge-gap item missing"
 
 
-@pytest.mark.enable_socket
-def test_assess_noninteractive_missing_file_exits_1() -> None:
-    """A missing answers file is a clean exit 1, not a traceback."""
+def test_assess_noninteractive_missing_file_exits_3() -> None:
+    """A missing answers file is a clean exit 3 (input error), not a traceback."""
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp)
         sid = _init_project(d, "Answers Missing System")
@@ -389,11 +360,10 @@ def test_assess_noninteractive_missing_file_exits_1() -> None:
                 str(d),
             ]
         )
-        assert res.returncode == 1, f"expected exit 1, got {res.returncode}:\n{res.output}"
+        assert res.returncode == 3, f"expected exit 3, got {res.returncode}:\n{res.output}"
         assert "Traceback" not in res.output
 
 
-@pytest.mark.enable_socket
 def test_export_populates_test_requirements_and_cross_references() -> None:
     """Exported RMF carries derived Article 9 test requirements and cross-references."""
     import riskforge._data as _data_pkg
@@ -436,7 +406,6 @@ def test_export_populates_test_requirements_and_cross_references() -> None:
         assert len(rmf["cross_references"]) >= 1, "cross_references should be derived at export"
 
 
-@pytest.mark.enable_socket
 def test_export_records_audit_entry_hash_in_file() -> None:
     """The exported RMF carries the hash of its rmf.exported audit entry; verify --file still holds."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -461,7 +430,6 @@ def test_export_records_audit_entry_hash_in_file() -> None:
         assert _run(["verify", "--file", str(out), "--project-dir", str(d)]).returncode == 0
 
 
-@pytest.mark.enable_socket
 def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
     """`risk mitigate` adds a mitigation via the CLI, re-scores residual, audits, and exports."""
     import asyncio
@@ -514,7 +482,6 @@ def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
         assert any(i["mitigations"] for i in rmf["register"]["items"])
 
 
-@pytest.mark.enable_socket
 def test_risk_mitigate_flags_vague() -> None:
     """A vague mitigation description is flagged to the user."""
     import asyncio
@@ -546,25 +513,6 @@ def test_risk_mitigate_flags_vague() -> None:
         assert "vague" in res.output.lower()
 
 
-@pytest.mark.enable_socket
-def test_serve_refuses_external_bind_without_allow_external() -> None:
-    """serve refuses a non-localhost host unless --allow-external is passed (honest guard).
-
-    Uses a timeout so a regression that starts the server fails the test instead of hanging.
-    """
-    result = subprocess.run(
-        [_RF_BIN, "serve", "--host", "0.0.0.0", "--port", "8099"],
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
-    out = result.stdout + result.stderr
-    assert result.returncode == 1, f"expected refuse (exit 1), got {result.returncode}:\n{out}"
-    assert "allow-external" in out.lower()
-    assert "EXPERIMENTAL" in out
-
-
-@pytest.mark.enable_socket
 def test_rmf_export_structure_is_locked() -> None:
     """Lock the exported RMF top-level + mitigation key sets (guards model/schema drift, e.g. B1)."""
     import asyncio
@@ -647,7 +595,6 @@ def test_rmf_export_structure_is_locked() -> None:
         assert "## Risk Items" in md_text
 
 
-@pytest.mark.enable_socket
 def test_risk_list_shows_seeded_items() -> None:
     """riskforge risk list must return seeded items."""
     with tempfile.TemporaryDirectory() as tmp:

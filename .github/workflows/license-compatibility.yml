@@ -1,11 +1,7 @@
 name: License Compatibility (LCC dogfooding)
 
-# AiExponent dogfooding gate: every released tool runs LCC against itself
-# to surface license compatibility issues across the dependency tree.
-# Initially warn-only — promote to gating once the baseline is clean.
-#
-# Source obligation: PRD-v2.0 section 5.5 (Dependency scanning via LCC's
-# own eu-ai-act-compliance policy at every release).
+# Every released AiExponent tool runs License Compliance Checker against itself.
+# A license violation fails this job.
 
 on:
   push:
@@ -19,7 +15,7 @@ permissions:
 
 jobs:
   lcc-scan:
-    name: LCC self-scan (warn-only)
+    name: LCC self-scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -31,9 +27,12 @@ jobs:
       - name: Install License Compliance Checker
         run: |
           python -m pip install --upgrade pip
-          pip install license-compliance-checker
+          pip install "license-compliance-checker==2.0.2"
 
-      - name: Run LCC scan (permissive policy, warn-only)
+      - name: Run LCC scan (permissive policy)
+        env:
+          LCC_POLICY_DIR: ${{ runner.temp }}/lcc-policies
+          LCC_CACHE_DIR: ${{ runner.temp }}/lcc-cache
         run: |
           lcc scan . \
             --format json \
@@ -42,8 +41,7 @@ jobs:
             --exclude "tests/**" \
             --exclude ".git/**" \
             --exclude "dist/**" \
-            --exclude "build/**" \
-            || true
+            --exclude "build/**"
 
       - name: Upload LCC report
         if: always()
@@ -52,22 +50,3 @@ jobs:
           name: lcc-report
           path: lcc-report.json
           if-no-files-found: warn
-
-      - name: Summarise LCC findings
-        if: always()
-        run: |
-          python - <<'PY'
-          import json, sys
-          try:
-              report = json.load(open("lcc-report.json", encoding="utf-8"))
-          except Exception as e:
-              print(f"::warning::could not read lcc-report.json: {e}")
-              sys.exit(0)
-          summary = report.get("summary", {})
-          violations = summary.get("violations", 0)
-          components = summary.get("component_count", 0)
-          if violations:
-              print(f"::warning::LCC found {violations} license violation(s) across {components} components.")
-          else:
-              print(f"LCC scan clean: {components} components, 0 violations.")
-          PY

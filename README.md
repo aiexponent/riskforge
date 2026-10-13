@@ -10,7 +10,7 @@
     <a href="https://pypi.org/project/riskforge/"><img src="https://img.shields.io/pypi/v/riskforge.svg?style=flat-square&color=0D5463" alt="PyPI version"></a>
     <a href="https://github.com/aiexponent/riskforge/actions"><img src="https://img.shields.io/github/actions/workflow/status/aiexponent/riskforge/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0D5463.svg?style=flat-square" alt="License: Apache 2.0"></a>
-    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-0D5463.svg?style=flat-square" alt="Python 3.11+"></a>
+    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0D5463.svg?style=flat-square" alt="Python 3.11, 3.12, 3.13"></a>
     <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg?style=flat-square" alt="EU AI Act Article 9"></a>
     <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg?style=flat-square" alt="Zero telemetry"></a>
     <a href="#evidence-status"><img src="https://img.shields.io/badge/evidence_status-VALIDATED-B68A2E.svg?style=flat-square" alt="Evidence status: VALIDATED"></a>
@@ -51,7 +51,7 @@ pip install riskforge
 
 > [!NOTE]
 > **PDF export prerequisites:** PDF generation uses WeasyPrint, which requires underlying system graphical libraries (Pango, Cairo, GDK-PixBuf, libffi):
-> - **Debian / Ubuntu:** `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`
+> - **Debian / Ubuntu:** `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info`
 > - **macOS:** `brew install pango cairo gdk-pixbuf libffi`
 > - **Windows:** WSL2 (Ubuntu) is recommended with the Debian/Ubuntu packages above. For native Windows, install the GTK3 runtime libraries.
 >
@@ -334,9 +334,9 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | Exit Code | Meaning | CI Behavior |
 | :--- | :--- | :--- |
 | `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
-| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). |
+| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). An unexpected crash also exits 1 and prints a traceback. |
 | `2` | **TAMPER DETECTED** | Cryptographic audit log or export verification failed; hash chain discrepancy detected. |
-| `3` | **SCHEMA / INPUT ERROR** | Malformed YAML/JSON syntax, missing required fields, or unrecognised system ID. |
+| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 
@@ -354,7 +354,6 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge export <id>` | Export Risk Management File to `pdf`, `json`, or `markdown`. |
 | `riskforge verify` | Verify cryptographic SHA-256 hash-chain integrity of audit log and exports. |
 | `riskforge risk list <id>` | List all identified risks, severity scores, and mitigation statuses. |
-| `riskforge serve` | Launch local inspection web server (*experimental local network use only*). |
 | `riskforge --version` | Display version, telemetry status, and licensing information. |
 
 ---
@@ -442,9 +441,6 @@ RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
 ```
 
 *Zero-network guarantee enforced in automated CI via `pytest-socket --disable-socket`.*
-
-> [!WARNING]
-> The optional API server (`pip install riskforge[server]`) is **experimental**: it is not security-hardened and is not part of the flagship test suite, so run it only on a trusted, local network.
 
 ---
 

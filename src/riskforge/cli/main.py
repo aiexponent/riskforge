@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import sys
+
+import click
 import typer
+
+from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_USAGE
 
 
 def _version_callback(value: bool) -> None:
@@ -18,7 +23,7 @@ def _version_callback(value: bool) -> None:
 
 app = typer.Typer(
     name="riskforge",
-    help="EU AI Act Article 9 Risk Management System — AI Exponent LLC",
+    help="EU AI Act Article 9 risk management system, by AI Exponent LLC",
     no_args_is_help=True,
 )
 
@@ -35,10 +40,10 @@ def main(
         help="Show version and exit.",
     ),
 ) -> None:
-    """RiskForge — EU AI Act Article 9 Risk Management System CLI."""
+    """RiskForge: EU AI Act Article 9 Risk Management System CLI."""
 
 
-# Register subcommands (lazy imports — no business logic at import time)
+# Register subcommands (lazy imports, no business logic at import time)
 from riskforge.cli.commands import (  # noqa: E402
     assess,
     diff,
@@ -46,7 +51,6 @@ from riskforge.cli.commands import (  # noqa: E402
     import_cmd,
     init,
     risk,
-    serve,
     system,
     tests_cmd,
     validate,
@@ -64,4 +68,39 @@ app.command("export")(export.cmd)
 app.command("verify")(verify.cmd)
 app.command("diff")(diff.cmd)
 app.command("import")(import_cmd.cmd)
-app.command("serve")(serve.cmd)
+
+
+def _show_click_error(exc: click.ClickException) -> None:
+    """Print a Click error the way Typer's standalone mode does."""
+    from typer import rich_utils
+
+    rich_format_error = getattr(rich_utils, "rich_format_error", None)
+    if rich_format_error is None:
+        exc.show()
+    else:
+        rich_format_error(exc)
+
+
+def run() -> None:
+    """Console entry point.
+
+    Click reports usage errors with exit 2, which RiskForge reserves for integrity
+    failures, so they leave with EXIT_USAGE instead.
+    """
+    try:
+        code = app(prog_name="riskforge", standalone_mode=False)
+    except click.UsageError as exc:
+        # Click 8.2+ raises NoArgsIsHelpError for a bare `riskforge`: help, not an error.
+        no_args_is_help = getattr(click.exceptions, "NoArgsIsHelpError", None)
+        if no_args_is_help is not None and isinstance(exc, no_args_is_help):
+            exc.show()
+            sys.exit(EXIT_OK)
+        _show_click_error(exc)
+        sys.exit(EXIT_USAGE)
+    except click.ClickException as exc:
+        _show_click_error(exc)
+        sys.exit(exc.exit_code)
+    except click.exceptions.Abort:
+        click.echo("Aborted.", err=True)
+        sys.exit(EXIT_FAILED)
+    sys.exit(code if isinstance(code, int) else EXIT_OK)

@@ -1,4 +1,4 @@
-/* RiskForge PDF Report — AiExponent Brand Stylesheet */
+/* RiskForge PDF Report: AiExponent Brand Stylesheet */
 
 /* ──────────────────────────────────────────────────
    Base & Typography
@@ -12,7 +12,7 @@
     color: #6b7280;
   }
   @bottom-left {
-    content: "RiskForge — EU AI Act Article 9 RMF — AI Exponent LLC";
+    content: "RiskForge, EU AI Act Article 9 RMF, AI Exponent LLC";
     font-size: 9pt;
     color: #6b7280;
   }

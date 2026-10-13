@@ -1,9 +1,10 @@
-"""riskforge verify — verify audit chain integrity."""
+"""riskforge verify: verify audit chain integrity."""
 
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Optional  # noqa: UP007 (Typer 0.12.3 needs Optional)
 
 import typer
 from rich.console import Console
@@ -13,7 +14,9 @@ console = Console()
 
 def cmd(
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
-    file: Path = typer.Option(None, "--file", "-f", help="rmf.json to verify"),
+    file: Optional[Path] = typer.Option(
+        None, "--file", "-f", exists=True, dir_okay=False, help="Exported rmf.json to verify"
+    ),
 ) -> None:
     """Verify integrity. Exits 2 if tampered or corrupt.
 
@@ -23,16 +26,17 @@ def cmd(
 
     Exit codes:
       0: valid, no tampering detected
-      1: unexpected error (missing or unreadable file)
+      1: unexpected error
       2: chain corrupt, or the RMF file does not match its digest (CI-detectable)
+      3: no project here, or the file is missing or not a JSON RMF file
     """
     if file is not None:
         _verify_rmf_file(file)
         return
 
-    from riskforge.storage.filesystem import FileStore
+    from riskforge.cli.project import open_project
 
-    store = FileStore(project_dir)
+    store = open_project(project_dir)
     is_valid, violations = asyncio.run(store.verify_chain())
 
     if is_valid:
@@ -55,14 +59,16 @@ def _verify_rmf_file(file: Path) -> None:
     import hashlib
     import json
 
-    if not file.exists():
-        console.print(f"[red]✗[/red] File not found: {file}")
-        raise typer.Exit(1)
+    from riskforge.cli.errors import fail
+
     try:
-        data = json.loads(file.read_text())
-    except (OSError, ValueError) as exc:
-        console.print(f"[red]✗[/red] Could not read RMF JSON: {exc}")
-        raise typer.Exit(1)
+        data = json.loads(file.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        fail(f"{file} is not a JSON RMF file (it is binary; verify the .json export).")
+    except json.JSONDecodeError as exc:
+        fail(f"{file} is not a JSON RMF file: {exc}")
+    if not isinstance(data, dict):
+        fail(f"{file} is not a JSON RMF file: the top level is not an object.")
 
     stored = data.get("sha256_hash", "")
     if not stored:

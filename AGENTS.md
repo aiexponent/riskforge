@@ -12,7 +12,7 @@ The output goes to auditors and regulators. Accuracy and reproducibility matter 
 
 ## Setup
 
-Python 3.11 or 3.12.
+Python 3.11, 3.12 or 3.13.
 
 ```bash
 make dev-setup        # installs .[dev] (using requirements.lock when present) and the pre-commit hooks
@@ -28,7 +28,7 @@ PDF export needs WeasyPrint's system libraries. On Debian or Ubuntu:
 
 ```bash
 sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
-  libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+  libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
 ```
 
 ## Before you open a pull request
@@ -57,27 +57,25 @@ bandit -ll -r src/                  # CI job: Security Scan
 
 Rules that trip agents:
 
-- **Sockets are disabled.** `pytest` runs with `--disable-socket`. Any test that runs a CLI command or calls `asyncio.run()` needs `@pytest.mark.enable_socket`, because the event loop opens a local socket pair. See `tests/unit/test_cli_verify_output.py` for the pattern.
+- **Network sockets are disabled, including in CLI subprocesses.** `pytest` runs with `--disable-socket --allow-unix-socket`, so `asyncio.run()` works without any marker. Never add `@pytest.mark.enable_socket`, the `socket_enabled` fixture or `--force-enable-socket`: `tests/contract/test_offline_guard.py` fails the run if any test re-enables sockets.
 - **Markers are strict.** `--strict-markers` is on, so an unregistered marker fails the run.
 - **Golden files.** `tests/integration/test_examples.py` compares every example in `examples/*/` with its committed `expected.json`. If your change alters export content on purpose (including the version string in the disclosure), run `make eval-update` and check that the golden diff shows only the change you intended.
 - **Every bug fix gets a test that fails without the fix.** Confirm it fails by reverting the fix locally before you open the pull request.
-- Test CLI commands with Typer's `CliRunner` and a `tmp_path` project directory.
+- Test CLI commands end to end with `run_rf()` from `tests/rf_testkit.py` and a `tmp_path` project directory. It runs the installed `riskforge` with the network blocked and stdin closed, and goes through the real entry point, so exit codes match what users see. Typer's `CliRunner` skips that entry point (a usage error exits 2 there, not 3), so do not use it to assert exit codes.
 
 ## Architecture rules
 
 ```
 cli/       thin Typer commands: parse input, call the engine, print with rich
-engine/    all business logic, never imports cli or server
+engine/    all business logic, never imports cli
 storage/   FileStore and the StorageBackend interface
-server/    optional FastAPI app, never imported by cli
 models/    Pydantic v2 models
 exporters/ JSON, PDF and Markdown exporters, loaded through entry points
 ```
 
-- `riskforge.engine` must not import `riskforge.cli` or `riskforge.server`. `tests/boundary/test_import_boundaries.py` enforces this. Engine code takes configuration as constructor arguments and does not read environment variables. See [docs/adr/ADR-02-import-boundaries.md](docs/adr/ADR-02-import-boundaries.md).
+- `riskforge.engine` must not import `riskforge.cli`. `tests/boundary/test_import_boundaries.py` enforces this. Engine code takes configuration as constructor arguments and does not read environment variables. See [docs/adr/ADR-02-import-boundaries.md](docs/adr/ADR-02-import-boundaries.md).
 - Keep business logic out of CLI commands.
 - Every change to a register goes through `RiskEngine`, which writes the register and then records an audit event through `AuditEngine.record()`. Never write `register.yaml` or `audit.jsonl` directly, and never edit or reorder existing audit entries.
-- The routes in `server/routers/` are scaffolds that return "Not yet implemented". Build on them only when a ticket asks for that.
 
 ## Hard rules
 

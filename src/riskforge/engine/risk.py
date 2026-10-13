@@ -28,6 +28,10 @@ class AmbiguousRiskIdError(KeyError):
     """Raised when a risk id prefix matches more than one item."""
 
 
+class RationaleRequiredError(ValueError):
+    """Raised when a risk is accepted without a rationale."""
+
+
 class RiskEngine:
     """CRUD and scoring for risk items. All writes emit audit entries."""
 
@@ -75,7 +79,7 @@ class RiskEngine:
         self, system_id: str, risk_id: str, rationale: str, actor_identity: str
     ) -> RiskItem:
         if not rationale.strip():
-            raise ValueError("Acceptance rationale is required and cannot be empty.")
+            raise RationaleRequiredError("Acceptance rationale is required and cannot be empty.")
         register = await self._storage.read_register(system_id)
         item = self._resolve_risk_item(register.items, risk_id)
         risk_id = str(item.id)
