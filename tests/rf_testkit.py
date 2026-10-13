@@ -22,6 +22,10 @@ def offline_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     if env.get("PYTHONPATH"):
         paths.append(env["PYTHONPATH"])
     env["PYTHONPATH"] = os.pathsep.join(paths)
+    # Typer forces a styled terminal when any of these is set (GitHub Actions sets the
+    # first), and NO_COLOR alone does not remove bold, so output would differ from local runs.
+    for var in ("GITHUB_ACTIONS", "FORCE_COLOR", "PY_COLORS"):
+        env.pop(var, None)
     env["NO_COLOR"] = "1"
     env["COLUMNS"] = "200"
     if extra:
