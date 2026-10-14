@@ -710,7 +710,12 @@ class FileStore(StorageBackend):
         def _read_lines() -> list[str]:
             if not self._audit_path.exists():
                 return []
-            return self._audit_path.read_text(encoding="utf-8").splitlines()
+            try:
+                return self._audit_path.read_text(encoding="utf-8").splitlines()
+            except UnicodeDecodeError as exc:
+                raise AuditLogCorruptError(
+                    f"The audit log is not UTF-8 text: {_first_line(exc)}."
+                ) from exc
 
         lines = await asyncio.to_thread(_read_lines)
 
