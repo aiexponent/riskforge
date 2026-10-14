@@ -10,7 +10,9 @@ from rich.rule import Rule
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from riskforge.models.risk import RiskDimension
+    from riskforge.engine.risk import RiskEngine
+    from riskforge.models.register import RiskRegister
+    from riskforge.models.risk import RiskDimension, RiskItem
     from riskforge.storage.filesystem import FileStore
 
 console = Console()
@@ -123,7 +125,7 @@ async def _run_assess(
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
-    from riskforge.models.risk import Likelihood, RiskDimension, Severity
+    from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
 
     # ── Bootstrap storage + engines ───────────────────────────────────────────
     store = open_project(project_dir)
@@ -153,7 +155,7 @@ async def _run_assess(
     if not created and register.items:
         console.print(
             f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
-            "New items will be appended."
+            "Answers update the matching items; nothing is duplicated."
         )
 
     # ── Header ─────────────────────────────────────────────────────────────────
@@ -174,6 +176,9 @@ async def _run_assess(
     purpose_words = system.purpose.lower().split()
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
     matched_patterns = assess.match_patterns(category_str, purpose_words)
+    counts = {"added": 0, "updated": 0, "unchanged": 0}
+    attention: list[RiskItem] = []
+    answered_no_or_skip: set[str] = set()
 
     if matched_patterns:
         console.print(
@@ -194,11 +199,8 @@ async def _run_assess(
             return
 
         if add_patterns:
-            pattern_count = 0
             for pattern in matched_patterns:
                 for risk_spec in pattern.get("risks", []):
-                    from riskforge.models.risk import RiskItem
-
                     lh_hint = risk_spec.get("likelihood_hint", 3)
                     sv_hint = risk_spec.get("severity_hint", 3)
                     item = RiskItem(
@@ -215,9 +217,11 @@ async def _run_assess(
                         iso42001_ref=risk_spec.get("iso42001_ref", ""),
                         tags=[f"pattern:{pattern['pattern_id']}"],
                     )
-                    await risk_engine.add_risk(system_id, item)
-                    pattern_count += 1
-            console.print(f"[green]✓[/green] Added {pattern_count} pattern-derived risk item(s).\n")
+                    await _apply(risk_engine, system_id, item, counts, attention)
+            console.print(
+                f"[green]✓[/green] Pattern-derived risk items: {counts['added']} added, "
+                f"{counts['updated']} updated, {counts['unchanged']} unchanged.\n"
+            )
 
     # ── Dimension question loop ────────────────────────────────────────────────
     dims_to_run = [dimension_filter] if dimension_filter else list(RiskDimension)
@@ -280,9 +284,11 @@ async def _run_assess(
                 break
 
             if answer.startswith("no"):
+                answered_no_or_skip.add(question.get("id", ""))
                 continue
 
             if answer.startswith("skip"):
+                answered_no_or_skip.add(question.get("id", ""))
                 skipped += 1
                 continue
 
@@ -338,7 +344,7 @@ async def _run_assess(
             item = assess.question_to_risk_item(
                 question, dim, likelihood, severity, answer_unknown=is_unknown
             )
-            await risk_engine.add_risk(system_id, item)
+            await _apply(risk_engine, system_id, item, counts, attention)
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Session interrupted. Progress saved.[/yellow]")
@@ -356,7 +362,9 @@ async def _run_assess(
     total_in_register = len(register_now.items)
 
     summary.add_row("Questions answered:", str(q_num if "q_num" in dir() else 0))
-    summary.add_row("Risk items added this session:", f"[green]{risks_added}[/green]")
+    summary.add_row("Items added:", f"[green]{counts['added']}[/green]")
+    summary.add_row("Items updated:", str(counts["updated"]))
+    summary.add_row("Items unchanged:", str(counts["unchanged"]))
     summary.add_row("Knowledge gaps flagged:", f"[yellow]{gaps_added}[/yellow]")
     summary.add_row("Skipped:", str(skipped))
     summary.add_row("Total items in register:", f"[bold]{total_in_register}[/bold]")
@@ -367,6 +375,7 @@ async def _run_assess(
             f"[red]{len(open_items)}[/red] (require mitigation or acceptance)",
         )
     console.print(summary)
+    _print_review_notices(register_now, attention, answered_no_or_skip)
 
     if total_added == 0 and not matched_patterns:
         console.print(
@@ -467,20 +476,23 @@ async def _assess_from_answers(
     if not created and register.items:
         console.print(
             f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
-            "New items will be appended."
+            "Answers update the matching items; nothing is duplicated."
         )
 
     # Pattern injection (identical to the interactive path)
     purpose_words = system.purpose.lower().split()
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
     matched_patterns = assess.match_patterns(category_str, purpose_words)
-    pattern_count = 0
+    counts = {"added": 0, "updated": 0, "unchanged": 0}
+    attention: list[RiskItem] = []
+    answered_no_or_skip: set[str] = set()
     if add_patterns:
         for pattern in matched_patterns:
             for risk_spec in pattern.get("risks", []):
                 lh_hint = risk_spec.get("likelihood_hint", 3)
                 sv_hint = risk_spec.get("severity_hint", 3)
-                await risk_engine.add_risk(
+                await _apply(
+                    risk_engine,
                     system_id,
                     RiskItem(
                         dimension=RiskDimension(risk_spec["dimension"]),
@@ -496,12 +508,12 @@ async def _assess_from_answers(
                         iso42001_ref=risk_spec.get("iso42001_ref", ""),
                         tags=[f"pattern:{pattern['pattern_id']}"],
                     ),
+                    counts,
+                    attention,
                 )
-                pattern_count += 1
 
     dims_to_run = [dimension_filter] if dimension_filter else list(RiskDimension)
 
-    risks_added = 0
     gaps_added = 0
     skipped = 0
     leftover = set(answers)
@@ -511,6 +523,7 @@ async def _assess_from_answers(
             leftover.discard(qid)
             ans = answers.get(qid)
             if ans is None:
+                answered_no_or_skip.add(qid)
                 skipped += 1
                 continue
             if not isinstance(ans, dict):
@@ -524,8 +537,10 @@ async def _assess_from_answers(
             else:
                 applies = str(raw_applies).lower()
             if applies == "no":
+                answered_no_or_skip.add(qid)
                 continue
             if applies == "skip":
+                answered_no_or_skip.add(qid)
                 skipped += 1
                 continue
             if applies == "unknown":
@@ -539,17 +554,19 @@ async def _assess_from_answers(
                 likelihood = _answer_score(qid, "likelihood", ans["likelihood"])
                 severity = _answer_score(qid, "severity", ans["severity"])
                 is_unknown = False
-                risks_added += 1
             else:
                 fail(
                     f"Answer for {qid} has invalid applies '{applies}' "
                     "(use yes, no, unknown, or skip)."
                 )
-            await risk_engine.add_risk(
+            await _apply(
+                risk_engine,
                 system_id,
                 assess.question_to_risk_item(
                     question, dim, likelihood, severity, answer_unknown=is_unknown
                 ),
+                counts,
+                attention,
             )
 
     if leftover:
@@ -560,11 +577,69 @@ async def _assess_from_answers(
 
     register_now = await store.read_register(system_id)
     console.print(
-        f"[green]✓[/green] Non-interactive assessment complete: "
-        f"{pattern_count} pattern, {risks_added} scored, {gaps_added} knowledge-gap item(s), "
-        f"{skipped} skipped. Total in register: {len(register_now.items)}."
+        f"[green]✓[/green] Non-interactive assessment complete: {counts['added']} added, "
+        f"{counts['updated']} updated, {counts['unchanged']} unchanged, "
+        f"{gaps_added} knowledge-gap answer(s), {skipped} skipped. "
+        f"Total in register: {len(register_now.items)}."
     )
+    _print_review_notices(register_now, attention, answered_no_or_skip)
     console.print(f"\nNext: [bold]riskforge validate {system_id}[/bold]")
+
+
+async def _apply(
+    risk_engine: "RiskEngine",
+    system_id: str,
+    item: "RiskItem",
+    counts: dict[str, int],
+    attention: "list[RiskItem]",
+) -> None:
+    """Add or update ``item`` by its origin; note updated items a person has worked on."""
+    outcome, stored = await risk_engine.upsert_item(system_id, item)
+    counts[outcome] += 1
+    reworked = (stored.residual_likelihood, stored.residual_severity) != (
+        stored.likelihood,
+        stored.severity,
+    )
+    if outcome == "updated" and (stored.mitigations or stored.accepted or reworked):
+        attention.append(stored)
+
+
+def _print_review_notices(
+    register: "RiskRegister", attention: "list[RiskItem]", answered_no_or_skip: set[str]
+) -> None:
+    """List updated items to review, and kept items whose question is now no or skip."""
+    from rich.markup import escape
+
+    for item in attention:
+        reasons = []
+        if item.mitigations:
+            reasons.append(f"has {len(item.mitigations)} mitigation(s)")
+        elif (item.residual_likelihood, item.residual_severity) != (
+            item.likelihood,
+            item.severity,
+        ):
+            reasons.append("has a re-scored residual")
+        if item.accepted:
+            reasons.append("is accepted")
+        title = item.title if len(item.title) <= 60 else f"{item.title[:57]}..."
+        console.print(
+            f"[yellow]![/yellow] {str(item.id)[:8]} {escape(title)}: the new answer changed its "
+            f"inherent score to {item.risk_score} (residual {item.residual_risk_score}). "
+            f"It {' and '.join(reasons)}; review its residual score and acceptance."
+        )
+    kept = sorted(
+        {
+            item.tags[0]
+            for item in register.items
+            if item.source == "question_bank" and item.tags and item.tags[0] in answered_no_or_skip
+        }
+    )
+    if kept:
+        console.print(
+            f"[yellow]![/yellow] Answered no or skip this time but kept in the register: "
+            f"{', '.join(kept)}. assess never removes items; review them with "
+            "riskforge risk list."
+        )
 
 
 def _answer_score(qid: str, name: str, value: object) -> int:
