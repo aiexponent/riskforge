@@ -10,7 +10,7 @@ from rich.rule import Rule
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from riskforge.engine.risk import RiskEngine
+    from riskforge.engine.risk import RiskEngine, UpsertResult
     from riskforge.models.register import RiskRegister
     from riskforge.models.risk import RiskDimension, RiskItem
     from riskforge.storage.filesystem import FileStore
@@ -153,10 +153,7 @@ async def _run_assess(
         system_id, assessor_name, assessor_role, review_months
     )
     if not created and register.items:
-        console.print(
-            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
-            "Answers update the matching items; nothing is duplicated."
-        )
+        _print_existing_register(register)
 
     # ── Header ─────────────────────────────────────────────────────────────────
     console.print(Rule("[bold]RiskForge: EU AI Act Article 9 Assessment[/bold]"))
@@ -177,7 +174,7 @@ async def _run_assess(
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
     matched_patterns = assess.match_patterns(category_str, purpose_words)
     counts = {"added": 0, "updated": 0, "unchanged": 0}
-    attention: list[RiskItem] = []
+    attention: list[UpsertResult] = []
     answered_no_or_skip: set[str] = set()
 
     if matched_patterns:
@@ -375,7 +372,9 @@ async def _run_assess(
             f"[red]{len(open_items)}[/red] (require mitigation or acceptance)",
         )
     console.print(summary)
-    _print_review_notices(register_now, attention, answered_no_or_skip)
+    _print_review_notices(
+        register_now, attention, answered_no_or_skip, "Answered no or skip this time"
+    )
 
     if total_added == 0 and not matched_patterns:
         console.print(
@@ -474,17 +473,14 @@ async def _assess_from_answers(
         system_id, assessor_name, assessor_role, review_months
     )
     if not created and register.items:
-        console.print(
-            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
-            "Answers update the matching items; nothing is duplicated."
-        )
+        _print_existing_register(register)
 
     # Pattern injection (identical to the interactive path)
     purpose_words = system.purpose.lower().split()
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
     matched_patterns = assess.match_patterns(category_str, purpose_words)
     counts = {"added": 0, "updated": 0, "unchanged": 0}
-    attention: list[RiskItem] = []
+    attention: list[UpsertResult] = []
     answered_no_or_skip: set[str] = set()
     if add_patterns:
         for pattern in matched_patterns:
@@ -582,8 +578,31 @@ async def _assess_from_answers(
         f"{gaps_added} knowledge-gap answer(s), {skipped} skipped. "
         f"Total in register: {len(register_now.items)}."
     )
-    _print_review_notices(register_now, attention, answered_no_or_skip)
+    _print_review_notices(
+        register_now,
+        attention,
+        answered_no_or_skip,
+        "Not answered yes or unknown this time (no, skip or missing)",
+    )
     console.print(f"\nNext: [bold]riskforge validate {system_id}[/bold]")
+
+
+def _print_existing_register(register: "RiskRegister") -> None:
+    """Say how a re-run treats the items already in the register."""
+    from riskforge.engine.risk import duplicate_origins
+
+    shared = duplicate_origins(register.items)
+    if shared:
+        console.print(
+            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). Answers "
+            f"update the matching items. {len(shared)} question or pattern risk(s) already have "
+            "more than one item; they are listed at the end."
+        )
+    else:
+        console.print(
+            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
+            "Answers update the matching items; nothing is duplicated."
+        )
 
 
 async def _apply(
@@ -591,26 +610,51 @@ async def _apply(
     system_id: str,
     item: "RiskItem",
     counts: dict[str, int],
-    attention: "list[RiskItem]",
+    attention: "list[UpsertResult]",
 ) -> None:
     """Add or update ``item`` by its origin; note updated items a person has worked on."""
-    outcome, stored = await risk_engine.upsert_item(system_id, item)
-    counts[outcome] += 1
-    reworked = (stored.residual_likelihood, stored.residual_severity) != (
+    result = await risk_engine.upsert_item(system_id, item)
+    counts[result.outcome] += 1
+    stored = result.item
+    rescored = (stored.residual_likelihood, stored.residual_severity) != (
         stored.likelihood,
         stored.severity,
     )
-    if outcome == "updated" and (stored.mitigations or stored.accepted or reworked):
-        attention.append(stored)
+    if result.outcome == "updated" and (stored.mitigations or stored.accepted or rescored):
+        attention.append(result)
+
+
+def _origin_label(item: "RiskItem") -> str:
+    if item.source == "question_bank":
+        return f"question {item.tags[0]}"
+    pattern = next(tag for tag in item.tags if tag.startswith("pattern:"))
+    return f'pattern {pattern.removeprefix("pattern:")} risk "{item.title}"'
+
+
+def _what_changed(previous: "RiskItem", item: "RiskItem") -> str:
+    changes = []
+    if previous.likelihood != item.likelihood:
+        changes.append(f"likelihood {int(previous.likelihood)} to {int(item.likelihood)}")
+    if previous.severity != item.severity:
+        changes.append(f"severity {int(previous.severity)} to {int(item.severity)}")
+    if previous.knowledge_gap != item.knowledge_gap:
+        changes.append(f"knowledge-gap flag {'set' if item.knowledge_gap else 'cleared'}")
+    return ", ".join(changes)
 
 
 def _print_review_notices(
-    register: "RiskRegister", attention: "list[RiskItem]", answered_no_or_skip: set[str]
+    register: "RiskRegister",
+    attention: "list[UpsertResult]",
+    kept_ids: set[str],
+    kept_label: str,
 ) -> None:
-    """List updated items to review, and kept items whose question is now no or skip."""
+    """List updated items to review, kept items not answered yes or unknown, and duplicates."""
     from rich.markup import escape
 
-    for item in attention:
+    from riskforge.engine.risk import duplicate_origins
+
+    for result in attention:
+        item = result.item
         reasons = []
         if item.mitigations:
             reasons.append(f"has {len(item.mitigations)} mitigation(s)")
@@ -621,24 +665,33 @@ def _print_review_notices(
             reasons.append("has a re-scored residual")
         if item.accepted:
             reasons.append("is accepted")
+        review = "its residual score and acceptance" if item.accepted else "its residual score"
         title = item.title if len(item.title) <= 60 else f"{item.title[:57]}..."
+        changed = _what_changed(result.previous, item) if result.previous else "changed"
         console.print(
-            f"[yellow]![/yellow] {str(item.id)[:8]} {escape(title)}: the new answer changed its "
-            f"inherent score to {item.risk_score} (residual {item.residual_risk_score}). "
-            f"It {' and '.join(reasons)}; review its residual score and acceptance."
+            f"[yellow]![/yellow] {str(item.id)[:8]} {escape(title)}: {changed} (inherent score "
+            f"{item.risk_score}, residual {item.residual_risk_score}). "
+            f"It {' and '.join(reasons)}; review {review}."
         )
     kept = sorted(
         {
             item.tags[0]
             for item in register.items
-            if item.source == "question_bank" and item.tags and item.tags[0] in answered_no_or_skip
+            if item.source == "question_bank" and item.tags and item.tags[0] in kept_ids
         }
     )
     if kept:
         console.print(
-            f"[yellow]![/yellow] Answered no or skip this time but kept in the register: "
+            f"[yellow]![/yellow] {kept_label} but kept in the register: "
             f"{', '.join(kept)}. assess never removes items; review them with "
             "riskforge risk list."
+        )
+    for group in duplicate_origins(register.items).values():
+        console.print(
+            f"[yellow]![/yellow] {len(group)} items in the register came from "
+            f"{escape(_origin_label(group[0]))}: "
+            f"{', '.join(str(item.id)[:8] for item in group)}. assess updates only the first; "
+            "review them with riskforge risk list."
         )
 
 

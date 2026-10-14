@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.register import RiskRegister
@@ -39,6 +39,19 @@ class RationaleRequiredError(ValueError):
 UpsertOutcome = Literal["added", "updated", "unchanged"]
 
 
+class UpsertResult(NamedTuple):
+    """What ``RiskEngine.upsert_item`` did.
+
+    ``item`` is the stored item, ``previous`` a copy of it before an update (None when
+    added), and ``matches`` how many register items had the same origin before the call.
+    """
+
+    outcome: UpsertOutcome
+    item: RiskItem
+    previous: RiskItem | None
+    matches: int
+
+
 def origin_key(item: RiskItem) -> str | None:
     """The question or pattern risk a register item came from; None for other sources.
 
@@ -52,6 +65,16 @@ def origin_key(item: RiskItem) -> str | None:
         if pattern is not None:
             return f"{pattern}:{item.title}"
     return None
+
+
+def duplicate_origins(items: list[RiskItem]) -> dict[str, list[RiskItem]]:
+    """Origins shared by more than one item, in register order (1.1.3 appended on re-runs)."""
+    by_origin: dict[str, list[RiskItem]] = {}
+    for item in items:
+        key = origin_key(item)
+        if key is not None:
+            by_origin.setdefault(key, []).append(item)
+    return {key: group for key, group in by_origin.items() if len(group) > 1}
 
 
 class RiskEngine:
@@ -211,16 +234,16 @@ class RiskEngine:
             return [i for i in register.items if i.dimension == dimension]
         return register.items
 
-    async def upsert_item(
-        self, system_id: str, proposed: RiskItem
-    ) -> tuple[UpsertOutcome, RiskItem]:
+    async def upsert_item(self, system_id: str, proposed: RiskItem) -> UpsertResult:
         """Add ``proposed``, or update the item that came from the same question or pattern.
 
         The same answer changes nothing and records nothing. A changed answer updates the
         likelihood, severity and knowledge-gap flag of the first matching item and
         records ``risk_item.updated`` with ``reason: "reassessment"``. Residual scores
         follow the new scores only while the item has no mitigation and its residual
-        scores still equal its inherent ones. An acceptance is kept. Nothing is removed.
+        scores still equal its inherent ones. An acceptance is kept. Nothing is removed:
+        when several items share the origin (a register re-run under 1.1.3), only the
+        first is updated and ``matches`` says how many there are.
 
         Raises
         ------
@@ -232,8 +255,8 @@ class RiskEngine:
             raise ValueError("upsert_item needs an item from the question bank or a pattern.")
         async with self._audit.unit_of_work():
             register = await self._audit.read_register(system_id)
-            existing = next((item for item in register.items if origin_key(item) == key), None)
-            if existing is None:
+            matching = [item for item in register.items if origin_key(item) == key]
+            if not matching:
                 proposed.mitigations = [self._flag_vague(m) for m in proposed.mitigations]
                 register.items.append(proposed)
                 await self._storage.write_register(system_id, register)
@@ -247,14 +270,15 @@ class RiskEngine:
                         "score": proposed.risk_score,
                     },
                 )
-                return "added", proposed
+                return UpsertResult("added", proposed, None, 0)
+            existing = matching[0]
             if (existing.likelihood, existing.severity, existing.knowledge_gap) == (
                 proposed.likelihood,
                 proposed.severity,
                 proposed.knowledge_gap,
             ):
-                return "unchanged", existing
-            old_score = existing.risk_score
+                return UpsertResult("unchanged", existing, None, len(matching))
+            previous = existing.model_copy(deep=True)
             residual_follows = not existing.mitigations and (
                 existing.residual_likelihood,
                 existing.residual_severity,
@@ -272,12 +296,18 @@ class RiskEngine:
                 system_id,
                 {
                     "risk_item_id": str(existing.id),
-                    "old_score": old_score,
+                    "old_score": previous.risk_score,
                     "new_score": existing.risk_score,
                     "reason": "reassessment",
+                    "old_likelihood": int(previous.likelihood),
+                    "new_likelihood": int(existing.likelihood),
+                    "old_severity": int(previous.severity),
+                    "new_severity": int(existing.severity),
+                    "old_knowledge_gap": previous.knowledge_gap,
+                    "new_knowledge_gap": existing.knowledge_gap,
                 },
             )
-            return "updated", existing
+            return UpsertResult("updated", existing, previous, len(matching))
 
     @staticmethod
     def _flag_vague(mitigation: Mitigation) -> Mitigation:

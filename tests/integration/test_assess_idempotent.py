@@ -289,8 +289,9 @@ def test_duplicates_from_v113_are_listed_and_kept(v113_project: tuple[Path, str]
     assert result.returncode == 0, result.output
     assert "nothing is duplicated" not in result.output
     assert (
-        "! 2 items in the register came from question DI-001; assess updated only "
-        f"{original['id'][:8]}. Review them with riskforge risk list."
+        "! 2 items in the register came from question DI-001: "
+        f"{original['id'][:8]}, 00000000. assess updates only the first; "
+        "review them with riskforge risk list."
     ) in result.output, result.output
     items = [i for i in _items(root) if i["tags"] == ["DI-001"]]
     assert [(i["id"], i["likelihood"]) for i in items] == [
