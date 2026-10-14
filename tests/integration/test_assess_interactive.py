@@ -159,3 +159,31 @@ def test_ctrl_c_at_pattern_prompt_stops_the_session(tmp_path: Path) -> None:
     assert _items(tmp_path) == []
     verify = run_rf(["verify", "--project-dir", str(tmp_path)])
     assert verify.returncode == 0, verify.output
+
+
+def test_rerun_after_interrupt_adds_no_duplicates(tmp_path: Path) -> None:
+    system_id = _init(tmp_path)
+    log = tmp_path / ".riskforge" / "audit.jsonl"
+    logs: list[bytes] = []
+    for _session in range(2):
+        child = _spawn_assess(tmp_path, system_id)
+        try:
+            child.expect(r"Add pattern-derived risk items.*\(Y/n\)")
+            child.send("\r")
+            _answer(child, "yes", 4, 5)
+            child.expect(MARKER)
+            child.expect(r"4\) skip")
+            child.sendcontrol("c")
+            child.expect("Session interrupted")
+            _finish(child)
+        finally:
+            child.close(force=True)
+        logs.append(log.read_bytes())
+    assert [(i["source"], i["tags"]) for i in _items(tmp_path)] == [
+        ("pattern", ["pattern:CREDIT_SCORING_BIAS"]),
+        ("pattern", ["pattern:CREDIT_SCORING_BIAS"]),
+        ("question_bank", ["PR-001"]),
+    ]
+    assert logs[1] == logs[0]
+    verify = run_rf(["verify", "--project-dir", str(tmp_path)])
+    assert verify.returncode == 0, verify.output
