@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractAsyncContextManager
+from dataclasses import dataclass
 
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
+
+
+@dataclass(frozen=True)
+class PendingChange:
+    """A change a writer started and has not finished (or never will, after a crash).
+
+    ``systems`` are the systems whose files the change writes.
+    """
+
+    systems: frozenset[str]
 
 
 class StorageBackend(ABC):
@@ -143,10 +154,30 @@ class StorageBackend(ABC):
         A register written with ``write_register`` must read back equal to
         ``register.model_dump(mode="json")``.
 
+        The document is ``yaml.safe_load`` (or the backend's equivalent) of the bytes
+        as stored, never a model serialised again: audit entries record its
+        fingerprint (ADR-03 section 3).
+
         Raises
         ------
         RegisterNotFoundError
             If the system has no register.
+        StoredFileCorruptError
+            If the stored register does not parse.
+        """
+        ...
+
+    @abstractmethod
+    async def read_system_document(self, system_id: str) -> dict:
+        """
+        Return the stored system record as stored, as a JSON-compatible dict.
+
+        Raises
+        ------
+        SystemNotFoundError
+            If no system with the given ID exists in storage.
+        StoredFileCorruptError
+            If the stored record does not parse.
         """
         ...
 
@@ -183,9 +214,12 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    async def append_audit(self, entry: AuditEntry) -> None:
+    async def append_audit(self, entries: AuditEntry | Sequence[AuditEntry]) -> None:
         """
-        Append a single :class:`~riskforge.models.audit.AuditEntry` to the audit log.
+        Append one :class:`~riskforge.models.audit.AuditEntry`, or several chained ones.
+
+        Several entries commit together with the writes staged in the unit of work: all
+        of them or none (ADR-03 section 4).
 
         Implementations must guarantee append-only semantics; existing entries
         must never be modified.  The entry is serialised as a single JSON line
@@ -235,6 +269,63 @@ class StorageBackend(ABC):
         async for entry in self.read_audit():
             last = entry
         return last
+
+    @abstractmethod
+    async def read_audit_head(self) -> dict | None:
+        """
+        Return ``{"seq": int, "entry_hash": str}`` of the last entry this backend wrote.
+
+        The head is written with each appended entry (ADR-03 section 4). Returns
+        ``None`` when no head has been written, as in a project last changed by 1.1.x.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the stored head does not parse or lacks ``seq`` or ``entry_hash``.
+        """
+        ...
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        """
+        Return ``(journal, head)`` as raw bytes, each ``None`` when absent.
+
+        A reader that does not take the write lock compares the markers before and
+        after it reads: a journal, or markers that moved, mean a writer was busy. The
+        default suits a backend whose reads see only committed changes.
+        """
+        return None, None
+
+    async def list_system_directories(self) -> list[str]:
+        """
+        Return the ids of every system the backend holds anything for, sorted.
+
+        Unlike ``list_systems`` this includes a system whose record is missing. The
+        default suits a backend that cannot hold files without a system record.
+        """
+        return await self.list_systems()
+
+    async def read_pending_change(self) -> PendingChange | None:
+        """
+        Return the change a writer started and has not finished, or ``None``.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the backend's record of the unfinished change is not one it wrote.
+        """
+        return None
+
+    async def view_after_recovery(self) -> StorageBackend:
+        """
+        A read-only view of the project as finishing or discarding ``read_pending_change``
+        would leave it, without writing anything.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the record of the unfinished change does not fit the stored log.
+        """
+        return self
 
     @abstractmethod
     async def verify_chain(self) -> tuple[bool, list[str]]:

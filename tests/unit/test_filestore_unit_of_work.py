@@ -71,6 +71,7 @@ def _journal(root: Path, after_seq: int, files: list[str]) -> None:
 
 async def _next_entry_line(store: FileStore, sid: str) -> bytes:
     """The bytes the next audit entry would append, built the way AuditEngine builds it."""
+    from riskforge.integrity.chain import compute_entry_hash, entry_to_dict
     from riskforge.models.audit import AuditEntry
 
     last = await store.read_last_audit_entry()
@@ -84,8 +85,8 @@ async def _next_entry_line(store: FileStore, sid: str) -> bytes:
         prev_hash=last.entry_hash,
         entry_hash="",
     )
-    entry.entry_hash = FileStore._compute_hash(last.entry_hash, entry)
-    return (json.dumps(entry.model_dump(mode="json"), separators=(",", ":")) + "\n").encode()
+    entry.entry_hash = compute_entry_hash(entry)
+    return (json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n").encode()
 
 
 async def test_change_and_entry_commit_together(tmp_path: Path) -> None:
@@ -497,3 +498,142 @@ async def test_read_last_audit_entry_refuses_a_malformed_line(tmp_path: Path) ->
         fh.write('{"seq": "not a number"}\n')
     with pytest.raises(AuditLogCorruptError):
         await store.read_last_audit_entry()
+
+
+# --- several entries in one commit (PRD-332, ADR-03 section 4) --------------------------
+
+
+def _chained(last, sid: str, count: int, fingerprint: str | None = None) -> list:  # noqa: ANN001
+    from riskforge.integrity.chain import compute_entry_hash
+    from riskforge.models.audit import AuditEntry
+
+    entries = []
+    prev, seq = last.entry_hash, last.seq + 1
+    for n in range(count):
+        entry = AuditEntry(
+            seq=seq + n,
+            event="register.created" if n == 0 else "register.baselined",
+            actor=AuditActor(type="human", identity="t"),
+            system_id=sid,
+            payload={},
+            prev_hash=prev,
+            register_fingerprint=fingerprint,
+        )
+        entry.entry_hash = compute_entry_hash(entry)
+        prev = entry.entry_hash
+        entries.append(entry)
+    return entries
+
+
+def _line(entry) -> bytes:  # noqa: ANN001
+    from riskforge.integrity.chain import entry_to_dict
+
+    return (json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n").encode()
+
+
+def _journal_for(root: Path, after_seq: int, count: int, files: list[str]) -> None:
+    log_size = (root / "audit.jsonl").stat().st_size
+    journal = {"after_seq": after_seq, "log_size": log_size, "count": count, "files": files}
+    (root / "txn.json").write_text(json.dumps(journal))
+
+
+@pytest.mark.parametrize("written", ["none", "one", "two", "two-and-a-half"])
+async def test_multi_entry_append_cut_short_is_rolled_back(tmp_path: Path, written: str) -> None:
+    from riskforge.engine.integrity import check_integrity
+
+    store, audit, system = await _project(tmp_path)
+    sid = str(system.id)
+    root = tmp_path / ".riskforge"
+    log_before = (root / "audit.jsonl").read_bytes()
+    last = await store.read_last_audit_entry()
+    (root / "systems" / sid / "register.yaml.pending").write_text("garbage: true\n")
+    _journal_for(root, last.seq, 3, [f"systems/{sid}/register.yaml"])
+    lines = [_line(entry) for entry in _chained(last, sid, 3)]
+    tail = {
+        "none": b"",
+        "one": lines[0],
+        "two": lines[0] + lines[1],
+        "two-and-a-half": lines[0] + lines[1] + lines[2][:10],
+    }[written]
+    with (root / "audit.jsonl").open("ab") as fh:
+        fh.write(tail)
+    await _assert_rolled_back_and_usable(store, audit, system, log_before)
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+
+
+async def test_multi_entry_append_that_reached_the_log_is_rolled_forward(tmp_path: Path) -> None:
+    import yaml
+    from riskforge.engine.integrity import check_integrity
+    from riskforge.integrity.canonical import document_fingerprint
+
+    store, _audit, system = await _project(tmp_path)
+    sid = str(system.id)
+    root = tmp_path / ".riskforge"
+    last = await store.read_last_audit_entry()
+    text = yaml.dump(
+        _register(system).model_dump(mode="json"), sort_keys=False, allow_unicode=True
+    ).encode()
+    (root / "systems" / sid / "register.yaml.pending").write_bytes(text)
+    entries = _chained(last, sid, 3, document_fingerprint(yaml.safe_load(text)))
+    _journal_for(root, last.seq, 3, [f"systems/{sid}/register.yaml"])
+    with (root / "audit.jsonl").open("ab") as fh:
+        fh.write(b"".join(_line(entry) for entry in entries))
+    async with store.unit_of_work():
+        assert not (root / "txn.json").exists()
+    assert (await store.read_register(sid)).system.id == system.id
+    head = json.loads((root / "audit.head.json").read_text())
+    assert head == {"seq": entries[-1].seq, "entry_hash": entries[-1].entry_hash}
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+
+
+async def test_an_entry_beyond_a_multi_entry_append_is_never_truncated(tmp_path: Path) -> None:
+    store, _audit, system = await _project(tmp_path)
+    sid = str(system.id)
+    root = tmp_path / ".riskforge"
+    last = await store.read_last_audit_entry()
+    entries = _chained(last, sid, 3)
+    _journal_for(root, last.seq, 2, [])
+    with (root / "audit.jsonl").open("ab") as fh:
+        fh.write(b"".join(_line(entry) for entry in entries))
+    log_after = (root / "audit.jsonl").read_bytes()
+    with pytest.raises(AuditLogCorruptError, match="left as it is"):
+        async with store.unit_of_work():
+            pass
+    assert (root / "audit.jsonl").read_bytes() == log_after
+
+
+async def test_append_refuses_entries_that_are_not_chained(tmp_path: Path) -> None:
+    store, _audit, system = await _project(tmp_path)
+    last = await store.read_last_audit_entry()
+    first, _second, third = _chained(last, str(system.id), 3)
+    async with store.unit_of_work():
+        with pytest.raises(ValueError, match="chained"):
+            await store.append_audit([first, third])
+
+
+@pytest.mark.parametrize(
+    "journal",
+    [
+        "not json",
+        '{"after_seq": 0, "log_size": 0}',
+        '{"after_seq": 0, "log_size": 0, "files": ["../../outside"]}',
+        '{"after_seq": 0, "log_size": 0, "files": ["systems/x/other.txt"]}',
+        '{"after_seq": "0", "log_size": 0, "files": []}',
+    ],
+)
+async def test_malformed_journal_stops_recovery_with_a_typed_error(
+    tmp_path: Path, journal: str
+) -> None:
+    from riskforge.storage.errors import StoredFileCorruptError
+
+    store, _audit, _system = await _project(tmp_path)
+    root = tmp_path / ".riskforge"
+    (root / "txn.json").write_text(journal)
+    log_before = (root / "audit.jsonl").read_bytes()
+    with pytest.raises(StoredFileCorruptError, match="txn.json"):
+        async with store.unit_of_work():
+            pass
+    assert (root / "audit.jsonl").read_bytes() == log_before
+    assert (root / "txn.json").read_text() == journal

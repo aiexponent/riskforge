@@ -8,7 +8,11 @@ import click
 import typer
 
 from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_TAMPERED, EXIT_USAGE, err_console
-from riskforge.storage.errors import AuditLogCorruptError, ProjectLockedError
+from riskforge.storage.errors import (
+    AuditLogCorruptError,
+    ProjectLockedError,
+    StoredFileCorruptError,
+)
 
 
 def _version_callback(value: bool) -> None:
@@ -92,8 +96,9 @@ def run() -> None:
     """Console entry point.
 
     Click reports usage errors with exit 2, which RiskForge reserves for integrity
-    failures, so they leave with EXIT_USAGE instead. A held project lock exits 1 and a
-    corrupt audit log exits 2, each with one line and no traceback.
+    failures, so they leave with EXIT_USAGE instead. A held project lock exits 1, and a
+    corrupt audit log or a stored file that does not parse exits 2, each with one line
+    and no traceback.
     """
     try:
         code = app(prog_name="riskforge", standalone_mode=False)
@@ -116,5 +121,11 @@ def run() -> None:
         sys.exit(EXIT_FAILED)
     except AuditLogCorruptError as exc:
         _one_line_error(f"{exc} Run `riskforge verify` for details.")
+        sys.exit(EXIT_TAMPERED)
+    except StoredFileCorruptError as exc:
+        message = str(exc)
+        if "riskforge verify" not in message:
+            message += " Run `riskforge verify` for details."
+        _one_line_error(message)
         sys.exit(EXIT_TAMPERED)
     sys.exit(code if isinstance(code, int) else EXIT_OK)

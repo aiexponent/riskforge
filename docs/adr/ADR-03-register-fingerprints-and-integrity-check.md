@@ -60,7 +60,9 @@ Every entry written for a system that has a register carries the fingerprint of 
 
 `init` records a `system.created` entry for the system it creates, so a 2.0 project always has a log once it has a system.
 
-A unit of work writes its journal, `.riskforge/txn.json`, before it touches the register, the system file, the log or the head file, and removes the journal last. A changing command takes the audit lock, completes or rolls back any unfinished change the journal records, and only then runs the integrity check.
+A unit of work writes its journal, `.riskforge/txn.json`, before it touches the register, the system file, the log or the head file, and removes the journal last. The journal holds `after_seq`, `log_size` (the length of the log before the append), `count` (how many lines the append writes, 1 when absent) and `files` (the staged system files, each `systems/<id>/system.yaml`, `register.yaml` or `mitigations.yaml`). One change may append several chained entries (its own and the `register.baselined` entries of section 6): all their lines go to the log in one write and one fsync, and the head file then names the last of them. Recovery keeps the append only when exactly `count` complete lines hold the entries `after_seq + 1` to `after_seq + count`, every one after the first being `register.baselined`; fewer such lines followed by nothing or by a cut-off line are cut back to `log_size`, and anything else is left as it is and reported. A journal that does not have this shape, has a `count` above 10,000, names any other file, or does not fit the log (a `log_size` beyond its end or not at the end of a line, or an `after_seq` that is not the seq of the entry ending at `log_size`, or not -1 when `log_size` is 0) was not written by RiskForge for this log: recovery stops with an integrity failure and touches nothing.
+
+A changing command takes the audit lock, completes or rolls back any unfinished change the journal records, and only then runs the integrity check.
 
 ### 5. One integrity check
 
@@ -68,18 +70,20 @@ A unit of work writes its journal, `.riskforge/txn.json`, before it touches the 
 
 | Check | Catches |
 | --- | --- |
-| Each entry's `seq`, `prev_hash` and `entry_hash`; every line parses | Edited, inserted, deleted, reordered or garbled entries |
+| Each entry's `seq`, `prev_hash` and `entry_hash`; every line is exactly one UTF-8 JSON entry ended by `\n` (no byte order mark, carriage return or surrounding white space), and the log ends with `\n`. A line may end with `\r\n` instead, as 1.1.3 wrote on Windows; a carriage return anywhere else fails. A log that cannot be read is itself a failure | Edited, inserted, deleted, reordered or garbled entries, and bytes that make readers disagree on the lines |
 | `audit.head.json` parses, and its `seq` and `entry_hash` equal those of the last entry in the log | A log cut back to an earlier entry, or entries appended outside RiskForge |
-| A missing head file while the log holds entries with fingerprints | A head file deleted to hide a cut |
+| A missing head file while the log holds entries with fingerprints, or any event only 2.0 writes (`system.created`, `register.created`, `register.baselined`) | A head file deleted to hide a cut |
 | Each system's stored register against the latest `register_fingerprint` for that system | A register edited or replaced outside RiskForge |
 | Once a head file exists, a register with no fingerprint in the log | A register added or swapped in by hand |
 | A system whose log holds register events (`register.*`, `risk_item.*`, `mitigation.*`, `risk.accepted`) but has no `register.yaml` | A deleted register, including one last written by 1.1.3 |
 | A project with systems but an audit log that is missing or holds no entries | A deleted or emptied log |
 | Systems named in the log against the files on disk | A deleted system directory |
-| Once a head file exists, a system directory on disk that no entry names | A system added by hand |
+| Once a head file exists, any directory under `systems/` that no entry names, whatever it holds; a named directory without `system.yaml`; a directory name that is not a valid system id | A system added by hand, or a system file deleted |
 | Each `system.yaml` parses, validates as `AISystem`, has an `id` equal to its directory name, and, when the system has a register, equals the `system` mapping of the parsed register document | A corrupt or hand-edited system file |
 
-`verify` opens the project read-only: it takes no lock and writes no file, so it works on a read-only copy or an archive mount. It reads `txn.json` and `audit.head.json` before and after the check. If either changed, or `txn.json` is present, it repeats the check up to three times. If a change is still in progress after that, it reports that a change is in progress or unfinished and exits 1, not 2, so a write that overlaps `verify` is not reported as tampering.
+The check reads a stored file (register, system file, journal, head file, log) only when it is a regular file of at most 64 MiB (1 GiB for `audit.jsonl`), opened without blocking and checked through its descriptor, so a directory, FIFO, device or symlink to one is refused without being read. A file that is not one, is larger, cannot be read or nests too deeply to parse is a finding for that file, never a crash or a hang.
+
+`verify` opens the project read-only: it takes no lock and writes no file, so it works on a read-only copy or an archive mount. A `txn.json` that is not a journal RiskForge wrote (see section 4) is a failure at once. Otherwise it reads `txn.json` and `audit.head.json` before and after the check. If either changed, or `txn.json` is present, it repeats the check up to three times. If a journal is still present after that, it checks, without writing, the project as recovery would leave it. When recovery would cut the append off, that is the log up to `log_size` with the committed files and the stored head. When recovery would keep it, that is the whole log with each staged `.pending` file in place of its committed file and the last appended entry as the head, and the stored head must be the one before the change or the one after it. A journal recovery would refuse is a failure. `verify` exits 2 if that check fails. Otherwise it reports that a change is in progress or unfinished and exits 1, not 2, so a write that overlaps `verify` is not reported as tampering, and a planted journal cannot hide tampering anywhere.
 
 ### 6. Compatibility with 1.1.3
 
