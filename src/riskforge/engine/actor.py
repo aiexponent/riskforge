@@ -4,6 +4,15 @@ from __future__ import annotations
 
 import unicodedata
 
+# Bidirectional controls and invisible characters can make a name display as another
+# name or hide text. U+200C and U+200D (zero-width non-joiner and joiner) stay allowed:
+# Persian, Indic scripts and emoji need them.
+_REFUSED_FORMAT_CHARACTERS = frozenset(
+    [chr(c) for c in range(0x202A, 0x202F)]
+    + [chr(c) for c in range(0x2066, 0x206A)]
+    + ["\u200b", "\u200e", "\u200f", "\ufeff"]
+)
+
 
 class ActorNameError(ValueError):
     """Raised when an actor name is blank or does not fit on one line."""
@@ -15,8 +24,9 @@ def normalise_actor_name(value: str | None) -> str | None:
     Raises
     ------
     ActorNameError
-        If the name holds a control character or a line break: a name must be one line
-        of text in the audit log, the register and every export.
+        If the name holds a control character, a line break, a bidirectional control or
+        an invisible character other than a zero-width joiner or non-joiner: a name must
+        be one line of plain text in the audit log, the register and every export.
     """
     if value is None:
         return None
@@ -24,10 +34,10 @@ def normalise_actor_name(value: str | None) -> str | None:
     if not name:
         return None
     for char in name:
-        if unicodedata.category(char) in ("Cc", "Zl", "Zp"):
+        if unicodedata.category(char) in ("Cc", "Zl", "Zp") or char in _REFUSED_FORMAT_CHARACTERS:
             raise ActorNameError(
-                f"The name contains a line break or control character ({ascii(char)}); "
-                "give it on one line."
+                f"The name contains a line break, control or invisible character "
+                f"({ascii(char)}); give it as plain text on one line."
             )
     return name
 
