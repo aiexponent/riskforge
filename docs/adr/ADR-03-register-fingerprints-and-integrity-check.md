@@ -66,7 +66,7 @@ A changing command takes the audit lock, completes or rolls back any unfinished 
 
 ### 5. One integrity check
 
-`check_integrity()` in `riskforge.engine.integrity` is the only verification path. `riskforge verify` runs it, and every command that changes or exports data runs it first and stops with exit code 2 when it fails (PRD-333). It reports every finding, not only the first. It fails on the rows below. Each row catches its change only when the other files were not rewritten to agree with it (see Trade-offs Accepted).
+`check_integrity()` in `riskforge.engine.integrity` is the only verification path. `riskforge verify` runs it, and every command that changes or exports data runs it first and stops with exit code 2 when it fails (PRD-333). The engine enforces the same rule: `AuditEngine` opens every change through `checked_unit_of_work()`, which runs the check once per outermost unit of work, after the lock and recovery and before anything is staged, and raises `IntegrityError` when it fails. So nothing is appended to a project that fails the check, and no `register.baselined` entry is recorded unless the check passed. The check reports every finding, not only the first. It fails on the rows below. Each row catches its change only when the other files were not rewritten to agree with it (see Trade-offs Accepted).
 
 | Check | Catches |
 | --- | --- |

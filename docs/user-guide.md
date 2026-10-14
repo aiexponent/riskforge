@@ -273,9 +273,10 @@ by a qualified legal professional, and does not constitute legal advice.
 **Does my risk data leave my machine?** No. RiskForge makes zero outbound calls.
 
 **Can I edit the state files by hand?** They are plain YAML and JSONL, readable and
-diff-able. Editing the `.riskforge/audit.jsonl` chain will be detected by
-`riskforge verify` (exit 2). Editing a register outside the tool is possible but
-not recommended.
+diff-able. Editing the `.riskforge/audit.jsonl` chain, a register or a system file
+by hand is detected by `riskforge verify` (exit 2), and every command that changes or
+exports data then refuses the project with exit 2 and changes nothing. Make changes
+through the CLI.
 
 **Why does validation fail with G2 even after `init`?** `init` records the Annex III
 category but not the self-classification confirmation. Run
