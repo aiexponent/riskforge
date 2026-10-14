@@ -125,10 +125,16 @@ def run_read_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]
 
     For commands that only read: no lock is taken and nothing is written, so they work
     on a read-only copy. A change in progress exits 1, a failed check prints one line
-    per finding and exits 2, as ``riskforge verify`` does.
+    per finding and exits 2, as ``riskforge verify`` does. A register or system file
+    that ``body`` reads and that changed after the check also exits 2.
     """
     from riskforge.cli.errors import EXIT_FAILED
-    from riskforge.engine.integrity import ChangeInProgressError, check_integrity_settled
+    from riskforge.engine.integrity import (
+        ChangeInProgressError,
+        IntegrityError,
+        check_integrity_settled,
+        reads_checked_against,
+    )
 
     store = open_project_for_reading(project_dir)
 
@@ -145,7 +151,12 @@ def run_read_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]
                 highlight=False,
             )
             raise typer.Exit(EXIT_TAMPERED)
-        return await body(store)
+        try:
+            with reads_checked_against(store, report):
+                return await body(store)
+        except IntegrityError as exc:
+            print_refusal(exc)
+            raise typer.Exit(EXIT_TAMPERED) from None
 
     return asyncio.run(_main())
 

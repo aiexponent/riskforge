@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import contextvars
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -482,6 +482,23 @@ async def read_system_checked(storage: StorageBackend, system_id: str) -> AISyst
     if guard is not None:
         guard.confirm_system(system_id, file_digest(document))
     return AISystem.model_validate(document)
+
+
+@contextlib.contextmanager
+def reads_checked_against(storage: StorageBackend, report: IntegrityReport) -> Iterator[None]:
+    """Compare reads of ``storage`` in this block with what ``report``'s check read.
+
+    For commands that only read and take no lock: ``read_register_checked`` and
+    ``read_system_checked`` raise ``IntegrityError`` when a file changed after the check.
+    """
+    guard = ChangeGuard(
+        registers=dict(report.register_digests), systems=dict(report.system_digests)
+    )
+    token = _GUARDS.set({**_GUARDS.get(), id(storage): guard})
+    try:
+        yield
+    finally:
+        _GUARDS.reset(token)
 
 
 @contextlib.asynccontextmanager
