@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
+from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from riskforge.storage.filesystem import FileStore
 
 console = Console()
 
@@ -28,8 +30,8 @@ def cmd(
     audit trail. The output file is written with chmod 600.
     """
 
-    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
-    from riskforge.cli.project import open_project, read_register_or_fail
+    from riskforge.cli.errors import EXIT_FAILED, fail
+    from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.export import ExportEngine, SigningError
     from riskforge.engine.validate import ValidateEngine
@@ -45,52 +47,46 @@ def cmd(
             param_hint="'--format' / '-f'",
         )
 
-    store = open_project(project_dir)
+    async def _export(store: FileStore) -> tuple[Path, RiskManagementFile]:
+        register = await read_register_or_fail(store, system_id)
 
-    # Pre-flight continuity check
-    is_valid, violations = asyncio.run(store.verify_chain())
-    if not is_valid:
-        console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(EXIT_TAMPERED)
+        # Run validation gates unless --force
+        if not force:
+            val_engine = ValidateEngine()
+            results = val_engine.run(register)
+            if val_engine.has_failures(results):
+                console.print(
+                    "[red]✗[/red] Validation failed. Run `riskforge validate` for details "
+                    "or use --force to override."
+                )
+                raise typer.Exit(EXIT_FAILED)
 
-    register = asyncio.run(read_register_or_fail(store, system_id))
+        # Build the RMF artefact, deriving test requirements and cross-references from
+        # the register so they land in the exported file (both are deterministic).
+        import datetime
 
-    # Run validation gates unless --force
-    if not force:
-        val_engine = ValidateEngine()
-        results = val_engine.run(register)
-        if val_engine.has_failures(results):
-            console.print(
-                "[red]✗[/red] Validation failed. Run `riskforge validate` for details "
-                "or use --force to override."
-            )
-            raise typer.Exit(EXIT_FAILED)
+        from riskforge.engine.tests import TestDerivationEngine
 
-    # Build the RMF artefact, deriving test requirements and cross-references from
-    # the register so they land in the exported file (both are deterministic).
-    import datetime
+        rmf = RiskManagementFile(
+            register=register,
+            test_requirements=TestDerivationEngine().derive(register.items),
+            cross_references=_build_cross_references(register.items),
+            generated_at=datetime.datetime.now(datetime.UTC),
+        )
 
-    from riskforge.engine.tests import TestDerivationEngine
+        # Determine output path
+        target = output
+        if target is None:
+            ext = {"json": "json", "pdf": "pdf", "markdown": "md"}.get(fmt, fmt)
+            export_id = str(rmf.id)[:8]
+            target = project_dir / f"rmf-{system_id[:8]}-{export_id}.{ext}"
 
-    rmf = RiskManagementFile(
-        register=register,
-        test_requirements=TestDerivationEngine().derive(register.items),
-        cross_references=_build_cross_references(register.items),
-        generated_at=datetime.datetime.now(datetime.UTC),
-    )
-
-    # Determine output path
-    if output is None:
-        ext = {"json": "json", "pdf": "pdf", "markdown": "md"}.get(fmt, fmt)
-        export_id = str(rmf.id)[:8]
-        output = project_dir / f"rmf-{system_id[:8]}-{export_id}.{ext}"
-
-    actor = AuditActor(type="human", identity="cli")
-    audit = AuditEngine(store, actor)
-    engine = ExportEngine(registry, audit)
+        audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+        engine = ExportEngine(registry, audit)
+        return await engine.export(rmf, fmt, target, sign_with=sign), rmf
 
     try:
-        result_path = asyncio.run(engine.export(rmf, fmt, output, sign_with=sign))
+        result_path, rmf = run_checked(project_dir, _export)
     except SigningError as exc:
         fail(str(exc))
 

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
+from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from riskforge.storage.filesystem import FileStore
 
 app = typer.Typer(help="Manage the AI system record: show, classify.")
 console = Console()
@@ -47,7 +50,7 @@ def classify_system(
     This records that determination and writes an audit entry. Re-run with --confirm.
     """
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import open_project, parse_category, read_system_or_fail
+    from riskforge.cli.project import parse_category, read_system_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.system import SystemEngine
     from riskforge.models.audit import AuditActor
@@ -59,14 +62,13 @@ def classify_system(
         )
 
     cat_enum = parse_category(category)
-    store = open_project(project_dir)
 
-    async def _run() -> None:
+    async def _classify(store: FileStore) -> None:
         await read_system_or_fail(store, system_id)
         audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
         await SystemEngine(store, audit).classify(system_id, cat_enum)
 
-    asyncio.run(_run())
+    run_checked(project_dir, _classify)
     console.print(
         f"[green]✓[/green] Article 6(2) self-classification recorded for "
         f"[bold]{system_id[:8]}[/bold]. Gate G2 will pass."

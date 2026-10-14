@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
+from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
 from rich.table import Table
+
+if TYPE_CHECKING:
+    from riskforge.models.risk import RiskItem
+    from riskforge.storage.filesystem import FileStore
 
 app = typer.Typer(help="Manage risk items: list, accept, mitigate.")
 console = Console()
@@ -60,7 +64,7 @@ def accept_risk(
 ) -> None:
     """Accept a risk item with a documented rationale."""
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import open_project, read_register_or_fail
+    from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import (
         AmbiguousRiskIdError,
@@ -70,14 +74,13 @@ def accept_risk(
     )
     from riskforge.models.audit import AuditActor
 
-    store = open_project(project_dir)
-    asyncio.run(read_register_or_fail(store, system_id))
-    actor = AuditActor(type="human", identity="cli")
-    audit = AuditEngine(store, actor)
-    engine = RiskEngine(store, audit)
+    async def _accept(store: FileStore) -> RiskItem:
+        await read_register_or_fail(store, system_id)
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
+        return await engine.accept_risk(system_id, risk_id, rationale, "cli")
 
     try:
-        item = asyncio.run(engine.accept_risk(system_id, risk_id, rationale, "cli"))
+        item = run_checked(project_dir, _accept)
     except RiskNotFoundError:
         fail(_no_such_risk(system_id, risk_id))
     except AmbiguousRiskIdError as exc:
@@ -108,7 +111,7 @@ def mitigate_risk(
 ) -> None:
     """Add a mitigation to a risk item, optionally re-scoring residual risk."""
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import open_project, read_register_or_fail
+    from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import AmbiguousRiskIdError, RiskEngine, RiskNotFoundError
     from riskforge.models.audit import AuditActor
@@ -123,21 +126,19 @@ def mitigate_risk(
             "must be planned, implemented or verified.", param_hint="'--status'"
         )
 
-    store = open_project(project_dir)
-    asyncio.run(read_register_or_fail(store, system_id))
-    actor = AuditActor(type="human", identity="cli")
-    audit = AuditEngine(store, actor)
-    engine = RiskEngine(store, audit)
     mitigation = Mitigation(
         description=description, control_type=control_type, owner=owner, status=status
     )
 
-    try:
-        item = asyncio.run(
-            engine.add_mitigation(
-                system_id, risk_id, mitigation, residual_likelihood, residual_severity
-            )
+    async def _mitigate(store: FileStore) -> RiskItem:
+        await read_register_or_fail(store, system_id)
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
+        return await engine.add_mitigation(
+            system_id, risk_id, mitigation, residual_likelihood, residual_severity
         )
+
+    try:
+        item = run_checked(project_dir, _mitigate)
     except RiskNotFoundError:
         fail(_no_such_risk(system_id, risk_id))
     except AmbiguousRiskIdError as exc:

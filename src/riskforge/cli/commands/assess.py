@@ -11,6 +11,7 @@ from rich.table import Table
 
 if TYPE_CHECKING:
     from riskforge.models.risk import RiskDimension
+    from riskforge.storage.filesystem import FileStore
 
 console = Console()
 
@@ -117,8 +118,7 @@ async def _run_assess(
 ) -> None:
     import questionary
 
-    from riskforge.cli.errors import EXIT_TAMPERED
-    from riskforge.cli.project import open_project, read_system_or_fail
+    from riskforge.cli.project import open_project, preflight, read_system_or_fail
     from riskforge.engine.assess import AssessEngine
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
@@ -128,11 +128,10 @@ async def _run_assess(
     # ── Bootstrap storage + engines ───────────────────────────────────────────
     store = open_project(project_dir)
 
-    # Pre-flight continuity check
-    is_valid, violations = await store.verify_chain()
-    if not is_valid:
-        console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(EXIT_TAMPERED)
+    # Refuse a tampered project before the first prompt. The lock is not held while
+    # the assessor answers; each saved item runs the check again in its own change.
+    async with preflight(store):
+        pass
 
     actor = AuditActor(type="human", identity=assessor_name)
     audit = AuditEngine(store, actor)
@@ -401,13 +400,8 @@ async def _run_noninteractive(
     """
     import yaml
 
-    from riskforge.cli.errors import EXIT_TAMPERED, fail
-    from riskforge.cli.project import open_project, read_system_or_fail
-    from riskforge.engine.assess import AssessEngine
-    from riskforge.engine.audit import AuditEngine
-    from riskforge.engine.risk import RiskEngine
-    from riskforge.models.audit import AuditActor
-    from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import open_project, preflight
 
     if not answers_path.is_file():
         fail(f"Answers file not found: {answers_path}")
@@ -425,10 +419,37 @@ async def _run_noninteractive(
     add_patterns = bool(answers_doc.get("add_patterns", True))
 
     store = open_project(project_dir)
-    is_valid, violations = await store.verify_chain()
-    if not is_valid:
-        console.print(f"[red]✗[/red] Audit chain is corrupt: {violations}")
-        raise typer.Exit(EXIT_TAMPERED)
+    async with preflight(store):
+        await _assess_from_answers(
+            store,
+            system_id,
+            assessor_name,
+            assessor_role,
+            dimension_filter,
+            review_months,
+            answers,
+            add_patterns,
+        )
+
+
+async def _assess_from_answers(
+    store: "FileStore",
+    system_id: str,
+    assessor_name: str,
+    assessor_role: str,
+    dimension_filter: Optional["RiskDimension"],
+    review_months: int,
+    answers: dict,
+    add_patterns: bool,
+) -> None:
+    """The non-interactive assessment, run inside the caller's checked unit of work."""
+    from riskforge.cli.errors import fail
+    from riskforge.cli.project import read_system_or_fail
+    from riskforge.engine.assess import AssessEngine
+    from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.risk import RiskEngine
+    from riskforge.models.audit import AuditActor
+    from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
 
     actor = AuditActor(type="human", identity=assessor_name)
     audit = AuditEngine(store, actor)

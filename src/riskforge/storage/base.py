@@ -6,10 +6,18 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
+from typing import Any
 
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
+
+# Set to True in ``unit_of_work_state()`` when opening the unit of work finished or
+# discarded a change that an earlier one left unfinished.
+RECOVERED_STATE_KEY = "riskforge.storage.recovered"
+# The ``("register" | "system", system_id)`` pairs written in ``unit_of_work_state()``
+# and not yet committed by an audit entry.
+WRITTEN_STATE_KEY = "riskforge.storage.written"
 
 
 @dataclass(frozen=True)
@@ -212,6 +220,25 @@ class StorageBackend(ABC):
         AsyncContextManager[None]
         """
         ...
+
+    def unit_of_work_state(self) -> dict[str, Any] | None:
+        """
+        State shared by every scope of the open outermost unit of work.
+
+        Engines keep what one change needs across nested scopes here, such as what the
+        integrity check ``AuditEngine`` runs before a change saw. The mapping starts
+        empty when the outermost scope opens and is dropped when it ends. A backend
+        may add ``RECOVERED_STATE_KEY`` when opening the scope finished or discarded
+        an unfinished change, and ``WRITTEN_STATE_KEY`` for the writes staged and not
+        yet committed, so engines can tell this change's writes from outside edits. Returns None outside a unit of
+        work. This default always returns None, and callers then keep the state
+        themselves.
+
+        Returns
+        -------
+        dict[str, Any] | None
+        """
+        return None
 
     @abstractmethod
     async def append_audit(self, entries: AuditEntry | Sequence[AuditEntry]) -> None:

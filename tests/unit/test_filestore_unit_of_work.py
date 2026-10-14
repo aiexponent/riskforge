@@ -55,7 +55,7 @@ async def _project(tmp_path: Path) -> tuple[FileStore, AuditEngine, AISystem]:
     await store.init_project("p", {})
     system = AISystem(name="S", version="1", purpose="p", provider_name="P")
     audit = AuditEngine(store, AuditActor(type="human", identity="t"))
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_system(str(system.id), system)
         await audit.record("system.created", str(system.id), {})
     return store, audit, system
@@ -92,7 +92,7 @@ async def _next_entry_line(store: FileStore, sid: str) -> bytes:
 async def test_change_and_entry_commit_together(tmp_path: Path) -> None:
     store, audit, system = await _project(tmp_path)
     sid = str(system.id)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_register(sid, _register(system))
         await audit.record("register.created", sid, {})
     assert (await store.read_register(sid)).system.id == system.id
@@ -133,7 +133,7 @@ async def test_system_write_without_an_entry_is_discarded(tmp_path: Path) -> Non
 async def test_reads_inside_a_unit_of_work_see_its_own_writes(tmp_path: Path) -> None:
     store, audit, system = await _project(tmp_path)
     sid = str(system.id)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_register(sid, _register(system))
         assert (await store.read_register(sid)).assessor_name == "A"
         await audit.record("register.created", sid, {})
@@ -142,7 +142,7 @@ async def test_reads_inside_a_unit_of_work_see_its_own_writes(tmp_path: Path) ->
 async def test_nested_unit_of_work_joins_the_outer_one(tmp_path: Path) -> None:
     store, audit, system = await _project(tmp_path)
     sid = str(system.id)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         async with store.unit_of_work():
             await store.write_register(sid, _register(system))
         await audit.record("register.created", sid, {})
@@ -170,7 +170,7 @@ async def test_interrupted_commit_is_finished_by_the_next_unit_of_work(
 
     monkeypatch.setattr(filesystem.os, "replace", crash_on_pending)
     with pytest.raises(OSError, match="simulated crash"):
-        async with store.unit_of_work():
+        async with audit.unit_of_work():
             await store.write_register(sid, _register(system))
             await audit.record("register.created", sid, {})
     monkeypatch.setattr(filesystem.os, "replace", real_replace)
@@ -205,7 +205,7 @@ async def test_journal_is_written_first_and_removed_last(
         return result
 
     monkeypatch.setattr(filesystem.os, "replace", record_replace)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_register(sid, _register(system))
         assert steps == []  # staged writes touch only .pending files
         await audit.record("register.created", sid, {})
@@ -289,7 +289,7 @@ async def test_awkward_text_reads_back_exactly(tmp_path: Path) -> None:
         for text in AWKWARD
     ]
     register = _register(system, items)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_register(sid, register)
         await audit.record("register.created", sid, {})
     assert await store.read_register_document(sid) == register.model_dump(mode="json")
@@ -317,7 +317,7 @@ async def _assert_rolled_back_and_usable(
         assert not list(root.rglob("*.pending"))
     with pytest.raises(RegisterNotFoundError):
         await store.read_register(sid)
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_register(sid, _register(system))
         await audit.record("register.created", sid, {})
     assert (await store.read_register(sid)).system.id == system.id
@@ -359,7 +359,7 @@ async def test_audit_append_that_fails_part_way_is_rolled_back(
 
     monkeypatch.setattr(filesystem.os, "write", disk_fills_up)
     with pytest.raises(OSError, match="No space left"):
-        async with store.unit_of_work():
+        async with audit.unit_of_work():
             await store.write_register(sid, _register(system))
             await audit.record("register.created", sid, {})
     monkeypatch.setattr(filesystem.os, "write", real_write)
@@ -426,7 +426,7 @@ async def test_first_append_makes_the_new_audit_log_durable_before_renames(
     monkeypatch.setattr(filesystem.os, "replace", logged_replace)
     system = AISystem(name="S", version="1", purpose="p", provider_name="P")
     audit = AuditEngine(store, AuditActor(type="human", identity="t"))
-    async with store.unit_of_work():
+    async with audit.unit_of_work():
         await store.write_system(str(system.id), system)
         await audit.record("system.created", str(system.id), {})
     rename = events.index(("replace", "system.yaml", True))
@@ -465,7 +465,7 @@ async def test_two_stores_for_one_project_share_a_nested_unit_of_work(tmp_path: 
     other = FileStore(tmp_path / "sub" / "..")
 
     async def nested() -> None:
-        async with store.unit_of_work():
+        async with audit.unit_of_work():
             async with other.unit_of_work():
                 await other.write_register(sid, _register(system))
             assert (await store.read_register(sid)).assessor_name == "A"

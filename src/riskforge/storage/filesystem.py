@@ -66,6 +66,7 @@ import tempfile
 import warnings
 from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
+from typing import Any
 
 import yaml
 from filelock import FileLock, Timeout
@@ -80,7 +81,12 @@ from riskforge.integrity.chain import (
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
-from riskforge.storage.base import PendingChange, StorageBackend
+from riskforge.storage.base import (
+    RECOVERED_STATE_KEY,
+    WRITTEN_STATE_KEY,
+    PendingChange,
+    StorageBackend,
+)
 from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
@@ -106,6 +112,7 @@ class _Scope:
 
     def __init__(self) -> None:
         self.staged: list[str] = []
+        self.state: dict[str, Any] = {}
 
 
 # Open units of work in the current context, keyed by the resolved .riskforge path, so
@@ -255,6 +262,35 @@ def _journal_mismatch(journal: dict, log: bytes) -> str | None:
     if entry is None or entry.seq != after_seq:
         return "after_seq is not the seq of the entry that ends at log_size"
     return None
+
+
+def _head_fits(journal: dict, log: bytes, outcome: str, appended: list[AuditEntry], head) -> bool:
+    """Whether ``audit.head.json`` is one an interrupted commit of ``journal`` can leave.
+
+    A commit writes the head only after every line of its append reached the log, so a
+    discarded append leaves the head of the entry at ``after_seq``, and a kept one leaves
+    that head or the head of its last entry. A project with no head file yet (last
+    written by RiskForge 1.1) fits only while the log before the change holds no entry
+    written by 2.0 or later. Anything else means the journal was not left by the commit
+    that wrote this log, and recovery must not act on it.
+    """
+    before_entries, _errors = _parse_log(log[: journal["log_size"]])
+    before = [entry for _label, entry in before_entries]
+    if head is None:
+        return not any(written_since_2_0(entry) for entry in before)
+    allowed = []
+    if before:
+        allowed.append({"seq": before[-1].seq, "entry_hash": before[-1].entry_hash})
+    if outcome == "forward":
+        allowed.append({"seq": appended[-1].seq, "entry_hash": appended[-1].entry_hash})
+    return head in allowed
+
+
+_HEAD_DOES_NOT_FIT = (
+    "txn.json describes an unfinished change that audit.head.json does not fit (the head "
+    "file names neither the entry before that change nor its last entry), so it was not "
+    "written by RiskForge for this log. Recovery refused it and changed nothing."
+)
 
 
 class _BadLine(ValueError):
@@ -432,6 +468,21 @@ class FileStore(StorageBackend):
     def _scope(self) -> _Scope | None:
         return (_ACTIVE_UOW.get() or {}).get(self._key)
 
+    def _note_written(self, kind: str, system_id: str) -> None:
+        scope = self._scope()
+        if scope is not None:
+            scope.state.setdefault(WRITTEN_STATE_KEY, set()).add((kind, system_id))
+
+    def unit_of_work_state(self) -> dict[str, Any] | None:
+        """State of the open unit of work for this project, shared by every joined scope.
+
+        Holds ``RECOVERED_STATE_KEY`` (True) when entering the scope finished or
+        discarded a change an earlier unit of work left unfinished, and
+        ``WRITTEN_STATE_KEY`` while writes are staged and not yet committed.
+        """
+        scope = self._scope()
+        return None if scope is None else scope.state
+
     def _readable(self, path: Path) -> Path:
         """The file a read should see: this unit of work's staged copy, else the committed one."""
         scope = self._scope()
@@ -564,13 +615,29 @@ class FileStore(StorageBackend):
         length before it and how many lines the append wrote. If every appended entry is
         complete, the staged files are renamed into place; otherwise what reached the log
         is cut off and the staged files are deleted. A journal RiskForge did not write
-        raises ``StoredFileCorruptError`` and nothing is touched. Any other pending or temp file is an uncommitted write and is
-        deleted, and a system directory left empty by that is removed.
+        raises ``StoredFileCorruptError`` and nothing is touched, as does a journal that
+        ``audit.head.json`` does not fit (see ``_head_fits``). Any other pending or temp
+        file is an uncommitted write and is deleted, and a system directory left empty by
+        that is removed. When a journal was acted on, the open scope's state records it
+        under ``RECOVERED_STATE_KEY``.
         """
         emptied: set[Path] = set()
         checked = self._checked_journal()
         if checked is not None:
-            journal, _log = checked
+            journal, log = checked
+            outcome, appended_entries = _settle_outcome(journal, log[journal["log_size"] :])
+            if len(log) > journal["log_size"] and outcome == "fail":
+                raise AuditLogCorruptError(
+                    "The audit log changed in a way an interrupted RiskForge commit cannot "
+                    "explain, so it was left as it is."
+                )
+            if len(log) <= journal["log_size"]:
+                outcome, appended_entries = "discard", []
+            if not _head_fits(journal, log, outcome, appended_entries, self._read_head()):
+                raise StoredFileCorruptError(_HEAD_DOES_NOT_FIT)
+            scope = self._scope()
+            if scope is not None:
+                scope.state[RECOVERED_STATE_KEY] = True
             appended = self._settle_log(journal)
             for rel in journal["files"]:
                 final = self._root / rel
@@ -603,6 +670,7 @@ class FileStore(StorageBackend):
         scope = self._scope()
         if scope is not None:
             scope.staged.clear()
+            scope.state.pop(WRITTEN_STATE_KEY, None)
 
     # ------------------------------------------------------------------ #
     # Unit of work                                                         #
@@ -745,6 +813,7 @@ class FileStore(StorageBackend):
             os.chmod(sdir, stat.S_IRWXU)
             payload = yaml.dump(data.model_dump(mode="json"), sort_keys=False, allow_unicode=True)
             self._write(sdir / "system.yaml", payload.encode("utf-8"))
+            self._note_written("system", system_id)
             logger.debug("Wrote system '%s'", system_id)
 
         await asyncio.to_thread(_sync)
@@ -872,6 +941,7 @@ class FileStore(StorageBackend):
                 {"mitigations": catalogue}, sort_keys=False, allow_unicode=True
             ).encode("utf-8")
             self._write(sdir / "register.yaml", reg_bytes)
+            self._note_written("register", system_id)
             self._write(sdir / "mitigations.yaml", mit_bytes)
             logger.debug(
                 "Wrote register for system '%s' (%d items, %d mitigations)",
@@ -981,6 +1051,7 @@ class FileStore(StorageBackend):
             for directory in {path.parent for path in staged}:
                 _fsync_dir(directory)
             scope.staged.clear()
+            scope.state.pop(WRITTEN_STATE_KEY, None)
             self._write_head(batch[-1].seq, batch[-1].entry_hash)
             self._journal_path.unlink()
 
@@ -1151,26 +1222,15 @@ class FileStore(StorageBackend):
                 "txn.json records a change that does not match the end of the audit log, so "
                 "recovery would refuse it."
             )
+        if len(log) <= log_size:
+            outcome, appended = "discard", []
+        if not _head_fits(journal, log, outcome, appended, self._read_head()):
+            raise StoredFileCorruptError(_HEAD_DOES_NOT_FIT)
         view = FileStore(self._root.parent, self._lock_timeout, read_only=True)
         if outcome == "discard":
             view._log_limit = log_size
             return view
-        before_entries, _errors = _parse_log(log[:log_size])
-        before = [entry for _label, entry in before_entries]
         after = {"seq": appended[-1].seq, "entry_hash": appended[-1].entry_hash}
-        head = self._read_head()
-        if head is None:
-            head_fits = not any(written_since_2_0(entry) for entry in before)
-        else:
-            head_fits = head == after or (
-                bool(before)
-                and head == {"seq": before[-1].seq, "entry_hash": before[-1].entry_hash}
-            )
-        if not head_fits:
-            raise StoredFileCorruptError(
-                "audit.head.json matches neither the end of the audit log before the "
-                "unfinished change in txn.json nor the end after it."
-            )
         view._overlay = frozenset(
             rel for rel in journal["files"] if _pending(self._root / rel).exists()
         )
