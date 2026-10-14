@@ -87,6 +87,13 @@ def _snapshot(project: Path) -> dict[str, bytes]:
     }
 
 
+def _notice(output: str, id_prefix: str) -> str:
+    """The review line assess printed for the item whose id starts with ``id_prefix``."""
+    lines = [line for line in output.splitlines() if line.startswith(f"! {id_prefix} ")]
+    assert len(lines) == 1, output
+    return lines[0]
+
+
 def _answers_with(tmp_path: Path, **changes: dict) -> Path:
     document = yaml.safe_load(ANSWERS.read_text(encoding="utf-8"))
     for qid, answer in changes.items():
@@ -131,6 +138,12 @@ def test_changed_score_updates_the_matching_item(tmp_path: Path) -> None:
         "old_score": 20,
         "new_score": 10,
         "reason": "reassessment",
+        "old_likelihood": 4,
+        "new_likelihood": 2,
+        "old_severity": 5,
+        "new_severity": 5,
+        "old_knowledge_gap": False,
+        "new_knowledge_gap": False,
     }
     assert run_rf(["verify", "--project-dir", str(tmp_path)]).returncode == 0
 
@@ -178,7 +191,10 @@ def test_changed_score_on_a_mitigated_item_keeps_its_residual(
     assert mitigated.returncode == 0, mitigated.output
     changed = _answers_with(tmp_path, DI_001={"applies": "yes", "likelihood": 5, "severity": 5})
     result = _assess(tmp_path, sid, changed)
-    assert "review its residual score and acceptance" in result.output, result.output
+    notice = _notice(result.output, target["id"][:8])
+    assert "likelihood 4 to 5" in notice and "has 1 mitigation(s)" in notice, notice
+    assert notice.endswith("review its residual score."), notice
+    assert "accept" not in notice
     item = _item(tmp_path, "DI-001")
     assert (item["likelihood"], item["severity"]) == (5, 5)
     assert (item["residual_likelihood"], item["residual_severity"]) == (2, 4)
@@ -200,8 +216,9 @@ def test_changed_score_on_an_accepted_item_keeps_the_acceptance(
     changed = _answers_with(tmp_path, DI_001={"applies": "yes", "likelihood": 5, "severity": 5})
     result = _assess(tmp_path, sid, changed)
     assert result.returncode == 0, result.output
-    assert target["id"][:8] in result.output
-    assert "review its residual score and acceptance" in result.output, result.output
+    notice = _notice(result.output, target["id"][:8])
+    assert "likelihood 4 to 5" in notice and "severity" not in notice, notice
+    assert "It is accepted; review its residual score and acceptance." in notice, notice
     item = _item(tmp_path, "DI-001")
     assert item["accepted"] is True
     assert item["acceptance_rationale"] == "Reviewed."
@@ -215,7 +232,11 @@ def test_answer_changed_to_no_keeps_the_item(tmp_path: Path) -> None:
     changed = _answers_with(tmp_path, PR_001={"applies": "no"}, HO_001={"applies": "skip"})
     result = _assess(tmp_path, sid, changed)
     assert result.returncode == 0, result.output
-    assert "HO-001, PR-001" in result.output and "never removes" in result.output, result.output
+    assert (
+        "Not answered yes or unknown this time (no, skip or missing) but kept in the register: "
+        "HO-001, PR-001." in result.output
+    ), result.output
+    assert "never removes" in result.output
     assert _item(tmp_path, "PR-001")["likelihood"] == 3
     assert _item(tmp_path, "HO-001")["likelihood"] == 2
     assert _snapshot(tmp_path) == before
@@ -228,3 +249,53 @@ def test_items_written_by_v113_are_recognised(v113_project: tuple[Path, str]) ->
     assert result.returncode == 0, result.output
     assert "0 added, 0 updated, 10 unchanged" in result.output, result.output
     assert _snapshot(root) == before
+
+
+def test_knowledge_gap_change_on_an_accepted_item_names_the_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RISKFORGE_ACTOR", "Alice, Lead")
+    sid = _init(tmp_path)
+    assert _assess(tmp_path, sid, ANSWERS).returncode == 0
+    target = _item(tmp_path, "DG-001")
+    accepted = run_rf(
+        ["risk", "accept", sid, target["id"][:8], "-r", "Reviewed.", "--project-dir", str(tmp_path)]
+    )
+    assert accepted.returncode == 0, accepted.output
+    same_scores = {
+        "applies": "yes",
+        "likelihood": target["likelihood"],
+        "severity": target["severity"],
+    }
+    result = _assess(tmp_path, sid, _answers_with(tmp_path, DG_001=same_scores))
+    assert "0 added, 1 updated, 9 unchanged" in result.output, result.output
+    notice = _notice(result.output, target["id"][:8])
+    assert "knowledge-gap flag cleared" in notice, notice
+    assert "likelihood" not in notice and "severity" not in notice, notice
+    assert "is accepted" in notice
+
+
+def test_duplicates_from_v113_are_listed_and_kept(v113_project: tuple[Path, str]) -> None:
+    root, sid = v113_project
+    register_path = _register_path(root)
+    register = yaml.safe_load(register_path.read_text(encoding="utf-8"))
+    original = next(i for i in register["items"] if i["tags"] == ["DI-001"])
+    # 1.1.3 appended every item again on each re-run, so its registers can hold twins.
+    twin = {**original, "id": "00000000-0000-4000-8000-000000000001", "likelihood": 2}
+    register["items"].append(twin)
+    register_path.write_text(yaml.dump(register, sort_keys=False), encoding="utf-8")
+    changed = _answers_with(root, DI_001={"applies": "yes", "likelihood": 3, "severity": 5})
+    result = _assess(root, sid, changed)
+    assert result.returncode == 0, result.output
+    assert "nothing is duplicated" not in result.output
+    assert (
+        "! 2 items in the register came from question DI-001; assess updated only "
+        f"{original['id'][:8]}. Review them with riskforge risk list."
+    ) in result.output, result.output
+    items = [i for i in _items(root) if i["tags"] == ["DI-001"]]
+    assert [(i["id"], i["likelihood"]) for i in items] == [
+        (original["id"], 3),
+        (twin["id"], 2),
+    ]
+    assert len(_items(root)) == 11
+    assert run_rf(["verify", "--project-dir", str(root)]).returncode == 0
