@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 import riskforge.storage.filesystem as filesystem
+from filelock import FileLock, Timeout
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.audit import AuditActor
 from riskforge.models.register import RiskRegister
@@ -142,14 +143,79 @@ async def test_interrupted_commit_is_finished_by_the_next_unit_of_work(
             await store.write_register(sid, _register(system))
             await audit.record("register.created", sid, {})
     monkeypatch.setattr(filesystem.os, "replace", real_replace)
+    assert (tmp_path / ".riskforge" / "txn.json").exists()
     async with store.unit_of_work():
-        pass
+        # Recovery runs before the scope's own work starts.
+        assert not (tmp_path / ".riskforge" / "txn.json").exists()
+        assert (await store.read_register(sid)).system.id == system.id
     assert (await store.read_register(sid)).system.id == system.id
     entries = [entry async for entry in store.read_audit()]
     assert entries[-1].event == "register.created"
     head = json.loads((tmp_path / ".riskforge" / "audit.head.json").read_text())
-    assert head["seq"] == entries[-1].seq
-    assert not (tmp_path / ".riskforge" / "txn.json").exists()
+    assert head == {"seq": entries[-1].seq, "entry_hash": entries[-1].entry_hash}
+
+
+async def test_journal_is_written_first_and_removed_last(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, audit, system = await _project(tmp_path)
+    sid = str(system.id)
+    root = tmp_path / ".riskforge"
+    log_lines_before = len((root / "audit.jsonl").read_text().splitlines())
+    real_replace = os.replace
+    steps: list[tuple[str, bool, int]] = []
+
+    def record_replace(src, dst):
+        result = real_replace(src, dst)
+        name = Path(dst).name
+        if not name.endswith(".pending"):
+            log_lines = len((root / "audit.jsonl").read_text().splitlines())
+            steps.append((name, (root / "txn.json").exists(), log_lines))
+        return result
+
+    monkeypatch.setattr(filesystem.os, "replace", record_replace)
+    async with store.unit_of_work():
+        await store.write_register(sid, _register(system))
+        assert steps == []  # staged writes touch only .pending files
+        await audit.record("register.created", sid, {})
+    monkeypatch.setattr(filesystem.os, "replace", real_replace)
+
+    # The journal lands before the append and before anything is renamed into place.
+    assert steps[0] == ("txn.json", True, log_lines_before)
+    assert {name for name, _, _ in steps[1:]} == {
+        "register.yaml",
+        "mitigations.yaml",
+        "audit.head.json",
+    }
+    # Every later step runs after the append and while the journal still exists.
+    assert all(journal and lines == log_lines_before + 1 for _, journal, lines in steps[1:])
+    assert steps[-1][0] == "audit.head.json"
+    assert not (root / "txn.json").exists()
+
+
+async def test_recovery_runs_under_the_project_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, _audit, _system = await _project(tmp_path)
+    lock_path = tmp_path / ".riskforge" / "audit.lock"
+    real_recover = store._recover
+    held: list[bool] = []
+
+    def checked_recover() -> None:
+        other = FileLock(str(lock_path))
+        try:
+            other.acquire(timeout=0)
+        except Timeout:
+            held.append(True)
+        else:
+            other.release()
+            held.append(False)
+        real_recover()
+
+    monkeypatch.setattr(store, "_recover", checked_recover)
+    async with store.unit_of_work():
+        assert held == [True]
+    assert held == [True, True]
 
 
 async def test_change_staged_before_a_crash_is_rolled_back(tmp_path: Path) -> None:
@@ -162,12 +228,13 @@ async def test_change_staged_before_a_crash_is_rolled_back(tmp_path: Path) -> No
     (root / "txn.json").write_text(
         json.dumps({"after_seq": last.seq, "files": [f"systems/{sid}/register.yaml"]})
     )
+    head_before = (root / "audit.head.json").read_text()
     async with store.unit_of_work():
-        pass
-    assert not pending.exists()
-    assert not (root / "txn.json").exists()
+        assert not pending.exists()
+        assert not (root / "txn.json").exists()
     with pytest.raises(RegisterNotFoundError):
         await store.read_register(sid)
+    assert (root / "audit.head.json").read_text() == head_before
 
 
 async def test_awkward_text_reads_back_exactly(tmp_path: Path) -> None:
