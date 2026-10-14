@@ -162,25 +162,28 @@ Question ids come from the bundled question bank (see the files under
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
-Risk ids accept the first 8 characters shown by `riskforge risk list`.
+Risk ids accept the first 8 characters shown by `riskforge risk list`. The
+`--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
+path; signing produces a detached `.asc` next to the export.
 
 ### Who accepted a risk or recorded a mitigation
 
 `risk accept` and `risk mitigate` require a name, given as `--by "Name, Role"`.
 In CI you can set the `RISKFORGE_ACTOR` environment variable instead; when both
 are set, `--by` wins. With neither, or with a blank value, the command changes
-nothing and exits 3. The name must fit on one line.
+nothing and exits 3. The name must be plain text on one line: line breaks, control
+characters, bidirectional controls and invisible characters other than zero-width
+joiners are refused with exit 3.
 
 The name is self-declared. RiskForge records it as given and does not check who
 ran the command. It becomes the audit entry's actor and is stored on the risk item
 as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
 exports show it as "Accepted by" and "Recorded by". The JSON export (RMF schema
-1.0.0) does not include these two fields yet. Acceptances recorded before 2.0.0
-show "Accepted by: not recorded".
-
-The
-`--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
-path; signing produces a detached `.asc` next to the export.
+1.0.0) does not include these two fields yet. The SHA-256 that the Markdown and
+PDF exports show (the PDF labels it "Document SHA-256") is the hash of the JSON
+export, so it does not cover the "Accepted by" and "Recorded by" text until RMF
+schema 1.1.0 (PRD-338). Acceptances recorded before 2.0.0 show "Accepted by: not
+recorded".
 
 ### The 8 validation gates
 
