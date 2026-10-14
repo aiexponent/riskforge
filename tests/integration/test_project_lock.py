@@ -70,7 +70,11 @@ def test_a_corrupt_audit_log_stops_a_change_with_exit_2(tmp_path: Path) -> None:
     result = run_rf(["system", "classify", sid, "--confirm", "--project-dir", str(tmp_path)])
     assert result.returncode == 2, result.output
     assert "Traceback" not in result.output
-    assert len(result.output.strip().splitlines()) == 1, result.output
+    lines = result.output.strip().splitlines()
+    # One line per finding between the header and the closing hint (PRD-333).
+    assert lines[0].startswith("✗ Integrity check failed"), result.output
+    assert all(line.startswith("  • ") for line in lines[1:-1]), result.output
+    assert any("Line 2: not valid JSON" in line for line in lines[1:-1]), result.output
     assert result.output.count("riskforge verify") == 1, result.output
 
 

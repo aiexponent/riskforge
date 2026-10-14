@@ -6,12 +6,17 @@ start without loading them (ADR-02).
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 import typer
 
-from riskforge.cli.errors import err_console, fail
+from riskforge.cli.errors import EXIT_TAMPERED, err_console, fail
+
+T = TypeVar("T")
 
 if TYPE_CHECKING:
     from riskforge.engine.integrity import IntegrityReport
@@ -64,6 +69,42 @@ def print_integrity_warnings(report: IntegrityReport) -> None:
 
     for warning in report.warnings:
         err_console.print(f"[yellow]![/yellow] {escape(warning)}", highlight=False, soft_wrap=True)
+
+
+@contextlib.asynccontextmanager
+async def preflight(store: FileStore) -> AsyncIterator[IntegrityReport | None]:
+    """Hold the project's unit of work, and refuse with exit 2 unless the project is intact.
+
+    The check runs after the unit of work has taken the lock and finished or discarded
+    any interrupted change, and the lock is held until the block ends, so nothing can
+    change between the check and the command's own change. Warnings are printed. An
+    ``IntegrityError`` from the check, or from an engine inside the block, prints one
+    line per finding and exits 2; nothing was written.
+    """
+    from riskforge.engine.integrity import IntegrityError, checked_unit_of_work
+
+    try:
+        async with checked_unit_of_work(store) as report:
+            if report is not None:
+                print_integrity_warnings(report)
+            yield report
+    except IntegrityError as exc:
+        print_integrity_failure(exc.report)
+        err_console.print(
+            "Nothing was changed. Run `riskforge verify` for the full report.", highlight=False
+        )
+        raise typer.Exit(EXIT_TAMPERED) from None
+
+
+def run_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]]) -> T:
+    """Open the project and run ``body`` inside ``preflight``, in one event loop."""
+    store = open_project(project_dir)
+
+    async def _main() -> T:
+        async with preflight(store):
+            return await body(store)
+
+    return asyncio.run(_main())
 
 
 async def read_system_or_fail(store: FileStore, system_id: str) -> AISystem:
