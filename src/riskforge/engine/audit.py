@@ -46,34 +46,51 @@ class AuditEngine:
             baseline: list[tuple[str, str, str | None]] = []
             if await self._storage.read_audit_head() is None:
                 baseline = await self._baseline_targets(exclude=system_id)
-            entry = await self._append(event, system_id, payload)
+            last = await self._storage.read_last_audit_entry()
+            if last is None:
+                prev_hash, seq = GENESIS_PREV_HASH, 0
+            else:
+                if compute_entry_hash(last) != last.entry_hash:
+                    raise AuditChainCorruptError(
+                        "Audit chain tail is corrupt (last entry hash mismatch). "
+                        "Run `riskforge verify` to diagnose."
+                    )
+                prev_hash, seq = last.entry_hash, last.seq + 1
+            entries = [
+                self._entry(
+                    seq,
+                    prev_hash,
+                    event,
+                    system_id,
+                    payload,
+                    await self._register_fingerprint(system_id),
+                )
+            ]
             for other_id, name, fingerprint in baseline:
-                await self._append(BASELINE_EVENT, other_id, {"name": name}, fingerprint)
-            return entry
+                previous = entries[-1]
+                entries.append(
+                    self._entry(
+                        previous.seq + 1,
+                        previous.entry_hash,
+                        BASELINE_EVENT,
+                        other_id,
+                        {"name": name},
+                        fingerprint,
+                    )
+                )
+            # One append, so the change and its baseline entries commit together.
+            await self._storage.append_audit(entries)
+            return entries[0]
 
-    async def _append(
+    def _entry(
         self,
+        seq: int,
+        prev_hash: str,
         event: str,
         system_id: str,
         payload: dict,
-        baseline_fingerprint: str | None = None,
+        fingerprint: str | None,
     ) -> AuditEntry:
-        last = await self._storage.read_last_audit_entry()
-        if last is None:
-            prev_hash = GENESIS_PREV_HASH
-            seq = 0
-        else:
-            if compute_entry_hash(last) != last.entry_hash:
-                raise AuditChainCorruptError(
-                    "Audit chain tail is corrupt (last entry hash mismatch). "
-                    "Run `riskforge verify` to diagnose."
-                )
-            prev_hash = last.entry_hash
-            seq = last.seq + 1
-        if event == BASELINE_EVENT:
-            fingerprint = baseline_fingerprint
-        else:
-            fingerprint = await self._register_fingerprint(system_id)
         entry = AuditEntry(
             seq=seq,
             event=event,
@@ -85,7 +102,6 @@ class AuditEngine:
             register_fingerprint=fingerprint,
         )
         entry.entry_hash = compute_entry_hash(entry)
-        await self._storage.append_audit(entry)
         return entry
 
     async def _baseline_targets(self, exclude: str) -> list[tuple[str, str, str | None]]:

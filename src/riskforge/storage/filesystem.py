@@ -64,17 +64,18 @@ import stat
 import subprocess
 import tempfile
 import warnings
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 
 import yaml
 from filelock import FileLock, Timeout
+from pydantic import ValidationError
 
 from riskforge.integrity.chain import entry_to_dict, verify_links
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
-from riskforge.storage.base import StorageBackend
+from riskforge.storage.base import PendingChange, StorageBackend
 from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
@@ -136,34 +137,133 @@ def _pending(path: Path) -> Path:
     return path.with_name(path.name + PENDING_SUFFIX)
 
 
-def _first_line(exc: Exception) -> str:
+def _first_line(exc: BaseException) -> str:
     return str(exc).splitlines()[0] if str(exc) else type(exc).__name__
 
 
-def _parse_entry(line: bytes | str) -> AuditEntry | None:
+# Largest stored file RiskForge reads. A larger register, system file, journal, head
+# file or audit log is reported instead of being read into memory.
+MAX_STORED_FILE_BYTES = 64 * 1024 * 1024
+
+_BYTE_ORDER_MARKS = (b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")
+_JOURNAL_FILES = frozenset({"system.yaml", "register.yaml", "mitigations.yaml"})
+
+
+def _read_stored(path: Path, label: str) -> bytes:
+    """The bytes of a stored file, read only if it is a regular file of at most 64 MiB.
+
+    The file is opened without blocking and checked through its descriptor, so a FIFO,
+    a device or a symlink to one is refused without being read, and a file swapped in
+    after a check cannot slip past it.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    StoredFileCorruptError
+        If it is not a regular file, is too large or cannot be read.
+    """
     try:
-        return AuditEntry.model_validate(json.loads(line))
-    except ValueError:  # JSONDecodeError, UnicodeDecodeError and pydantic ValidationError
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0))
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise StoredFileCorruptError(f"{label} cannot be read: {exc.strerror or exc}.") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise StoredFileCorruptError(f"{label} is not a regular file.")
+        too_large = StoredFileCorruptError(
+            f"{label} is larger than {MAX_STORED_FILE_BYTES // (1024 * 1024)} MiB."
+        )
+        if info.st_size > MAX_STORED_FILE_BYTES:
+            raise too_large
+        chunks: list[bytes] = []
+        total = 0
+        while chunk := os.read(fd, 1024 * 1024):
+            total += len(chunk)
+            if total > MAX_STORED_FILE_BYTES:
+                raise too_large
+            chunks.append(chunk)
+        return b"".join(chunks)
+    except OSError as exc:
+        raise StoredFileCorruptError(f"{label} cannot be read: {exc.strerror or exc}.") from exc
+    finally:
+        os.close(fd)
+
+
+def _load_yaml(data: bytes, label: str) -> object:
+    """``yaml.safe_load`` of stored bytes; a file that does not parse raises a typed error."""
+    try:
+        return yaml.safe_load(data)
+    except yaml.YAMLError as exc:
+        detail = " ".join(str(exc).split())
+        raise StoredFileCorruptError(f"{label} does not parse as YAML: {detail}") from exc
+    except RecursionError as exc:
+        raise StoredFileCorruptError(f"{label} does not parse: it is nested too deeply.") from exc
+
+
+class _BadLine(ValueError):
+    """A line of the audit log that is not exactly one stored entry."""
+
+
+def _entry_from_line(raw: bytes) -> AuditEntry:
+    """Parse one line of ``audit.jsonl``, which RiskForge writes as one UTF-8 JSON object.
+
+    Anything else on the line (a byte order mark, a carriage return, white space, another
+    encoding) is refused, so every reader of the log sees the same entries.
+    """
+    if not raw:
+        raise _BadLine("blank line")
+    if raw.startswith(_BYTE_ORDER_MARKS):
+        raise _BadLine("starts with a byte order mark")
+    if b"\r" in raw:
+        raise _BadLine("holds a carriage return")
+    if raw != raw.strip():
+        raise _BadLine("has white space around the entry")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise _BadLine("not UTF-8 text") from exc
+    try:
+        document = json.loads(text)
+    except (ValueError, RecursionError) as exc:
+        raise _BadLine(f"not valid JSON ({_first_line(exc)})") from exc
+    try:
+        return AuditEntry.model_validate(document)
+    except ValidationError as exc:
+        raise _BadLine(f"not a valid audit entry ({exc.error_count()} field error(s))") from exc
+
+
+def _parse_entry(raw: bytes) -> AuditEntry | None:
+    try:
+        return _entry_from_line(raw)
+    except _BadLine:
         return None
 
 
-def _load_yaml(path: Path) -> object:
-    """``yaml.safe_load`` of the file's bytes; a file that does not parse raises a typed error."""
-    try:
-        return yaml.safe_load(path.read_bytes())
-    except yaml.YAMLError as exc:
-        detail = " ".join(str(exc).split())
-        raise StoredFileCorruptError(f"{path.name} does not parse as YAML: {detail}") from exc
+def _parse_log(data: bytes) -> tuple[list[tuple[str, AuditEntry]], list[str]]:
+    """Every entry of the log with its line label, and every line that is not an entry.
 
-
-def _last_line(path: Path) -> str:
-    last = ""
-    with path.open("r", encoding="utf-8") as fh:
-        for raw in fh:
-            stripped = raw.strip()
-            if stripped:
-                last = stripped
-    return last
+    Lines end with ``\\n`` only; the log must end with one.
+    """
+    entries: list[tuple[str, AuditEntry]] = []
+    errors: list[str] = []
+    if not data:
+        return entries, errors
+    lines = data.split(b"\n")
+    tail = lines.pop()
+    for lineno, raw in enumerate(lines, start=1):
+        try:
+            entries.append((f"Line {lineno}", _entry_from_line(raw)))
+        except _BadLine as exc:
+            errors.append(f"Line {lineno}: {exc}.")
+    if tail:
+        errors.append(
+            f"Line {len(lines) + 1}: the audit log does not end with a line break "
+            "(an append was cut short or bytes were added)."
+        )
+    return entries, errors
 
 
 class FileStore(StorageBackend):
@@ -194,6 +294,8 @@ class FileStore(StorageBackend):
         self, project_dir: Path, lock_timeout: float | None = None, *, read_only: bool = False
     ) -> None:
         self._read_only = read_only
+        # Where the audit log ended before an unfinished change (read-only views only).
+        self._log_limit: int | None = None
         self._root = project_dir / ".riskforge"
         self._key = os.path.realpath(self._root)
         self._lock_timeout = DEFAULT_LOCK_TIMEOUT if lock_timeout is None else lock_timeout
@@ -285,34 +387,98 @@ class FileStore(StorageBackend):
         else:
             _atomic_write(path, data)
 
-    def _settle_log(self, journal: dict) -> AuditEntry | None:
-        """The entry an interrupted commit appended, or None after removing a torn append.
+    def _read_journal(self) -> dict | None:
+        """The journal of an unfinished commit, or None when there is none.
 
-        The commit appended at most one line, with a single write, at ``log_size``. One
-        complete line holding the entry that follows ``after_seq`` means the append
-        finished. Bytes without a line end, or one line that is not an entry, are what is
-        left of an append that failed part way; they are cut off so the log ends where it
-        did before the commit. Anything else (more than one line, or a valid entry with
-        another seq) was not written by this commit and is never removed.
+        Raises
+        ------
+        StoredFileCorruptError
+            If ``txn.json`` is not a journal RiskForge wrote: it does not parse, lacks a
+            key, or names a file outside the system files a commit stages.
+        """
+        try:
+            data = _read_stored(self._journal_path, "txn.json")
+        except FileNotFoundError:
+            return None
+
+        def malformed(reason: str) -> StoredFileCorruptError:
+            return StoredFileCorruptError(
+                f"txn.json is not a journal RiskForge wrote ({reason}), so the unfinished "
+                "change it describes cannot be finished or discarded."
+            )
+
+        try:
+            journal = json.loads(data)
+        except (ValueError, RecursionError) as exc:
+            raise malformed("it does not parse as JSON") from exc
+        if not isinstance(journal, dict):
+            raise malformed("it is not a JSON object")
+        journal.setdefault("count", 1)
+        for key, lowest in (("after_seq", -1), ("log_size", 0), ("count", 1)):
+            value = journal.get(key)
+            if not isinstance(value, int) or isinstance(value, bool) or value < lowest:
+                raise malformed(f"{key} must be an integer of at least {lowest}")
+        files = journal.get("files")
+        if not isinstance(files, list):
+            raise malformed("files must be a list")
+        for rel in files:
+            parts = rel.split("/") if isinstance(rel, str) else []
+            valid = len(parts) == 3 and parts[0] == "systems" and parts[2] in _JOURNAL_FILES
+            if valid:
+                try:
+                    self._system_dir(parts[1])
+                except InvalidSystemIdError:
+                    valid = False
+            if not valid:
+                raise malformed(f"it names {rel!r}, which is not a system file")
+        return journal
+
+    def _log_bytes(self) -> bytes:
+        """The audit log as stored, or up to where it ended before an unfinished change."""
+        data = _read_stored(self._audit_path, "audit.jsonl")
+        return data if self._log_limit is None else data[: self._log_limit]
+
+    def _settle_log(self, journal: dict) -> AuditEntry | None:
+        """The last entry an interrupted commit appended, or None after cutting off its append.
+
+        The commit appended ``count`` lines with one write at ``log_size``. Exactly those
+        lines, complete, holding the entries ``after_seq + 1`` to ``after_seq + count``,
+        mean the append finished. Fewer of them followed by nothing or by a cut-off line,
+        or one complete line that is not an entry, are what is left of an append that
+        failed part way; they are cut off so the log ends where it did before the commit.
+        Anything else was not written by this commit and is never removed.
         """
         if not self._audit_path.exists():
             return None
+        log_size, count = journal["log_size"], journal["count"]
         with self._audit_path.open("r+b") as fh:
             fh.seek(0, os.SEEK_END)
-            if fh.tell() <= journal["log_size"]:
+            if fh.tell() <= log_size:
                 return None
-            fh.seek(journal["log_size"])
-            tail = fh.read()
-            complete = tail.endswith(b"\n") and tail.count(b"\n") == 1
-            entry = _parse_entry(tail) if complete else None
-            if entry is not None and entry.seq == journal["after_seq"] + 1:
-                return entry
-            if b"\n" in tail[:-1] or entry is not None:
+            fh.seek(log_size)
+            lines = fh.read().split(b"\n")
+            rest = lines.pop()
+            expected: list[AuditEntry] = []
+            for offset, raw in enumerate(lines):
+                entry = _parse_entry(raw)
+                if entry is None or entry.seq != journal["after_seq"] + 1 + offset:
+                    break
+                expected.append(entry)
+            if len(expected) == len(lines) == count and not rest:
+                return expected[-1]
+            torn = len(expected) == len(lines) < count
+            garbled_last = (
+                len(expected) == len(lines) - 1
+                and len(lines) <= count
+                and not rest
+                and _parse_entry(lines[-1]) is None
+            )
+            if not (torn or garbled_last):
                 raise AuditLogCorruptError(
                     "The audit log changed in a way an interrupted RiskForge commit cannot "
                     "explain, so it was left as it is."
                 )
-            fh.truncate(journal["log_size"])
+            fh.truncate(log_size)
             fh.flush()
             os.fsync(fh.fileno())
         return None
@@ -324,15 +490,16 @@ class FileStore(StorageBackend):
     def _recover(self) -> None:
         """Finish or discard a change that an earlier unit of work left behind.
 
-        The journal names the staged files, the chain head before the append and the
-        log length before it. If the appended entry is complete, the staged files are
-        renamed into place; otherwise the torn append is cut off and the staged files
-        are deleted. Any other pending or temp file is an uncommitted write and is
+        The journal names the staged files, the chain head before the append, the log
+        length before it and how many lines the append wrote. If every appended entry is
+        complete, the staged files are renamed into place; otherwise what reached the log
+        is cut off and the staged files are deleted. A journal RiskForge did not write
+        raises ``StoredFileCorruptError`` and nothing is touched. Any other pending or temp file is an uncommitted write and is
         deleted, and a system directory left empty by that is removed.
         """
         emptied: set[Path] = set()
-        if self._journal_path.exists():
-            journal = json.loads(self._journal_path.read_text(encoding="utf-8"))
+        journal = self._read_journal()
+        if journal is not None:
             appended = self._settle_log(journal)
             for rel in journal["files"]:
                 final = self._root / rel
@@ -535,9 +702,11 @@ class FileStore(StorageBackend):
 
         def _sync() -> dict:
             path = self._readable(self._system_dir(system_id) / "system.yaml")
-            if not path.exists():
-                raise SystemNotFoundError(f"No system '{system_id}' in this project.")
-            return _load_yaml(path)  # type: ignore[return-value]
+            try:
+                data = _read_stored(path, "system.yaml")
+            except FileNotFoundError:
+                raise SystemNotFoundError(f"No system '{system_id}' in this project.") from None
+            return _load_yaml(data, "system.yaml")  # type: ignore[return-value]
 
         return await asyncio.to_thread(_sync)
 
@@ -545,15 +714,33 @@ class FileStore(StorageBackend):
         """Return the sorted ids of systems whose ``system.yaml`` is committed."""
 
         def _sync() -> list[str]:
-            if not self._systems_dir.exists():
-                return []
-            return sorted(
-                entry.name
-                for entry in self._systems_dir.iterdir()
-                if entry.is_dir() and (entry / "system.yaml").exists()
-            )
+            return [
+                name
+                for name in self._system_directories()
+                if (self._systems_dir / name / "system.yaml").exists()
+            ]
 
         return await asyncio.to_thread(_sync)
+
+    async def list_system_directories(self) -> list[str]:
+        """Return the sorted names of every directory under ``systems/``, whatever it holds.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If ``systems/`` cannot be listed.
+        """
+        return await asyncio.to_thread(self._system_directories)
+
+    def _system_directories(self) -> list[str]:
+        if not self._systems_dir.exists():
+            return []
+        try:
+            return sorted(entry.name for entry in self._systems_dir.iterdir() if entry.is_dir())
+        except OSError as exc:
+            raise StoredFileCorruptError(
+                f"systems/ cannot be listed: {exc.strerror or exc}."
+            ) from exc
 
     # ------------------------------------------------------------------ #
     # Risk register CRUD                                                   #
@@ -611,9 +798,13 @@ class FileStore(StorageBackend):
 
         def _sync() -> dict:
             path = self._readable(self._system_dir(system_id) / "register.yaml")
-            if not path.exists():
-                raise RegisterNotFoundError(f"System '{system_id}' has no risk register yet.")
-            return _load_yaml(path)  # type: ignore[return-value]
+            try:
+                data = _read_stored(path, "register.yaml")
+            except FileNotFoundError:
+                raise RegisterNotFoundError(
+                    f"System '{system_id}' has no risk register yet."
+                ) from None
+            return _load_yaml(data, "register.yaml")  # type: ignore[return-value]
 
         return await asyncio.to_thread(_sync)
 
@@ -631,20 +822,29 @@ class FileStore(StorageBackend):
     # Audit log                                                            #
     # ------------------------------------------------------------------ #
 
-    async def append_audit(self, entry: AuditEntry) -> None:
-        """Append *entry* to ``audit.jsonl`` and commit the writes staged before it.
+    async def append_audit(self, entries: AuditEntry | Sequence[AuditEntry]) -> None:
+        """Append one entry, or several chained entries, and commit the writes staged before.
 
-        Order: journal (with the log length before the append), one fsynced write of
-        the line, rename of each staged file, head file, journal removed. A crash at
-        any point leaves a state ``_recover`` can finish (the whole line reached the
-        log) or discard (it did not, and any torn part of it is cut off).
+        Order: journal (the log length before the append and the number of lines), one
+        fsynced write of every line, rename of each staged file, head file for the last
+        entry, journal removed. A crash at any point leaves a state ``_recover`` can
+        finish (every line reached the log) or discard (not all did, and what did is cut
+        off), so a change and all its entries commit together.
 
         Raises
         ------
         RuntimeError
             If called outside ``unit_of_work()``.
+        ValueError
+            If the entries do not follow one another (seq and prev_hash).
         """
         self._require_writable()
+        batch = [entries] if isinstance(entries, AuditEntry) else list(entries)
+        if not batch:
+            raise ValueError("append_audit needs at least one entry.")
+        for before, after in zip(batch, batch[1:], strict=False):
+            if after.seq != before.seq + 1 or after.prev_hash != before.entry_hash:
+                raise ValueError("Entries appended together must be chained in order.")
         scope = self._scope()
         if scope is None:
             raise RuntimeError("append_audit must run inside FileStore.unit_of_work().")
@@ -652,13 +852,16 @@ class FileStore(StorageBackend):
         def _sync() -> None:
             created = not self._audit_path.exists()
             journal = {
-                "after_seq": entry.seq - 1,
+                "after_seq": batch[0].seq - 1,
                 "log_size": 0 if created else self._audit_path.stat().st_size,
+                "count": len(batch),
                 "files": list(scope.staged),
             }
             _atomic_write(self._journal_path, json.dumps(journal).encode("utf-8"))
-            line = json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n"
-            data = line.encode("utf-8")
+            data = b"".join(
+                (json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n").encode("utf-8")
+                for entry in batch
+            )
             fd = os.open(self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
             try:
                 written = os.write(fd, data)
@@ -678,7 +881,7 @@ class FileStore(StorageBackend):
             for directory in {path.parent for path in staged}:
                 _fsync_dir(directory)
             scope.staged.clear()
-            self._write_head(entry.seq, entry.entry_hash)
+            self._write_head(batch[-1].seq, batch[-1].entry_hash)
             self._journal_path.unlink()
 
         await asyncio.to_thread(_sync)
@@ -707,28 +910,19 @@ class FileStore(StorageBackend):
             If a line is not a valid audit entry. A corrupt line is never skipped.
         """
 
-        def _read_lines() -> list[str]:
-            if not self._audit_path.exists():
+        def _read() -> list[tuple[str, AuditEntry]]:
+            try:
+                data = self._log_bytes()
+            except FileNotFoundError:
                 return []
-            try:
-                return self._audit_path.read_text(encoding="utf-8").splitlines()
-            except UnicodeDecodeError as exc:
-                raise AuditLogCorruptError(
-                    f"The audit log is not UTF-8 text: {_first_line(exc)}."
-                ) from exc
+            except StoredFileCorruptError as exc:
+                raise AuditLogCorruptError(str(exc)) from exc
+            entries, errors = _parse_log(data)
+            if errors:
+                raise AuditLogCorruptError(f"The audit log is not valid. {errors[0]}")
+            return entries
 
-        lines = await asyncio.to_thread(_read_lines)
-
-        for lineno, raw in enumerate(lines, start=1):
-            line = raw.strip()
-            if not line:
-                continue
-            try:
-                entry = AuditEntry.model_validate(json.loads(line))
-            except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
-                raise AuditLogCorruptError(
-                    f"Audit log line {lineno} is not a valid entry: {_first_line(exc)}."
-                ) from exc
+        for _label, entry in await asyncio.to_thread(_read):
             if entry.seq < since_seq:
                 continue
             if system_id is not None and entry.system_id != system_id:
@@ -736,25 +930,27 @@ class FileStore(StorageBackend):
             yield entry
 
     async def read_last_audit_entry(self) -> AuditEntry | None:
-        """Return the last audit entry, parsing only the final line (O(1) entries)."""
+        """Return the last audit entry, parsing only the final line."""
 
         def _sync() -> AuditEntry | None:
-            if not self._audit_path.exists():
-                return None
-            last_line = ""
-            with self._audit_path.open("r", encoding="utf-8") as fh:
-                for raw in fh:
-                    stripped = raw.strip()
-                    if stripped:
-                        last_line = stripped
-            if not last_line:
-                return None
             try:
-                return AuditEntry.model_validate(json.loads(last_line))
-            except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
+                data = self._log_bytes()
+            except FileNotFoundError:
+                return None
+            except StoredFileCorruptError as exc:
+                raise AuditLogCorruptError(str(exc)) from exc
+            if not data:
+                return None
+            if not data.endswith(b"\n"):
                 raise AuditLogCorruptError(
-                    f"The last audit log line is not a valid entry: {_first_line(exc)}."
-                ) from exc
+                    "The audit log does not end with a line break, so its last entry is not "
+                    "complete."
+                )
+            last = data[:-1].rsplit(b"\n", 1)[-1]
+            try:
+                return _entry_from_line(last)
+            except _BadLine as exc:
+                raise AuditLogCorruptError(f"The last audit log line is {exc}.") from exc
 
         return await asyncio.to_thread(_sync)
 
@@ -764,15 +960,18 @@ class FileStore(StorageBackend):
         Raises
         ------
         StoredFileCorruptError
-            If the head file does not parse or lacks ``seq`` or ``entry_hash``.
+            If the head file does not parse, lacks ``seq`` or ``entry_hash``, or cannot
+            be read.
         """
 
         def _sync() -> dict | None:
-            if not self._head_path.exists():
+            try:
+                data = _read_stored(self._head_path, "audit.head.json")
+            except FileNotFoundError:
                 return None
             try:
-                head = json.loads(self._head_path.read_bytes())
-            except ValueError as exc:  # JSONDecodeError and UnicodeDecodeError
+                head = json.loads(data)
+            except (ValueError, RecursionError) as exc:
                 raise StoredFileCorruptError(
                     f"audit.head.json does not parse: {_first_line(exc)}."
                 ) from exc
@@ -791,24 +990,52 @@ class FileStore(StorageBackend):
         return await asyncio.to_thread(_sync)
 
     async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
-        """Return the raw bytes of ``txn.json`` and ``audit.head.json``, each None if absent."""
+        """Return the raw bytes of ``txn.json`` and ``audit.head.json``, each None if absent.
+
+        A marker that cannot be read is returned as a fixed description of why, so two
+        reads still compare equal while nothing changes.
+        """
 
         def _read(path: Path) -> bytes | None:
             try:
-                return path.read_bytes()
+                return _read_stored(path, path.name)
             except FileNotFoundError:
                 return None
+            except StoredFileCorruptError as exc:
+                return f"unreadable: {exc}".encode()
 
         def _sync() -> tuple[bytes | None, bytes | None]:
             return _read(self._journal_path), _read(self._head_path)
 
         return await asyncio.to_thread(_sync)
 
-    async def verify_chain(self) -> tuple[bool, list[str]]:
-        """Check that every line parses, links to the one before and hashes to its stored value.
+    async def read_pending_change(self) -> PendingChange | None:
+        """The change ``txn.json`` records as unfinished, or None when there is none.
 
-        This covers the chain only. ``riskforge.engine.integrity.check_integrity`` adds
-        the head file, register fingerprints and the files on disk (ADR-03 section 5).
+        Raises
+        ------
+        StoredFileCorruptError
+            If ``txn.json`` is not a journal RiskForge wrote or cannot be read.
+        """
+        journal = await asyncio.to_thread(self._read_journal)
+        if journal is None:
+            return None
+        systems = frozenset(rel.split("/")[1] for rel in journal["files"])
+        return PendingChange(systems=systems, position=journal["log_size"])
+
+    def view_before(self, pending: PendingChange) -> FileStore:
+        """A read-only view that sees the audit log only up to where ``pending`` began."""
+        view = FileStore(self._root.parent, self._lock_timeout, read_only=True)
+        view._log_limit = pending.position  # type: ignore[assignment]
+        return view
+
+    async def verify_chain(self) -> tuple[bool, list[str]]:
+        """Check that every line is one entry, links to the one before and hashes to its value.
+
+        Lines are read byte for byte (see ``_entry_from_line``), the same way every other
+        reader of the log reads them. This covers the chain only;
+        ``riskforge.engine.integrity.check_integrity`` adds the head file, register
+        fingerprints and the files on disk (ADR-03 section 5).
 
         Returns
         -------
@@ -818,26 +1045,13 @@ class FileStore(StorageBackend):
         """
 
         def _sync() -> tuple[bool, list[str]]:
-            labelled: list[tuple[str, AuditEntry]] = []
-            errors: list[str] = []
-            if self._audit_path.exists():
-                lines = self._audit_path.read_bytes().split(b"\n")
-                for lineno, raw in enumerate(lines, start=1):
-                    line = raw.strip()
-                    if not line:
-                        continue
-                    try:
-                        document = json.loads(line)
-                    except ValueError as exc:  # JSONDecodeError and UnicodeDecodeError
-                        errors.append(f"Line {lineno}: not valid JSON ({_first_line(exc)}).")
-                        continue
-                    try:
-                        labelled.append((f"Line {lineno}", AuditEntry.model_validate(document)))
-                    except ValueError as exc:  # pydantic ValidationError
-                        count = getattr(exc, "error_count", lambda: 1)()
-                        errors.append(
-                            f"Line {lineno}: not a valid audit entry ({count} field error(s))."
-                        )
+            try:
+                data = self._log_bytes()
+            except FileNotFoundError:
+                data = b""
+            except StoredFileCorruptError as exc:
+                return False, [str(exc)]
+            labelled, errors = _parse_log(data)
             errors.extend(verify_links(labelled))
             if errors:
                 logger.warning("Audit chain verification failed: %d error(s).", len(errors))

@@ -36,7 +36,7 @@ def document_fingerprint(document: Any) -> str:
     """
     try:
         encoded = canonical_json(document)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, RecursionError) as exc:
         raise UnfingerprintableDocumentError(
             f"holds a value that canonical JSON cannot encode ({exc})"
         ) from exc
