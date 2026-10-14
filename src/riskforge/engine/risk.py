@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.register import RiskRegister
@@ -33,6 +34,24 @@ class AmbiguousRiskIdError(KeyError):
 
 class RationaleRequiredError(ValueError):
     """Raised when a risk is accepted without a rationale."""
+
+
+UpsertOutcome = Literal["added", "updated", "unchanged"]
+
+
+def origin_key(item: RiskItem) -> str | None:
+    """The question or pattern risk a register item came from; None for other sources.
+
+    ``"question:<id>"`` for question-bank items and ``"pattern:<PATTERN_ID>:<title>"``
+    for pattern items. Both parts are stored in ``tags`` and ``title``, also by 1.1.3.
+    """
+    if item.source == "question_bank" and item.tags and item.tags[0]:
+        return f"question:{item.tags[0]}"
+    if item.source == "pattern":
+        pattern = next((tag for tag in item.tags if tag.startswith("pattern:")), None)
+        if pattern is not None:
+            return f"{pattern}:{item.title}"
+    return None
 
 
 class RiskEngine:
@@ -191,6 +210,74 @@ class RiskEngine:
         if dimension is not None:
             return [i for i in register.items if i.dimension == dimension]
         return register.items
+
+    async def upsert_item(
+        self, system_id: str, proposed: RiskItem
+    ) -> tuple[UpsertOutcome, RiskItem]:
+        """Add ``proposed``, or update the item that came from the same question or pattern.
+
+        The same answer changes nothing and records nothing. A changed answer updates the
+        likelihood, severity and knowledge-gap flag of the first matching item and
+        records ``risk_item.updated`` with ``reason: "reassessment"``. Residual scores
+        follow the new scores only while the item has no mitigation and its residual
+        scores still equal its inherent ones. An acceptance is kept. Nothing is removed.
+
+        Raises
+        ------
+        ValueError
+            If ``proposed`` did not come from the question bank or a pattern.
+        """
+        key = origin_key(proposed)
+        if key is None:
+            raise ValueError("upsert_item needs an item from the question bank or a pattern.")
+        async with self._audit.unit_of_work():
+            register = await self._audit.read_register(system_id)
+            existing = next((item for item in register.items if origin_key(item) == key), None)
+            if existing is None:
+                proposed.mitigations = [self._flag_vague(m) for m in proposed.mitigations]
+                register.items.append(proposed)
+                await self._storage.write_register(system_id, register)
+                self._audit.wrote_register(system_id)
+                await self._audit.record(
+                    "risk_item.created",
+                    system_id,
+                    {
+                        "risk_item_id": str(proposed.id),
+                        "dimension": proposed.dimension,
+                        "score": proposed.risk_score,
+                    },
+                )
+                return "added", proposed
+            if (existing.likelihood, existing.severity, existing.knowledge_gap) == (
+                proposed.likelihood,
+                proposed.severity,
+                proposed.knowledge_gap,
+            ):
+                return "unchanged", existing
+            old_score = existing.risk_score
+            residual_follows = not existing.mitigations and (
+                existing.residual_likelihood,
+                existing.residual_severity,
+            ) == (existing.likelihood, existing.severity)
+            existing.likelihood = proposed.likelihood
+            existing.severity = proposed.severity
+            existing.knowledge_gap = proposed.knowledge_gap
+            if residual_follows:
+                existing.residual_likelihood = proposed.likelihood
+                existing.residual_severity = proposed.severity
+            await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
+            await self._audit.record(
+                "risk_item.updated",
+                system_id,
+                {
+                    "risk_item_id": str(existing.id),
+                    "old_score": old_score,
+                    "new_score": existing.risk_score,
+                    "reason": "reassessment",
+                },
+            )
+            return "updated", existing
 
     @staticmethod
     def _flag_vague(mitigation: Mitigation) -> Mitigation:
