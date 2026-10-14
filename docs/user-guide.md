@@ -92,8 +92,10 @@ riskforge assess <system-id> \
 riskforge risk list <system-id>
 riskforge risk mitigate <system-id> <risk-id> \
   -m "Remove postcode feature; add demographic parity monitoring" \
-  -c preventive --owner "ML Platform" --residual-likelihood 2 --residual-severity 3
-riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls."
+  -c preventive --owner "ML Platform" --residual-likelihood 2 --residual-severity 3 \
+  --by "Dr. Lena Fischer, AI Governance Lead"
+riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
+  --by "Dr. Lena Fischer, AI Governance Lead"
 
 # 5. Check readiness (exit 1 if a FAIL gate is unmet)
 riskforge validate <system-id>
@@ -151,8 +153,8 @@ Question ids come from the bundled question bank (see the files under
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
 | `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE]` | Run the assessment, interactive or from an answers file. |
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
-| `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited. |
-| `riskforge risk accept <id> <risk-id> -r RATIONALE` | Accept a residual risk with a documented rationale, audited. |
+| `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
+| `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
@@ -160,7 +162,23 @@ Question ids come from the bundled question bank (see the files under
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
-Risk ids accept the first 8 characters shown by `riskforge risk list`. The
+Risk ids accept the first 8 characters shown by `riskforge risk list`.
+
+### Who accepted a risk or recorded a mitigation
+
+`risk accept` and `risk mitigate` require a name, given as `--by "Name, Role"`.
+In CI you can set the `RISKFORGE_ACTOR` environment variable instead; when both
+are set, `--by` wins. With neither, or with a blank value, the command changes
+nothing and exits 3. The name must fit on one line.
+
+The name is self-declared. RiskForge records it as given and does not check who
+ran the command. It becomes the audit entry's actor and is stored on the risk item
+as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
+exports show it as "Accepted by" and "Recorded by". The JSON export (RMF schema
+1.0.0) does not include these two fields yet. Acceptances recorded before 2.0.0
+show "Accepted by: not recorded".
+
+The
 `--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
 path; signing produces a detached `.asc` next to the export.
 
