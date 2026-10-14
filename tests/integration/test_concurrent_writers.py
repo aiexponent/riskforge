@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import multiprocessing
+import time
 from pathlib import Path
 
 from rf_testkit import add_risks_worker
@@ -17,8 +18,9 @@ from riskforge.storage.filesystem import FileStore
 
 PROCESSES = 4
 PER_PROCESS = 25
-# Slow shared CI runners (macOS in particular) can take far longer than a laptop.
-JOIN_TIMEOUT_SECONDS = 600
+# One deadline for all workers together. A laptop needs about 5 s; slow shared CI runners
+# (macOS in particular) can take far longer, and a hang still fails within minutes.
+DEADLINE_SECONDS = 300
 
 
 def test_four_processes_lose_no_updates(tmp_path: Path) -> None:
@@ -40,9 +42,10 @@ def test_four_processes_lose_no_updates(tmp_path: Path) -> None:
     ]
     for worker in workers:
         worker.start()
+    deadline = time.monotonic() + DEADLINE_SECONDS
     try:
         for worker in workers:
-            worker.join(timeout=JOIN_TIMEOUT_SECONDS)
+            worker.join(timeout=max(0.0, deadline - time.monotonic()))
     finally:
         for worker in workers:
             if worker.is_alive():
