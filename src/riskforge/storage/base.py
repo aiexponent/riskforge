@@ -143,10 +143,30 @@ class StorageBackend(ABC):
         A register written with ``write_register`` must read back equal to
         ``register.model_dump(mode="json")``.
 
+        The document is ``yaml.safe_load`` (or the backend's equivalent) of the bytes
+        as stored, never a model serialised again: audit entries record its
+        fingerprint (ADR-03 section 3).
+
         Raises
         ------
         RegisterNotFoundError
             If the system has no register.
+        StoredFileCorruptError
+            If the stored register does not parse.
+        """
+        ...
+
+    @abstractmethod
+    async def read_system_document(self, system_id: str) -> dict:
+        """
+        Return the stored system record as stored, as a JSON-compatible dict.
+
+        Raises
+        ------
+        SystemNotFoundError
+            If no system with the given ID exists in storage.
+        StoredFileCorruptError
+            If the stored record does not parse.
         """
         ...
 
@@ -235,6 +255,31 @@ class StorageBackend(ABC):
         async for entry in self.read_audit():
             last = entry
         return last
+
+    @abstractmethod
+    async def read_audit_head(self) -> dict | None:
+        """
+        Return ``{"seq": int, "entry_hash": str}`` of the last entry this backend wrote.
+
+        The head is written with each appended entry (ADR-03 section 4). Returns
+        ``None`` when no head has been written, as in a project last changed by 1.1.x.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the stored head does not parse or lacks ``seq`` or ``entry_hash``.
+        """
+        ...
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        """
+        Return ``(journal, head)`` as raw bytes, each ``None`` when absent.
+
+        A reader that does not take the write lock compares the markers before and
+        after it reads: a journal, or markers that moved, mean a writer was busy. The
+        default suits a backend whose reads see only committed changes.
+        """
+        return None, None
 
     @abstractmethod
     async def verify_chain(self) -> tuple[bool, list[str]]:

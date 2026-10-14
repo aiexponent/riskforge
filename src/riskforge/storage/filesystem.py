@@ -32,6 +32,13 @@ written before the append records the log length, so the next unit of work can
 finish a change whose entry reached the log in full, or cut off a torn append and
 discard the change.
 
+Read-only mode
+--------------
+``FileStore(project_dir, read_only=True)`` reads without taking the lock or writing
+any file, so ``riskforge verify`` works on a read-only copy or an archive mount.
+Every write raises ``PermissionError``, and ``unit_of_work()`` raises
+``PendingChangeError`` while a journal shows a change that is not finished.
+
 Security model
 --------------
 - The ``.riskforge`` directory and all files within it are created with
@@ -50,7 +57,6 @@ import asyncio
 import contextlib
 import contextvars
 import errno
-import hashlib
 import json
 import logging
 import os
@@ -64,6 +70,7 @@ from pathlib import Path
 import yaml
 from filelock import FileLock, Timeout
 
+from riskforge.integrity.chain import entry_to_dict, verify_links
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -71,10 +78,12 @@ from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
+    PendingChangeError,
     ProjectExistsError,
     ProjectLockedError,
     ProjectNotFoundError,
     RegisterNotFoundError,
+    StoredFileCorruptError,
     SystemNotFoundError,
 )
 
@@ -138,6 +147,15 @@ def _parse_entry(line: bytes | str) -> AuditEntry | None:
         return None
 
 
+def _load_yaml(path: Path) -> object:
+    """``yaml.safe_load`` of the file's bytes; a file that does not parse raises a typed error."""
+    try:
+        return yaml.safe_load(path.read_bytes())
+    except yaml.YAMLError as exc:
+        detail = " ".join(str(exc).split())
+        raise StoredFileCorruptError(f"{path.name} does not parse as YAML: {detail}") from exc
+
+
 def _last_line(path: Path) -> str:
     last = ""
     with path.open("r", encoding="utf-8") as fh:
@@ -167,9 +185,15 @@ class FileStore(StorageBackend):
         Seconds ``unit_of_work()`` waits for another process to release the
         project lock before it raises :class:`ProjectLockedError`. Defaults to
         ``DEFAULT_LOCK_TIMEOUT`` (120 s).
+    read_only:
+        Read without locking, recovering or writing anything; every write raises
+        ``PermissionError``. ``riskforge verify`` opens projects this way.
     """
 
-    def __init__(self, project_dir: Path, lock_timeout: float | None = None) -> None:
+    def __init__(
+        self, project_dir: Path, lock_timeout: float | None = None, *, read_only: bool = False
+    ) -> None:
+        self._read_only = read_only
         self._root = project_dir / ".riskforge"
         self._key = os.path.realpath(self._root)
         self._lock_timeout = DEFAULT_LOCK_TIMEOUT if lock_timeout is None else lock_timeout
@@ -184,6 +208,10 @@ class FileStore(StorageBackend):
     # ------------------------------------------------------------------ #
     # Internal sync helpers (called via asyncio.to_thread)                #
     # ------------------------------------------------------------------ #
+
+    def _require_writable(self) -> None:
+        if self._read_only:
+            raise PermissionError(f"{self._root} is opened read-only; nothing can be written.")
 
     def _ensure_dirs(self) -> None:
         """Create the ``.riskforge`` tree with chmod 700; write sentinel. Idempotent."""
@@ -339,39 +367,6 @@ class FileStore(StorageBackend):
             scope.staged.clear()
 
     # ------------------------------------------------------------------ #
-    # Hash computation                                                     #
-    # ------------------------------------------------------------------ #
-
-    @staticmethod
-    def _compute_hash(prev_hash: str, entry: AuditEntry) -> str:
-        """Compute SHA-256 over the canonical JSON of *entry* (excluding entry_hash).
-
-        The digest covers ``prev_hash`` plus all entry fields except
-        ``entry_hash`` itself, serialised with sorted keys for determinism.
-
-        Parameters
-        ----------
-        prev_hash:
-            ``entry_hash`` of the immediately preceding AuditEntry, or ``""``
-            for the genesis entry.
-        entry:
-            The entry to hash.  Its ``entry_hash`` field is ignored.
-
-        Returns
-        -------
-        str
-            Lowercase hexadecimal SHA-256 digest.
-        """
-        data = entry.model_dump(mode="json")
-        data["entry_hash"] = ""  # canonical: entry_hash="" during hash computation
-        canonical = json.dumps(
-            {"prev_hash": prev_hash, **data},
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    # ------------------------------------------------------------------ #
     # Unit of work                                                         #
     # ------------------------------------------------------------------ #
 
@@ -391,6 +386,14 @@ class FileStore(StorageBackend):
             If the scope ends without an error but with writes that no audit entry
             recorded. The writes are discarded.
         """
+        if self._read_only:
+            if self._journal_path.exists():
+                raise PendingChangeError(
+                    f"{self._journal_path} records a change that is in progress or unfinished. "
+                    "Any riskforge command that can write to the project finishes or discards it."
+                )
+            yield
+            return
         active = _ACTIVE_UOW.get() or {}
         if self._key in active:
             yield
@@ -458,6 +461,8 @@ class FileStore(StorageBackend):
             If ``riskforge.yaml`` already exists (a ``FileExistsError``).
         """
 
+        self._require_writable()
+
         def _sync() -> None:
             self._ensure_dirs()
             self._gitignore_check()
@@ -493,6 +498,7 @@ class FileStore(StorageBackend):
 
     async def write_system(self, system_id: str, data: AISystem) -> None:
         """Persist *data* to ``systems/{system_id}/system.yaml`` with chmod 600."""
+        self._require_writable()
 
         def _sync() -> None:
             self._ensure_dirs()
@@ -514,11 +520,24 @@ class FileStore(StorageBackend):
             If the YAML file does not exist (a ``FileNotFoundError``).
         """
 
-        def _sync() -> AISystem:
+        return AISystem.model_validate(await self.read_system_document(system_id))
+
+    async def read_system_document(self, system_id: str) -> dict:
+        """Return ``system.yaml`` as stored, as a dict.
+
+        Raises
+        ------
+        SystemNotFoundError
+            If the YAML file does not exist (a ``FileNotFoundError``).
+        StoredFileCorruptError
+            If it does not parse as YAML.
+        """
+
+        def _sync() -> dict:
             path = self._readable(self._system_dir(system_id) / "system.yaml")
             if not path.exists():
                 raise SystemNotFoundError(f"No system '{system_id}' in this project.")
-            return AISystem.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+            return _load_yaml(path)  # type: ignore[return-value]
 
         return await asyncio.to_thread(_sync)
 
@@ -548,6 +567,7 @@ class FileStore(StorageBackend):
         - ``systems/{system_id}/mitigations.yaml``: flat mitigation catalogue
           with back-links to each parent risk item
         """
+        self._require_writable()
 
         def _sync() -> None:
             self._ensure_dirs()
@@ -576,19 +596,24 @@ class FileStore(StorageBackend):
         await asyncio.to_thread(_sync)
 
     async def read_register_document(self, system_id: str) -> dict:
-        """Return ``register.yaml`` as stored, as a dict.
+        """Return ``register.yaml`` as stored: ``yaml.safe_load`` of its bytes (ADR-03).
+
+        Inside a unit of work this is the staged copy, so the audit entry that commits a
+        register write fingerprints the exact text that was written.
 
         Raises
         ------
         RegisterNotFoundError
             If ``register.yaml`` does not exist for *system_id* (a ``FileNotFoundError``).
+        StoredFileCorruptError
+            If it does not parse as YAML.
         """
 
         def _sync() -> dict:
             path = self._readable(self._system_dir(system_id) / "register.yaml")
             if not path.exists():
                 raise RegisterNotFoundError(f"System '{system_id}' has no risk register yet.")
-            return yaml.safe_load(path.read_text(encoding="utf-8"))
+            return _load_yaml(path)  # type: ignore[return-value]
 
         return await asyncio.to_thread(_sync)
 
@@ -619,6 +644,7 @@ class FileStore(StorageBackend):
         RuntimeError
             If called outside ``unit_of_work()``.
         """
+        self._require_writable()
         scope = self._scope()
         if scope is None:
             raise RuntimeError("append_audit must run inside FileStore.unit_of_work().")
@@ -631,7 +657,7 @@ class FileStore(StorageBackend):
                 "files": list(scope.staged),
             }
             _atomic_write(self._journal_path, json.dumps(journal).encode("utf-8"))
-            line = json.dumps(entry.model_dump(mode="json"), separators=(",", ":")) + "\n"
+            line = json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n"
             data = line.encode("utf-8")
             fd = os.open(self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
             try:
@@ -727,69 +753,89 @@ class FileStore(StorageBackend):
 
         return await asyncio.to_thread(_sync)
 
-    async def verify_chain(self) -> tuple[bool, list[str]]:
-        """Replay the audit chain and validate SHA-256 hash linkage.
+    async def read_audit_head(self) -> dict | None:
+        """Return ``audit.head.json`` as ``{"seq": int, "entry_hash": str}``, or None if absent.
 
-        For each entry the method recomputes the expected ``entry_hash``
-        and checks that it matches the stored value, and that each entry's
-        ``prev_hash`` equals the previous entry's ``entry_hash``.
+        Raises
+        ------
+        StoredFileCorruptError
+            If the head file does not parse or lacks ``seq`` or ``entry_hash``.
+        """
+
+        def _sync() -> dict | None:
+            if not self._head_path.exists():
+                return None
+            try:
+                head = json.loads(self._head_path.read_bytes())
+            except ValueError as exc:  # JSONDecodeError and UnicodeDecodeError
+                raise StoredFileCorruptError(
+                    f"audit.head.json does not parse: {_first_line(exc)}."
+                ) from exc
+            if (
+                not isinstance(head, dict)
+                or not isinstance(head.get("seq"), int)
+                or isinstance(head.get("seq"), bool)
+                or not isinstance(head.get("entry_hash"), str)
+            ):
+                raise StoredFileCorruptError(
+                    "audit.head.json does not parse: it needs an integer seq and a string "
+                    "entry_hash."
+                )
+            return {"seq": head["seq"], "entry_hash": head["entry_hash"]}
+
+        return await asyncio.to_thread(_sync)
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        """Return the raw bytes of ``txn.json`` and ``audit.head.json``, each None if absent."""
+
+        def _read(path: Path) -> bytes | None:
+            try:
+                return path.read_bytes()
+            except FileNotFoundError:
+                return None
+
+        def _sync() -> tuple[bytes | None, bytes | None]:
+            return _read(self._journal_path), _read(self._head_path)
+
+        return await asyncio.to_thread(_sync)
+
+    async def verify_chain(self) -> tuple[bool, list[str]]:
+        """Check that every line parses, links to the one before and hashes to its stored value.
+
+        This covers the chain only. ``riskforge.engine.integrity.check_integrity`` adds
+        the head file, register fingerprints and the files on disk (ADR-03 section 5).
 
         Returns
         -------
         tuple[bool, list[str]]
             ``(True, [])`` if the chain is intact, or
-            ``(False, [<error>, ...])`` if any integrity failures are found.
+            ``(False, [<error>, ...])`` listing every failure found.
         """
 
         def _sync() -> tuple[bool, list[str]]:
-            if not self._audit_path.exists():
-                return True, []
-
+            labelled: list[tuple[str, AuditEntry]] = []
             errors: list[str] = []
-            prev_hash = "0000000000"  # genesis value, must match AuditEngine._last_entry_hash
-            expected_seq = 0
-
-            for lineno, line in enumerate(
-                self._audit_path.read_text(encoding="utf-8").splitlines(), start=1
-            ):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    raw = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    errors.append(f"Line {lineno}: JSON parse error: {exc}")
-                    continue
-                try:
-                    entry = AuditEntry.model_validate(raw)
-                except Exception as exc:
-                    errors.append(f"Line {lineno}: validation error: {exc}")
-                    continue
-
-                if entry.seq != expected_seq:
-                    errors.append(
-                        f"Line {lineno}: sequence gap: expected {expected_seq}, got {entry.seq}."
-                    )
-                if entry.prev_hash != prev_hash:
-                    errors.append(
-                        f"Line {lineno} (seq={entry.seq}): prev_hash mismatch: "
-                        f"expected {prev_hash!r}, stored {entry.prev_hash!r}."
-                    )
-                computed = FileStore._compute_hash(entry.prev_hash, entry)
-                if computed != entry.entry_hash:
-                    errors.append(
-                        f"Line {lineno} (seq={entry.seq}): entry_hash mismatch: "
-                        f"computed {computed!r}, stored {entry.entry_hash!r}."
-                    )
-
-                prev_hash = entry.entry_hash
-                expected_seq = entry.seq + 1
-
-            ok = len(errors) == 0
-            if ok:
-                logger.info("Audit chain verified: %d entries, no errors.", expected_seq)
-            else:
+            if self._audit_path.exists():
+                lines = self._audit_path.read_bytes().split(b"\n")
+                for lineno, raw in enumerate(lines, start=1):
+                    line = raw.strip()
+                    if not line:
+                        continue
+                    try:
+                        document = json.loads(line)
+                    except ValueError as exc:  # JSONDecodeError and UnicodeDecodeError
+                        errors.append(f"Line {lineno}: not valid JSON ({_first_line(exc)}).")
+                        continue
+                    try:
+                        labelled.append((f"Line {lineno}", AuditEntry.model_validate(document)))
+                    except ValueError as exc:  # pydantic ValidationError
+                        count = getattr(exc, "error_count", lambda: 1)()
+                        errors.append(
+                            f"Line {lineno}: not a valid audit entry ({count} field error(s))."
+                        )
+            errors.extend(verify_links(labelled))
+            if errors:
                 logger.warning("Audit chain verification failed: %d error(s).", len(errors))
-            return ok, errors
+            return not errors, errors
 
         return await asyncio.to_thread(_sync)

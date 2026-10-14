@@ -71,6 +71,7 @@ def _journal(root: Path, after_seq: int, files: list[str]) -> None:
 
 async def _next_entry_line(store: FileStore, sid: str) -> bytes:
     """The bytes the next audit entry would append, built the way AuditEngine builds it."""
+    from riskforge.integrity.chain import compute_entry_hash, entry_to_dict
     from riskforge.models.audit import AuditEntry
 
     last = await store.read_last_audit_entry()
@@ -84,8 +85,8 @@ async def _next_entry_line(store: FileStore, sid: str) -> bytes:
         prev_hash=last.entry_hash,
         entry_hash="",
     )
-    entry.entry_hash = FileStore._compute_hash(last.entry_hash, entry)
-    return (json.dumps(entry.model_dump(mode="json"), separators=(",", ":")) + "\n").encode()
+    entry.entry_hash = compute_entry_hash(entry)
+    return (json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n").encode()
 
 
 async def test_change_and_entry_commit_together(tmp_path: Path) -> None:

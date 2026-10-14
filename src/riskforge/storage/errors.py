@@ -29,3 +29,11 @@ class AuditLogCorruptError(ValueError):
 
 class ProjectLockedError(TimeoutError):
     """Another process held the project's write lock for longer than the wait allowed."""
+
+
+class StoredFileCorruptError(ValueError):
+    """A stored YAML or JSON file (register, system record, head file) does not parse."""
+
+
+class PendingChangeError(RuntimeError):
+    """A read-only store found a change that a writer has not finished."""
