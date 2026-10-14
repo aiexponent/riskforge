@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, model_serializer
 
 from riskforge.models.register import RiskRegister
 
@@ -63,3 +64,21 @@ class RiskManagementFile(BaseModel):
         "not been reviewed by a qualified legal professional. "
         "It does not constitute legal advice under the EU AI Act or any other regulation."
     )
+
+    @model_serializer(mode="wrap")
+    def _fit_schema_1_0_0(self, handler: SerializerFunctionWrapHandler) -> Any:
+        """Leave out the fields RMF schema 1.0.0 does not allow.
+
+        ``accepted_by`` and ``recorded_by`` (PRD-356) stay on the register, so the
+        Markdown and PDF exports show them, but schema 1.0.0 forbids extra properties.
+        RMF schema 1.1.0 (PRD-338) adds them to the JSON export.
+        """
+        data = handler(self)
+        register = (
+            data.get("register", data.get("risk_register")) if isinstance(data, dict) else None
+        )
+        for item in (register or {}).get("items", []):
+            item.pop("accepted_by", None)
+            for mitigation in item.get("mitigations", []):
+                mitigation.pop("recorded_by", None)
+        return data

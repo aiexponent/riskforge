@@ -11,7 +11,8 @@ import jsonschema
 import pytest
 import yaml
 from riskforge.engine.audit import AuditEngine
-from riskforge.engine.risk import ActorNameError, RiskEngine, normalise_actor_name
+from riskforge.engine.actor import ActorNameError, normalise_actor_name
+from riskforge.engine.risk import RiskEngine
 from riskforge.exporters.markdown_exporter import MarkdownExporter
 from riskforge.exporters.pdf.pdf_exporter import PDFExporter
 from riskforge.models.audit import AuditActor
