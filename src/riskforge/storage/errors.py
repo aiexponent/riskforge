@@ -21,3 +21,7 @@ class RegisterNotFoundError(FileNotFoundError):
 
 class InvalidSystemIdError(ValueError):
     """A system id that would point outside the project's systems/ directory."""
+
+
+class AuditLogCorruptError(ValueError):
+    """The audit log holds a line that is not a valid audit entry."""
