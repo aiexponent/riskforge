@@ -518,3 +518,27 @@ def test_refusal_after_recovery_does_not_claim_nothing_changed(pristine, tmp_pat
     assert _log(project).read_bytes() == log
     assert "Nothing was changed" not in result.output
     assert "unfinished earlier change" in result.output
+
+
+@pytest.mark.parametrize("command", READ_ONLY_COMMANDS)
+def test_read_only_command_refuses_a_register_swapped_after_the_check(
+    pristine, tmp_path: Path, command: str
+) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    target = _register_path(project, sid)
+    edited_copy = tmp_path / "edited"
+    edited_copy.mkdir()
+    shutil.copytree(project, edited_copy / "project")
+    _register_edited(edited_copy / "project", sid)
+    edited = _register_path(edited_copy / "project", sid)
+    log_before = _log(project).read_bytes()
+    args = [*_command(command, project, sid, rid), "--project-dir", str(project)]
+    result = _run_with_swap(tmp_path, edited, target, args)
+    assert target.read_bytes() == edited.read_bytes()
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "changed after" in result.output, result.output
+    assert "All gates passed" not in result.output
+    assert "Derived" not in result.output
+    assert _log(project).read_bytes() == log_before
