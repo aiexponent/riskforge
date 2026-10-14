@@ -27,26 +27,26 @@ SCHEMA = Path(__file__).resolve().parents[2] / "src/riskforge/_data/schemas/rmf.
 
 
 def _mitigation(**kwargs) -> Mitigation:
-    return Mitigation(
-        description="Block release above a 0.10 parity gap",
-        control_type="preventive",
-        owner="ML team",
-        status="implemented",
-        **kwargs,
-    )
+    fields = {
+        "description": "Block release above a 0.10 parity gap",
+        "control_type": "preventive",
+        "owner": "ML team",
+        "status": "implemented",
+    }
+    return Mitigation(**{**fields, **kwargs})
 
 
 def _item(**kwargs) -> RiskItem:
-    return RiskItem(
-        dimension=RiskDimension.discrimination,
-        title="Bias",
-        description="Desc.",
-        likelihood=Likelihood.likely,
-        severity=Severity.major,
-        residual_likelihood=Likelihood.unlikely,
-        residual_severity=Severity.minor,
-        **kwargs,
-    )
+    fields = {
+        "dimension": RiskDimension.discrimination,
+        "title": "Bias",
+        "description": "Desc.",
+        "likelihood": Likelihood.likely,
+        "severity": Severity.major,
+        "residual_likelihood": Likelihood.unlikely,
+        "residual_severity": Severity.minor,
+    }
+    return RiskItem(**{**fields, **kwargs})
 
 
 def _rmf(item: RiskItem) -> RiskManagementFile:
@@ -118,6 +118,27 @@ def test_normalise_actor_name_rejects_control_characters(value: str) -> None:
         normalise_actor_name(value)
 
 
+BIDI_AND_INVISIBLE = [chr(c) for c in range(0x202A, 0x202F)] + [
+    chr(c) for c in range(0x2066, 0x206A)
+]
+BIDI_AND_INVISIBLE += ["\u200e", "\u200f", "\u200b", "\ufeff"]
+
+
+@pytest.mark.parametrize("char", BIDI_AND_INVISIBLE, ids=lambda c: f"U+{ord(c):04X}")
+def test_normalise_actor_name_rejects_bidi_and_invisible_characters(char: str) -> None:
+    # A right-to-left override can make "Jane" display as another name in a terminal or PDF.
+    with pytest.raises(ActorNameError):
+        normalise_actor_name(f"Jane{char}Doe")
+
+
+@pytest.mark.parametrize(
+    "name", ["\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645", "\U0001f469\u200d\U0001f4bb Dev"]
+)
+def test_normalise_actor_name_keeps_joiners(name: str) -> None:
+    # Zero-width (non-)joiners are part of Persian and Indic spelling and of emoji.
+    assert normalise_actor_name(name) == name
+
+
 # --- engine -------------------------------------------------------------------------
 
 
@@ -177,6 +198,27 @@ def test_markdown_shows_accepted_by_and_recorded_by() -> None:
     assert "Accepted by: Jane Doe, Head of AI" in text
     assert "Recorded by: Sam Lee, ML Lead" in text
     assert text.count("Recorded by:") == 1
+
+
+def test_markdown_escapes_user_text() -> None:
+    item = _item(
+        title="Title **bold**",
+        description="# Heading\n- list <script>x</script>",
+        accepted=True,
+        acceptance_rationale="Fine [link](http://x) `code`",
+        accepted_by="<img src=x onerror=alert(1)> **Jane**",
+        mitigations=[
+            _mitigation(recorded_by="_Sam_ | Lead", owner="ML <team>"),
+        ],
+    )
+    text = MarkdownExporter().render(_rmf(item)).decode("utf-8")
+    for raw in ("<img", "<script>", "**Jane**", "**bold**", "[link](", "`code`", "_Sam_", "<team>"):
+        assert raw not in text, raw
+    assert "&lt;img src=x onerror=alert(1)&gt; \\*\\*Jane\\*\\*" in text
+    assert "Recorded by: \\_Sam\\_ \\| Lead" in text
+    # A line break in a field must not end the block quote and start a heading or list.
+    assert "> \\# Heading - list &lt;script&gt;" in text
+    assert not any(line.startswith(("#  Heading", "- list")) for line in text.splitlines())
 
 
 def test_markdown_says_when_the_acceptor_was_not_recorded() -> None:
