@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import UTC, datetime, timedelta
 
 from riskforge.engine.audit import AuditEngine
+from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
 from riskforge.storage.base import StorageBackend
+from riskforge.storage.errors import RegisterNotFoundError
 
 VAGUE_PHRASES = {
     "we'll monitor it",
@@ -33,46 +36,92 @@ class RationaleRequiredError(ValueError):
 
 
 class RiskEngine:
-    """CRUD and scoring for risk items. All writes emit audit entries."""
+    """CRUD and scoring for risk items.
+
+    Every change reads the register, writes it and records its audit entry inside one
+    ``unit_of_work()``, so concurrent writers cannot lose each other's updates and a
+    write is never kept without its entry.
+    """
 
     def __init__(self, storage: StorageBackend, audit: AuditEngine) -> None:
         self._storage = storage
         self._audit = audit
 
+    async def create_register(
+        self, system_id: str, assessor_name: str, assessor_role: str, review_months: int = 12
+    ) -> tuple[RiskRegister, bool]:
+        """Return the system's register, creating and recording one when there is none.
+
+        The bool is True when this call created the register (event ``register.created``).
+
+        Raises
+        ------
+        SystemNotFoundError
+            If the project has no system with this id.
+        """
+        async with self._storage.unit_of_work():
+            try:
+                return await self._storage.read_register(system_id), False
+            except RegisterNotFoundError:
+                pass
+            system = await self._storage.read_system(system_id)
+            now = datetime.now(UTC)
+            register = RiskRegister(
+                system=system,
+                assessor_name=assessor_name,
+                assessor_role=assessor_role,
+                assessment_date=now,
+                review_date=now + timedelta(days=30 * review_months),
+                question_bank_version="1.0.0",
+            )
+            await self._storage.write_register(system_id, register)
+            await self._audit.record(
+                "register.created",
+                system_id,
+                {
+                    "assessor_name": assessor_name,
+                    "assessor_role": assessor_role,
+                    "review_date": register.review_date.isoformat(),
+                },
+            )
+            return register, True
+
     async def add_risk(self, system_id: str, item: RiskItem) -> RiskItem:
         item.mitigations = [self._flag_vague(m) for m in item.mitigations]
-        register = await self._storage.read_register(system_id)
-        register.items.append(item)
-        await self._storage.write_register(system_id, register)
-        await self._audit.record(
-            "risk_item.created",
-            system_id,
-            {
-                "risk_item_id": str(item.id),
-                "dimension": item.dimension,
-                "score": item.risk_score,
-            },
-        )
+        async with self._storage.unit_of_work():
+            register = await self._storage.read_register(system_id)
+            register.items.append(item)
+            await self._storage.write_register(system_id, register)
+            await self._audit.record(
+                "risk_item.created",
+                system_id,
+                {
+                    "risk_item_id": str(item.id),
+                    "dimension": item.dimension,
+                    "score": item.risk_score,
+                },
+            )
         return item
 
     async def update_risk(self, system_id: str, item: RiskItem) -> RiskItem:
         item.mitigations = [self._flag_vague(m) for m in item.mitigations]
-        register = await self._storage.read_register(system_id)
-        idx = next((i for i, r in enumerate(register.items) if r.id == item.id), None)
-        if idx is None:
-            raise RiskNotFoundError(str(item.id))
-        old_score = register.items[idx].risk_score
-        register.items[idx] = item
-        await self._storage.write_register(system_id, register)
-        await self._audit.record(
-            "risk_item.updated",
-            system_id,
-            {
-                "risk_item_id": str(item.id),
-                "old_score": old_score,
-                "new_score": item.risk_score,
-            },
-        )
+        async with self._storage.unit_of_work():
+            register = await self._storage.read_register(system_id)
+            idx = next((i for i, r in enumerate(register.items) if r.id == item.id), None)
+            if idx is None:
+                raise RiskNotFoundError(str(item.id))
+            old_score = register.items[idx].risk_score
+            register.items[idx] = item
+            await self._storage.write_register(system_id, register)
+            await self._audit.record(
+                "risk_item.updated",
+                system_id,
+                {
+                    "risk_item_id": str(item.id),
+                    "old_score": old_score,
+                    "new_score": item.risk_score,
+                },
+            )
         return item
 
     async def accept_risk(
@@ -80,23 +129,24 @@ class RiskEngine:
     ) -> RiskItem:
         if not rationale.strip():
             raise RationaleRequiredError("Acceptance rationale is required and cannot be empty.")
-        register = await self._storage.read_register(system_id)
-        item = self._resolve_risk_item(register.items, risk_id)
-        risk_id = str(item.id)
-        old_accepted = item.accepted
-        item.accepted = True
-        item.acceptance_rationale = rationale
-        await self._storage.write_register(system_id, register)
-        await self._audit.record(
-            "risk.accepted",
-            system_id,
-            {
-                "risk_item_id": risk_id,
-                "old_accepted": old_accepted,
-                "rationale_hash": self._hash_rationale(rationale),
-                "actor": actor_identity,
-            },
-        )
+        async with self._storage.unit_of_work():
+            register = await self._storage.read_register(system_id)
+            item = self._resolve_risk_item(register.items, risk_id)
+            risk_id = str(item.id)
+            old_accepted = item.accepted
+            item.accepted = True
+            item.acceptance_rationale = rationale
+            await self._storage.write_register(system_id, register)
+            await self._audit.record(
+                "risk.accepted",
+                system_id,
+                {
+                    "risk_item_id": risk_id,
+                    "old_accepted": old_accepted,
+                    "rationale_hash": self._hash_rationale(rationale),
+                    "actor": actor_identity,
+                },
+            )
         return item
 
     async def add_mitigation(
@@ -108,23 +158,24 @@ class RiskEngine:
         residual_severity: int | None = None,
     ) -> RiskItem:
         """Append a mitigation to a risk item and optionally re-score residual risk."""
-        register = await self._storage.read_register(system_id)
-        item = self._resolve_risk_item(register.items, risk_id)
-        item.mitigations.append(self._flag_vague(mitigation))
-        if residual_likelihood is not None:
-            item.residual_likelihood = Likelihood(residual_likelihood)
-        if residual_severity is not None:
-            item.residual_severity = Severity(residual_severity)
-        await self._storage.write_register(system_id, register)
-        await self._audit.record(
-            "mitigation.added",
-            system_id,
-            {
-                "risk_item_id": str(item.id),
-                "control_type": mitigation.control_type,
-                "is_vague": mitigation.is_vague,
-            },
-        )
+        async with self._storage.unit_of_work():
+            register = await self._storage.read_register(system_id)
+            item = self._resolve_risk_item(register.items, risk_id)
+            item.mitigations.append(self._flag_vague(mitigation))
+            if residual_likelihood is not None:
+                item.residual_likelihood = Likelihood(residual_likelihood)
+            if residual_severity is not None:
+                item.residual_severity = Severity(residual_severity)
+            await self._storage.write_register(system_id, register)
+            await self._audit.record(
+                "mitigation.added",
+                system_id,
+                {
+                    "risk_item_id": str(item.id),
+                    "control_type": mitigation.control_type,
+                    "is_vague": mitigation.is_vague,
+                },
+            )
         return item
 
     async def list_risks(

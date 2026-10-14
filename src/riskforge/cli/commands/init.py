@@ -25,13 +25,17 @@ def cmd(
     """Initialise a new RiskForge risk management project.
 
     Creates .riskforge/ directory, riskforge.yaml manifest, and an initial
-    system record. Run this once per AI system you are documenting.
+    system record with its first audit entry. Run this once per AI system you
+    are documenting.
     """
     import asyncio
     import uuid
 
     from riskforge.cli.errors import fail
     from riskforge.cli.project import parse_category
+    from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.system import SystemEngine
+    from riskforge.models.audit import AuditActor
     from riskforge.models.system import AISystem
     from riskforge.storage.errors import ProjectExistsError
     from riskforge.storage.filesystem import FileStore
@@ -52,7 +56,8 @@ def cmd(
             project_id,
             {"system_name": name, "created_by": "riskforge init"},
         )
-        await store.write_system(str(system.id), system)
+        audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+        await SystemEngine(store, audit).create(system)
 
     try:
         asyncio.run(_init())
