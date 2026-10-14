@@ -10,9 +10,10 @@ Two measurements:
    this path is O(n^2) in the number of items by design of the flat-file store;
    it is fast at the register sizes a real assessment produces (tens of items).
 
-Both run their loop inside one ``AuditEngine.unit_of_work()``, so the integrity check
-that opens every change runs once. Separate changes each run the full check, which
-reads the whole log, as every CLI command does once.
+The first two run their loop inside one ``AuditEngine.unit_of_work()``, so the
+integrity check that opens every change runs once. A third row times 50 ``add_risk``
+calls as separate changes, each running the full check (which reads the whole log and
+every register, as every CLI command does once), so a slower check shows up there.
 
     python benchmarks/perf.py
 
@@ -110,6 +111,17 @@ async def _bench_add_risk(size: int) -> float:
         return time.perf_counter() - start
 
 
+async def _bench_separate_changes(size: int) -> float:
+    """``add_risk`` with each call its own change, so each runs the full integrity check."""
+    with tempfile.TemporaryDirectory() as tmp:
+        store, sid = await _setup(Path(tmp))
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="ci", identity="bench")))
+        start = time.perf_counter()
+        for i in range(size):
+            await engine.add_risk(sid, _item(i))
+        return time.perf_counter() - start
+
+
 async def main() -> None:
     print("audit append (tail-chained, O(n)):")
     print(f"  {'entries':>8} {'total (s)':>12} {'per entry (ms)':>16} {'verify (s)':>12}")
@@ -117,10 +129,16 @@ async def main() -> None:
         total, verify = await _bench_audit(size)
         print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f} {verify:>12.3f}")
 
-    print("\nadd_risk (register rewrite + audit, per-call O(n)):")
+    print("\nadd_risk, one unit of work (register rewrite + audit, each call O(n) in items):")
     print(f"  {'items':>8} {'total (s)':>12} {'per item (ms)':>16}")
     for size in [10, 50, 100, 200]:
         total = await _bench_add_risk(size)
+        print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f}")
+
+    print("\nadd_risk, a separate change per call (each also runs the full integrity check):")
+    print(f"  {'items':>8} {'total (s)':>12} {'per item (ms)':>16}")
+    for size in [50]:
+        total = await _bench_separate_changes(size)
         print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f}")
 
 
