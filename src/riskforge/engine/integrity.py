@@ -314,6 +314,13 @@ async def require_intact(storage: StorageBackend) -> IntegrityReport:
     return report
 
 
+_IN_PROGRESS = (
+    "A change to this project is in progress or unfinished (.riskforge/txn.json), so it "
+    "was not checked. Run verify again when it has finished; if no riskforge command is "
+    "running, the next command that changes the project finishes or discards it."
+)
+
+
 async def check_integrity_settled(
     storage: StorageBackend, *, repeats: int = 3, pause: float = 0.25
 ) -> IntegrityReport:
@@ -353,12 +360,20 @@ async def check_integrity_settled(
             return report
     if pending is not None:
         # The change may never finish (a crash), and a journal can be planted. Check
-        # the project as recovery would leave it, so neither hides tampering.
+        # the project as recovery would leave it, so neither hides tampering. A writer
+        # that finishes meanwhile moves the markers, and that is not tampering.
+        before = await storage.read_commit_markers()
         try:
             view = await storage.view_after_recovery()
-        except StoredFileCorruptError as exc:
-            return IntegrityReport(errors=[str(exc)])
-        report = await check_integrity(view)
+            report = await check_integrity(view)
+        except (StoredFileCorruptError, OSError) as exc:
+            if await storage.read_commit_markers() != before:
+                raise ChangeInProgressError(_IN_PROGRESS) from None
+            if isinstance(exc, StoredFileCorruptError):
+                return IntegrityReport(errors=[str(exc)])
+            raise
+        if await storage.read_commit_markers() != before:
+            raise ChangeInProgressError(_IN_PROGRESS)
         if not report.ok:
             note = (
                 "A change is in progress or unfinished (.riskforge/txn.json); the project "
@@ -367,8 +382,4 @@ async def check_integrity_settled(
             return IntegrityReport(
                 errors=report.errors, warnings=[*report.warnings, note], entries=report.entries
             )
-    raise ChangeInProgressError(
-        "A change to this project is in progress or unfinished (.riskforge/txn.json), so "
-        "it was not checked. Run verify again when it has finished; if no riskforge command "
-        "is running, the next command that changes the project finishes or discards it."
-    )
+    raise ChangeInProgressError(_IN_PROGRESS)

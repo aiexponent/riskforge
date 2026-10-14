@@ -834,3 +834,29 @@ async def test_register_above_64_mib_is_a_finding(tmp_path: Path) -> None:
     _grow(_system_dir(tmp_path, sid) / "register.yaml", 64 * 1024 * 1024 + 1)
     report = await check_integrity(store)
     assert "register.yaml is larger than 64 MiB" in _errors(report)
+
+
+class _WriterFinishesDuringTheLastCheck(FileStore):
+    """Markers move between the reads around the final check, as if the writer finished."""
+
+    def __init__(self, project: Path) -> None:
+        super().__init__(project, read_only=True)
+        self.calls = 0
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        journal, head = await super().read_commit_markers()
+        self.calls += 1
+        return journal, (head or b"") + str(self.calls).encode()
+
+
+async def test_final_check_on_the_recovery_view_is_bracketed_by_the_markers(
+    tmp_path: Path,
+) -> None:
+    _store, sid = await _seeded(tmp_path)
+    _plant_journal(tmp_path, [])
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    store = _WriterFinishesDuringTheLastCheck(tmp_path)
+    with pytest.raises(ChangeInProgressError):
+        await check_integrity_settled(store, pause=0)
+    assert store.calls == 2
