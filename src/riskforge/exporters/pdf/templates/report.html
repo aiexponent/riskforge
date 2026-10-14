@@ -121,6 +121,7 @@
                       <strong>{{ m.control_type.title() }}</strong> [{{ m.status }}]:
                       {{ m.description }}
                       {% if m.is_vague %}<span class="vague-flag">(flagged: generic language)</span>{% endif %}
+                      {% if m.recorded_by %}<span class="recorded-by">Recorded by: {{ m.recorded_by }}</span>{% endif %}
                     </li>
                   {% endfor %}
                 </ul>
@@ -128,7 +129,8 @@
             {% endif %}
             {% if item.accepted %}
               <div class="acceptance-notice">
-                <strong>Accepted:</strong> {{ item.acceptance_rationale }}
+                <strong>Accepted:</strong> {{ item.acceptance_rationale }}<br>
+                <strong>Accepted by:</strong> {{ item.accepted_by or 'not recorded' }}
               </div>
             {% endif %}
             {% if item.knowledge_gap %}

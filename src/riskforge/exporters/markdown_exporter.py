@@ -59,8 +59,18 @@ class MarkdownExporter(Exporter):
                 lines.append(f"> {item.description}")
                 if item.article_refs:
                     lines.append(f"> *Article refs: {', '.join(item.article_refs)}*")
+                for m in item.mitigations:
+                    vague = " (flagged: generic language)" if m.is_vague else ""
+                    who = f"Owner: {m.owner}"
+                    if m.recorded_by:
+                        who += f"; Recorded by: {m.recorded_by}"
+                    lines.append(
+                        f"> - *Mitigation ({m.control_type}, {m.status}):* "
+                        f"{m.description}{vague} ({who})"
+                    )
                 if item.accepted:
                     lines.append(f"> *Accepted: {item.acceptance_rationale}*")
+                    lines.append(f"> *Accepted by: {item.accepted_by or 'not recorded'}*")
                 lines.append("")
 
         lines.append("---")
