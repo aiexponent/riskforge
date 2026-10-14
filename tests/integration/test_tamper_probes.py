@@ -317,7 +317,16 @@ def test_untouched_v113_project_still_accepts_changes(tmp_path: Path, command: s
     project, sid = materialise_v113(tmp_path / "v113")
     rid = _unaccepted_id(project, sid)
     assert not _head(project).exists()
-    result = _rf(project, _command(command, project, sid, rid))
+    args = _command(command, project, sid, rid)
+    if command == "assess":
+        # The example answers match the fixture, so re-running them changes nothing
+        # (PRD-334); change one answer so assess makes a change.
+        answers = yaml.safe_load((EXAMPLE / "answers.yaml").read_text(encoding="utf-8"))
+        answers["answers"]["HS-001"] = {"applies": "yes", "likelihood": 2, "severity": 3}
+        changed = tmp_path / "answers-changed.yaml"
+        changed.write_text(yaml.dump(answers, sort_keys=False), encoding="utf-8")
+        args[args.index("--answers") + 1] = str(changed)
+    result = _rf(project, args)
     assert result.returncode == 0, result.output
     assert "not covered by a fingerprint yet" in result.output
     assert _head(project).exists()

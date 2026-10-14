@@ -142,6 +142,18 @@ answers:
 Question ids come from the bundled question bank (see the files under
 `src/riskforge/_data/question_bank/`).
 
+Running `assess` again, with the same file or interactively, updates the register
+instead of adding to it. Each item is matched to the question or pattern risk it
+came from. An unchanged answer changes nothing and records nothing. A changed
+answer updates the item's likelihood, severity and knowledge-gap flag and records
+`risk_item.updated`. The residual scores follow only while the item has no
+mitigation and its residual scores were never changed. An acceptance is kept, and
+`assess` prints a line asking you to review the item. `assess` never removes an
+item: if a question is now answered `no` or `skip`, or left out of the answers file,
+its item stays and is listed so you can review it. A register that RiskForge 1.1.3
+already doubled keeps its duplicates: `assess` updates the first item for each
+question or pattern risk and lists the others so you can review them.
+
 ---
 
 ## Command reference
