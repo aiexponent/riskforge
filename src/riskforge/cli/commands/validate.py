@@ -22,10 +22,10 @@ def cmd(
     (unless --force is supplied). WARN gates are advisory.
     """
     from riskforge.cli.errors import EXIT_FAILED
-    from riskforge.cli.project import read_register_or_fail, run_checked
+    from riskforge.cli.project import read_register_or_fail, run_read_checked
     from riskforge.engine.validate import ValidateEngine
 
-    register = run_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
+    register = run_read_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
 
     engine = ValidateEngine()
     results = engine.run(register)

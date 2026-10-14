@@ -17,10 +17,10 @@ def generate_tests(
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
     """Derive test requirements from the risk register."""
-    from riskforge.cli.project import read_register_or_fail, run_checked
+    from riskforge.cli.project import read_register_or_fail, run_read_checked
     from riskforge.engine.tests import TestDerivationEngine
 
-    register = run_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
+    register = run_read_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
 
     engine = TestDerivationEngine()
     requirements = engine.derive(register.items)

@@ -107,6 +107,36 @@ def run_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]]) ->
     return asyncio.run(_main())
 
 
+def run_read_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]]) -> T:
+    """Run ``body`` on the project opened read-only, after the check ``verify`` runs.
+
+    For commands that only read: no lock is taken and nothing is written, so they work
+    on a read-only copy. A change in progress exits 1, a failed check prints one line
+    per finding and exits 2, as ``riskforge verify`` does.
+    """
+    from riskforge.cli.errors import EXIT_FAILED
+    from riskforge.engine.integrity import ChangeInProgressError, check_integrity_settled
+
+    store = open_project_for_reading(project_dir)
+
+    async def _main() -> T:
+        try:
+            report = await check_integrity_settled(store)
+        except ChangeInProgressError as exc:
+            fail(str(exc), EXIT_FAILED)
+        print_integrity_warnings(report)
+        if not report.ok:
+            print_integrity_failure(report)
+            err_console.print(
+                "Nothing was changed. Run `riskforge verify` for the full report.",
+                highlight=False,
+            )
+            raise typer.Exit(EXIT_TAMPERED)
+        return await body(store)
+
+    return asyncio.run(_main())
+
+
 async def read_system_or_fail(store: FileStore, system_id: str) -> AISystem:
     """The stored system, or exit 3 naming the systems this project does have."""
     from riskforge.storage.errors import InvalidSystemIdError, SystemNotFoundError
