@@ -74,12 +74,16 @@ def _entries(project: Path) -> list[dict]:
 
 
 def _snapshot(project: Path) -> dict[str, bytes]:
-    """Every file under .riskforge/ except the lock file, by relative path."""
+    """Every file under .riskforge/ by relative path, except the two any command creates.
+
+    ``audit.lock`` and ``.nodelete`` are written when a command opens the project; the
+    1.1.3 fixture has neither.
+    """
     root = project / ".riskforge"
     return {
         str(path.relative_to(root)): path.read_bytes()
         for path in sorted(root.rglob("*"))
-        if path.is_file() and path.name != "audit.lock"
+        if path.is_file() and path.name not in {"audit.lock", ".nodelete"}
     }
 
 
