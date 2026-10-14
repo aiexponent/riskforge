@@ -259,7 +259,8 @@ def test_read_only_copy_still_detects_tampering(tmp_path: Path) -> None:
 def test_verify_while_a_change_is_unfinished_exits_1(tmp_path: Path) -> None:
     _seed(tmp_path)
     journal = tmp_path / ".riskforge" / "txn.json"
-    journal.write_text('{"after_seq": 3, "log_size": 0, "files": []}')
+    size = _log(tmp_path).stat().st_size
+    journal.write_text(json.dumps({"after_seq": 3, "log_size": size, "count": 1, "files": []}))
     result = _verify(tmp_path)
     assert result.returncode == 1, result.output
     assert "in progress or unfinished" in result.output
@@ -273,3 +274,158 @@ def test_verify_help_names_exit_1_for_a_change_in_progress() -> None:
     result = run_rf(["verify", "--help"])
     assert result.returncode == 0
     assert "change is in progress" in result.output
+
+
+# --- the log is read byte for byte (round 1, item 1) ------------------------------------
+
+BOM = b"\xef\xbb\xbf"
+
+
+def _edit_register(project: Path, sid: str) -> None:
+    path = project / ".riskforge" / "systems" / sid / "register.yaml"
+    text = path.read_text()
+    assert "likelihood: 3" in text
+    path.write_text(text.replace("likelihood: 3", "likelihood: 1", 1))
+
+
+def _cut_log(project: Path) -> None:
+    lines = _log(project).read_bytes().splitlines(keepends=True)
+    _log(project).write_bytes(b"".join(lines[:-1]))
+
+
+def _delete_register(project: Path, sid: str) -> None:
+    (project / ".riskforge" / "systems" / sid / "register.yaml").unlink()
+
+
+def test_carriage_return_inside_a_log_line_does_not_hide_an_edited_register(
+    tmp_path: Path,
+) -> None:
+    sid = _seed(tmp_path)
+    lines = _log(tmp_path).read_bytes().split(b"\n")
+    lines[1] = lines[1].replace(b',"event"', b',\r"event"', 1)
+    _log(tmp_path).write_bytes(b"\n".join(lines))
+    _edit_register(tmp_path, sid)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "carriage return" in result.output
+    _assert_one_line_findings(result.output)
+
+
+@pytest.mark.parametrize("tamper", ["edited-register", "cut-log", "deleted-register"])
+def test_byte_order_mark_does_not_hide_tampering(tmp_path: Path, tamper: str) -> None:
+    sid = _seed(tmp_path)
+    if tamper == "edited-register":
+        _edit_register(tmp_path, sid)
+    elif tamper == "cut-log":
+        _cut_log(tmp_path)
+    else:
+        _delete_register(tmp_path, sid)
+    _log(tmp_path).write_bytes(BOM + _log(tmp_path).read_bytes())
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "byte order mark" in result.output
+    _assert_one_line_findings(result.output)
+
+
+def test_log_line_re_encoded_as_utf16_fails_verify(tmp_path: Path) -> None:
+    _seed(tmp_path)
+    lines = _log(tmp_path).read_bytes().split(b"\n")
+    lines[0] = lines[0].decode("utf-8").encode("utf-16")
+    _log(tmp_path).write_bytes(b"\n".join(lines))
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    _assert_one_line_findings(result.output)
+
+
+# --- journals (round 1, item 3) ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "journal",
+    [
+        "not json",
+        '{"after_seq": 3}',
+        '{"after_seq": 3, "log_size": 0, "files": ["../../../outside"]}',
+        '{"after_seq": 3, "log_size": 0, "count": 0, "files": []}',
+        "directory",
+    ],
+    ids=["not-json", "missing-keys", "path-outside-project", "zero-count", "directory"],
+)
+def test_malformed_journal_is_an_integrity_failure(tmp_path: Path, journal: str) -> None:
+    sid = _seed(tmp_path)
+    path = tmp_path / ".riskforge" / "txn.json"
+    if journal == "directory":
+        path.mkdir()
+    else:
+        path.write_text(journal)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "txn.json" in result.output
+    _assert_one_line_findings(result.output)
+    changing = run_rf(["system", "classify", sid, "--confirm", "--project-dir", str(tmp_path)])
+    assert changing.returncode == 2, changing.output
+    assert "txn.json" in changing.output
+    _assert_one_line_findings(changing.output)
+    assert len([line for line in changing.output.splitlines() if line.strip()]) == 1
+
+
+def test_unfinished_change_does_not_hide_tampering_elsewhere(tmp_path: Path) -> None:
+    sid = _seed(tmp_path)
+    size = _log(tmp_path).stat().st_size
+    journal = {"after_seq": 99, "log_size": size, "count": 1, "files": []}
+    (tmp_path / ".riskforge" / "txn.json").write_text(json.dumps(journal))
+    _edit_register(tmp_path, sid)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "changed outside RiskForge" in result.output
+
+
+def test_unfinished_change_to_a_register_leaves_that_register_unchecked(tmp_path: Path) -> None:
+    sid = _seed(tmp_path)
+    size = _log(tmp_path).stat().st_size
+    journal = {
+        "after_seq": 99,
+        "log_size": size,
+        "count": 1,
+        "files": [f"systems/{sid}/register.yaml", f"systems/{sid}/mitigations.yaml"],
+    }
+    (tmp_path / ".riskforge" / "txn.json").write_text(json.dumps(journal))
+    _edit_register(tmp_path, sid)
+    result = _verify(tmp_path)
+    assert result.returncode == 1, result.output
+    assert "in progress or unfinished" in result.output
+
+
+# --- files that are not what they seem (round 1, item 4) --------------------------------
+
+
+@pytest.mark.parametrize("kind", ["fifo", "dev-zero", "oversized"])
+def test_register_that_is_not_a_small_regular_file_fails_without_hanging(
+    tmp_path: Path, kind: str
+) -> None:
+    import os
+
+    sid = _seed(tmp_path)
+    path = tmp_path / ".riskforge" / "systems" / sid / "register.yaml"
+    path.unlink()
+    if kind == "fifo":
+        os.mkfifo(path)
+    elif kind == "dev-zero":
+        path.symlink_to("/dev/zero")
+    else:
+        with path.open("wb") as fh:
+            fh.truncate(64 * 1024 * 1024 + 1)
+    result = run_rf(["verify", "--project-dir", str(tmp_path)], timeout=60)
+    assert result.returncode == 2, result.output
+    assert "register.yaml" in result.output
+    _assert_one_line_findings(result.output)
+
+
+def test_journal_that_is_a_fifo_fails_without_hanging(tmp_path: Path) -> None:
+    import os
+
+    _seed(tmp_path)
+    os.mkfifo(tmp_path / ".riskforge" / "txn.json")
+    result = run_rf(["verify", "--project-dir", str(tmp_path)], timeout=60)
+    assert result.returncode == 2, result.output
+    assert "txn.json is not a regular file" in result.output
