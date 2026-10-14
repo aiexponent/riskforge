@@ -111,9 +111,11 @@ of work, `FileStore` stages register and system writes as `<name>.pending`
 files, writes a journal (`.riskforge/txn.json`), appends and fsyncs the audit
 line, renames the staged files into place, records the last entry in
 `.riskforge/audit.head.json` and deletes the journal. If a process stops part
-way, the next unit of work reads the journal: when the entry reached the log
-the staged files are renamed into place, otherwise they are deleted. A change
-is therefore never kept without the audit entry that records it. Network
+way, the next unit of work reads the journal: when the whole entry reached the
+log the staged files are renamed into place, otherwise any torn part of the
+line is cut off and the staged files are deleted. A change is therefore never
+kept without the audit entry that records it. A writer that waits more than
+120 seconds for the lock gives up with one line and exit code 1. Network
 filesystems (NFS, SMB), whose locking and fsync behaviour differ, are not
 covered.
 
