@@ -112,7 +112,13 @@ The Annex III category is one of: `biometric`, `critical_infrastructure`,
 `education`, `employment`, `essential_services`, `law_enforcement`, `migration`,
 `justice`. A category plus matching purpose keywords triggers a pre-built risk
 pattern (for example, `employment` + "hiring/resume/screening" triggers the hiring
-pattern), whose risk items are added for your confirmation.
+pattern), whose risk items are added for your confirmation. A keyword matches the
+start of a word or phrase in the purpose, so "credit" matches "Creditworthiness".
+The medical diagnosis pattern follows the Article 6(1) route (an AI system that
+is, or is a safety component of, a product covered by the Annex I legislation and
+that is required to undergo a third-party conformity assessment: Art.6(1)(a) and
+(b)) and needs no category: purpose keywords such as "medical diagnosis" or
+"radiology" trigger it.
 
 ---
 

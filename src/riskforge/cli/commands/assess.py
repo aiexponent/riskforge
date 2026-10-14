@@ -170,9 +170,8 @@ async def _run_assess(
     )
 
     # ── Pattern matching ───────────────────────────────────────────────────────
-    purpose_words = system.purpose.lower().split()
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
-    matched_patterns = assess.match_patterns(category_str, purpose_words)
+    matched_patterns = assess.match_patterns(category_str, system.purpose)
     counts = {"added": 0, "updated": 0, "unchanged": 0}
     attention: list[UpsertResult] = []
     answered_no_or_skip: set[str] = set()
@@ -476,9 +475,8 @@ async def _assess_from_answers(
         _print_existing_register(register)
 
     # Pattern injection (identical to the interactive path)
-    purpose_words = system.purpose.lower().split()
     category_str = str(system.annex_iii_category.value) if system.annex_iii_category else ""
-    matched_patterns = assess.match_patterns(category_str, purpose_words)
+    matched_patterns = assess.match_patterns(category_str, system.purpose)
     counts = {"added": 0, "updated": 0, "unchanged": 0}
     attention: list[UpsertResult] = []
     answered_no_or_skip: set[str] = set()
