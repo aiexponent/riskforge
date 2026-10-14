@@ -375,7 +375,7 @@ async def test_entries_beyond_an_interrupted_commit_are_never_truncated(tmp_path
     with (root / "audit.jsonl").open("ab") as fh:
         fh.write(line + line)
     log_after = (root / "audit.jsonl").read_bytes()
-    with pytest.raises(AuditLogCorruptError, match="riskforge verify"):
+    with pytest.raises(AuditLogCorruptError, match="left as it is"):
         async with store.unit_of_work():
             pass
     assert (root / "audit.jsonl").read_bytes() == log_after

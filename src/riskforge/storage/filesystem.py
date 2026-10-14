@@ -282,7 +282,7 @@ class FileStore(StorageBackend):
             if b"\n" in tail[:-1] or entry is not None:
                 raise AuditLogCorruptError(
                     "The audit log changed in a way an interrupted RiskForge commit cannot "
-                    "explain, so it was left as it is. Run `riskforge verify`."
+                    "explain, so it was left as it is."
                 )
             fh.truncate(journal["log_size"])
             fh.flush()

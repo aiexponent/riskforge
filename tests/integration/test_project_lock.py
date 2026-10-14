@@ -71,3 +71,25 @@ def test_a_corrupt_audit_log_stops_a_change_with_exit_2(tmp_path: Path) -> None:
     assert result.returncode == 2, result.output
     assert "Traceback" not in result.output
     assert len(result.output.strip().splitlines()) == 1, result.output
+    assert result.output.count("riskforge verify") == 1, result.output
+
+
+def test_an_unexplained_log_after_an_interrupted_commit_is_one_line_exit_2(
+    tmp_path: Path,
+) -> None:
+    import json
+
+    sid = _init(tmp_path)
+    root = tmp_path / ".riskforge"
+    log = root / "audit.jsonl"
+    first = log.read_text().splitlines()[0]
+    (root / "txn.json").write_text(
+        json.dumps({"after_seq": 0, "log_size": log.stat().st_size, "files": []})
+    )
+    with log.open("a", encoding="utf-8") as fh:
+        fh.write(first + "\n" + first + "\n")
+    result = run_rf(["system", "classify", sid, "--confirm", "--project-dir", str(tmp_path)])
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert len(result.output.strip().splitlines()) == 1, result.output
+    assert result.output.count("riskforge verify") == 1, result.output
