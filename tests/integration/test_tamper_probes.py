@@ -1,5 +1,7 @@
-"""Every tamper probe of the 2026-10-10 audit makes verify exit 2, and every command that
-changes or exports data refuses a tampered project with exit 2 and changes nothing
+"""Each tamper probe (one byte changed in the log, last entries cut off, register edited,
+last line corrupted, register deleted, system.yaml corrupt, head file deleted, chain
+rewritten, log deleted, system directory deleted) makes verify exit 2, and every command
+that changes or exports data refuses a tampered project with exit 2 and changes nothing
 (PRD-332, PRD-333)."""
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 COMMANDS = (
     "validate",
     "export",
+    "export --force",
     "assess",
     "risk accept",
     "risk mitigate",
@@ -116,6 +119,8 @@ def _command(name: str, project: Path, sid: str, rid: str) -> list[str]:
     return {
         "validate": ["validate", sid],
         "export": ["export", sid, "-f", "json", "-o", str(project / "again.json")],
+        "export --force": ["export", sid, "-f", "json", "-o", str(project / "forced.json")]
+        + ["--force"],
         "assess": ["assess", sid, "-a", "A", "-r", "B", "--answers", str(EXAMPLE / "answers.yaml")],
         "risk accept": ["risk", "accept", sid, rid, "-r", "accepted on a tampered project"],
         "risk mitigate": ["risk", "mitigate", sid, rid]
@@ -265,6 +270,7 @@ def test_every_command_still_works_on_an_intact_project(pristine, tmp_path: Path
         assert result.returncode == 0, f"{command}: {result.output}"
         assert "Integrity check failed" not in result.output, command
     assert (project / "again.json").is_file()
+    assert (project / "forced.json").is_file()
     assert _rf(project, ["verify"]).returncode == 0
 
 
@@ -315,3 +321,70 @@ def test_untouched_v113_project_still_accepts_changes(tmp_path: Path, command: s
     verified = _rf(project, ["verify"])
     assert verified.returncode == 0, verified.output
     assert "not covered by a fingerprint yet" not in verified.output
+
+
+READ_ONLY_COMMANDS = ("validate", "tests generate")
+
+
+def _set_writable(root: Path, writable: bool) -> None:
+    for path in [root, *root.rglob("*")]:
+        mode = path.stat().st_mode
+        path.chmod(mode | 0o200 if writable else mode & ~0o222)
+
+
+@pytest.mark.parametrize("command", READ_ONLY_COMMANDS)
+def test_read_only_command_works_on_a_read_only_copy(
+    pristine, tmp_path: Path, command: str
+) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    (_riskforge(project) / "audit.lock").unlink(missing_ok=True)
+    _set_writable(project, False)
+    try:
+        before = _snapshot(project)
+        result = _rf(project, _command(command, project, sid, rid))
+        assert result.returncode == 0, result.output
+        assert "Traceback" not in result.output
+        assert _snapshot(project) == before
+        assert not (_riskforge(project) / "audit.lock").exists()
+    finally:
+        _set_writable(project, True)
+
+
+@pytest.mark.parametrize("command", READ_ONLY_COMMANDS)
+def test_read_only_command_refuses_a_tampered_read_only_copy(
+    pristine, tmp_path: Path, command: str
+) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    _register_edited(project, sid)
+    (_riskforge(project) / "audit.lock").unlink(missing_ok=True)
+    _set_writable(project, False)
+    try:
+        before = _snapshot(project)
+        result = _rf(project, _command(command, project, sid, rid))
+        _assert_refused(result, before, project, f"{command} on a read-only copy")
+    finally:
+        _set_writable(project, True)
+
+
+@pytest.mark.parametrize("command", READ_ONLY_COMMANDS)
+def test_read_only_command_waits_out_an_unfinished_change_with_exit_1(
+    pristine, tmp_path: Path, command: str
+) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    last = json.loads(_log(project).read_text(encoding="utf-8").splitlines()[-1])
+    journal = _riskforge(project) / "txn.json"
+    journal.write_text(
+        json.dumps(
+            {"after_seq": last["seq"], "log_size": _log(project).stat().st_size, "files": []}
+        ),
+        encoding="utf-8",
+    )
+    before = _snapshot(project)
+    result = _rf(project, _command(command, project, sid, rid))
+    assert result.returncode == 1, result.output
+    assert "in progress or unfinished" in result.output
+    assert "Traceback" not in result.output
+    assert _snapshot(project) == before
