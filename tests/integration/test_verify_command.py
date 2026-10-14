@@ -369,31 +369,137 @@ def test_malformed_journal_is_an_integrity_failure(tmp_path: Path, journal: str)
     assert len([line for line in changing.output.splitlines() if line.strip()]) == 1
 
 
+def _plant_journal(project: Path, files: list[str], **override: int) -> None:
+    last = json.loads(_log(project).read_bytes().splitlines()[-1])
+    journal = {
+        "after_seq": last["seq"],
+        "log_size": _log(project).stat().st_size,
+        "count": 1,
+        "files": files,
+        **override,
+    }
+    (project / ".riskforge" / "txn.json").write_text(json.dumps(journal))
+
+
 def test_unfinished_change_does_not_hide_tampering_elsewhere(tmp_path: Path) -> None:
     sid = _seed(tmp_path)
-    size = _log(tmp_path).stat().st_size
-    journal = {"after_seq": 99, "log_size": size, "count": 1, "files": []}
-    (tmp_path / ".riskforge" / "txn.json").write_text(json.dumps(journal))
+    _plant_journal(tmp_path, [])
     _edit_register(tmp_path, sid)
     result = _verify(tmp_path)
     assert result.returncode == 2, result.output
     assert "changed outside RiskForge" in result.output
 
 
-def test_unfinished_change_to_a_register_leaves_that_register_unchecked(tmp_path: Path) -> None:
+def test_planted_journal_naming_the_tampered_register_does_not_hide_it(tmp_path: Path) -> None:
     sid = _seed(tmp_path)
-    size = _log(tmp_path).stat().st_size
-    journal = {
-        "after_seq": 99,
-        "log_size": size,
-        "count": 1,
-        "files": [f"systems/{sid}/register.yaml", f"systems/{sid}/mitigations.yaml"],
-    }
-    (tmp_path / ".riskforge" / "txn.json").write_text(json.dumps(journal))
+    _plant_journal(tmp_path, [f"systems/{sid}/register.yaml", f"systems/{sid}/mitigations.yaml"])
     _edit_register(tmp_path, sid)
     result = _verify(tmp_path)
-    assert result.returncode == 1, result.output
-    assert "in progress or unfinished" in result.output
+    assert result.returncode == 2, result.output
+    assert "changed outside RiskForge" in result.output
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"count": 10**12},
+        {"log_size": 10**18},
+        {"after_seq": 0},
+        {"log_size": 7},
+    ],
+    ids=["huge-count", "log-size-beyond-the-log", "wrong-after-seq", "log-size-mid-line"],
+)
+def test_journal_that_does_not_match_the_log_fails_verify(tmp_path: Path, override: dict) -> None:
+    _seed(tmp_path)
+    _plant_journal(tmp_path, [], **override)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "txn.json" in result.output
+    _assert_one_line_findings(result.output)
+
+
+def test_planted_journal_does_not_hide_a_cut_log(tmp_path: Path) -> None:
+    _seed(tmp_path)
+    _cut_log(tmp_path)
+    entries = len(_log(tmp_path).read_bytes().splitlines())
+    _plant_journal(tmp_path, [], after_seq=-1, log_size=0, count=entries)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    _assert_one_line_findings(result.output)
+
+
+# --- CRLF line ends from 1.1.3 on Windows (round 2, item 1) ------------------------------
+
+
+def _to_crlf(path: Path, every: int = 1) -> None:
+    lines = path.read_bytes().split(b"\n")
+    tail = lines.pop()
+    path.write_bytes(
+        b"".join(line + (b"\r\n" if n % every == 0 else b"\n") for n, line in enumerate(lines))
+        + tail
+    )
+
+
+@pytest.mark.parametrize("every", [1, 2], ids=["crlf", "mixed"])
+def test_v113_log_with_windows_line_ends_verifies(
+    v113_project: tuple[Path, str], every: int
+) -> None:
+    root, _sid = v113_project
+    _to_crlf(_log(root), every)
+    assert b"\r\n" in _log(root).read_bytes()
+    result = _verify(root)
+    assert result.returncode == 0, result.output
+    assert "not covered by a fingerprint" in result.output
+
+
+def test_crlf_log_still_detects_an_edited_register(tmp_path: Path) -> None:
+    sid = _seed(tmp_path)
+    _to_crlf(_log(tmp_path))
+    assert _verify(tmp_path).returncode == 0
+    _edit_register(tmp_path, sid)
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "changed outside RiskForge" in result.output
+
+
+def test_crlf_log_accepts_new_entries(tmp_path: Path) -> None:
+    sid = _seed(tmp_path)
+    _to_crlf(_log(tmp_path))
+    changed = run_rf(["system", "classify", sid, "--confirm", "--project-dir", str(tmp_path)])
+    assert changed.returncode == 0, changed.output
+    result = _verify(tmp_path)
+    assert result.returncode == 0, result.output
+
+
+# --- unreadable system directories and quiet output (round 2, items 3 and 4) ------------
+
+
+@pytest.mark.skipif(
+    hasattr(__import__("os"), "geteuid") and __import__("os").geteuid() == 0,
+    reason="root reads directories mode 000",
+)
+@pytest.mark.parametrize("mode", [0o000, 0o600])
+def test_unreadable_system_directory_is_a_finding(tmp_path: Path, mode: int) -> None:
+    sid = _seed(tmp_path)
+    directory = tmp_path / ".riskforge" / "systems" / sid
+    directory.chmod(mode)
+    try:
+        result = _verify(tmp_path)
+    finally:
+        directory.chmod(0o700)
+    assert result.returncode == 2, result.output
+    assert "cannot be read" in result.output
+    _assert_one_line_findings(result.output)
+
+
+def test_failed_verify_prints_no_log_records(tmp_path: Path) -> None:
+    _seed(tmp_path)
+    with _log(tmp_path).open("ab") as fh:
+        fh.write(b"{not json\n")
+    result = _verify(tmp_path)
+    assert result.returncode == 2, result.output
+    assert "Audit chain verification failed" not in result.output
+    assert "WARNING" not in result.output
 
 
 # --- files that are not what they seem (round 1, item 4) --------------------------------
