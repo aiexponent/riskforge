@@ -512,7 +512,7 @@ def _chained(last, sid: str, count: int, fingerprint: str | None = None) -> list
     for n in range(count):
         entry = AuditEntry(
             seq=seq + n,
-            event="register.created" if n == 0 else "risk_item.created",
+            event="register.created" if n == 0 else "register.baselined",
             actor=AuditActor(type="human", identity="t"),
             system_id=sid,
             payload={},

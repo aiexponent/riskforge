@@ -717,16 +717,84 @@ async def test_settled_check_reports_tampering_outside_an_unfinished_change(
     path.write_text(path.read_text().replace("title: r0", "title: edited"))
     report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
     assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
-    assert any("were not checked" in warning for warning in report.warnings)
+    assert any("checked as finishing or discarding" in w for w in report.warnings)
 
 
-async def test_settled_check_skips_the_files_an_unfinished_change_writes(tmp_path: Path) -> None:
+async def test_settled_check_checks_the_files_a_planted_journal_names(tmp_path: Path) -> None:
     _store, sid = await _seeded(tmp_path)
     _plant_journal(tmp_path, [f"systems/{sid}/register.yaml"])
     path = _system_dir(tmp_path, sid) / "register.yaml"
     path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+async def _crash_after_the_append(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[FileStore, str]:
+    """A change whose entry reached the log but whose files were not renamed into place."""
+    import riskforge.storage.filesystem as filesystem
+
+    store, sid = await _seeded(tmp_path)
+    real_replace = os.replace
+
+    def crash_on_pending(src, dst):  # noqa: ANN001, ANN202
+        if str(src).endswith(".pending"):
+            raise OSError("simulated crash after the audit append")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(filesystem.os, "replace", crash_on_pending)
+    with pytest.raises(OSError, match="simulated crash"):
+        await RiskEngine(store, AuditEngine(store, ACTOR)).add_risk(sid, _item(9))
+    monkeypatch.setattr(filesystem.os, "replace", real_replace)
+    assert (_root(tmp_path) / "txn.json").exists()
+    return store, sid
+
+
+async def test_change_that_recovery_would_finish_is_reported_in_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _crash_after_the_append(tmp_path, monkeypatch)
     with pytest.raises(ChangeInProgressError):
         await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    store = FileStore(tmp_path)
+    async with store.unit_of_work():
+        pass
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+
+
+async def test_change_that_recovery_would_finish_is_checked_as_finished(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _store, sid = await _crash_after_the_append(tmp_path, monkeypatch)
+    pending = _system_dir(tmp_path, sid) / "register.yaml.pending"
+    pending.write_text(pending.read_text().replace("title: r9", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+async def test_change_that_recovery_would_finish_needs_a_matching_head(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _crash_after_the_append(tmp_path, monkeypatch)
+    (_root(tmp_path) / "audit.head.json").write_text('{"seq": 1, "entry_hash": "x"}')
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert "audit.head.json" in _errors(report)
+
+
+async def test_recovery_refuses_a_journal_that_does_not_match_the_log(tmp_path: Path) -> None:
+    from riskforge.storage.errors import StoredFileCorruptError
+
+    store, _sid = await _seeded(tmp_path)
+    log_before = _log(tmp_path).read_bytes()
+    last_line_start = log_before.rstrip(b"\n").rfind(b"\n") + 1
+    journal = {"after_seq": 3, "log_size": last_line_start + 5, "count": 1, "files": []}
+    (_root(tmp_path) / "txn.json").write_text(json.dumps(journal))
+    with pytest.raises(StoredFileCorruptError, match="txn.json"):
+        async with store.unit_of_work():
+            pass
+    assert _log(tmp_path).read_bytes() == log_before
 
 
 async def test_settled_check_reports_a_malformed_journal_at_once(tmp_path: Path) -> None:
@@ -736,3 +804,33 @@ async def test_settled_check_reports_a_malformed_journal_at_once(tmp_path: Path)
     report = await check_integrity_settled(store, pause=0)
     assert "txn.json is not a journal RiskForge wrote" in _errors(report)
     assert store.calls == 0
+
+
+# --- size caps (round 2, item 5) -------------------------------------------------------
+
+
+def _grow(path: Path, size: int) -> None:
+    with path.open("r+b") as fh:
+        fh.truncate(size)  # sparse, so the test writes no real data
+
+
+async def test_audit_log_above_64_mib_is_still_read(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _grow(_log(tmp_path), 64 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "larger than" not in _errors(report)
+    assert "does not end with a line break" in _errors(report)
+
+
+async def test_audit_log_above_1_gib_is_a_finding(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _grow(_log(tmp_path), 1024 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "audit.jsonl is larger than 1024 MiB" in _errors(report)
+
+
+async def test_register_above_64_mib_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    _grow(_system_dir(tmp_path, sid) / "register.yaml", 64 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "register.yaml is larger than 64 MiB" in _errors(report)

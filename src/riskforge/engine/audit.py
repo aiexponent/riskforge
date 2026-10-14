@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
-from riskforge.integrity.chain import GENESIS_PREV_HASH, compute_entry_hash
+from riskforge.integrity.chain import BASELINE_EVENT, GENESIS_PREV_HASH, compute_entry_hash
 from riskforge.models.audit import AuditActor, AuditEntry
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import RegisterNotFoundError, StoredFileCorruptError
 
-BASELINE_EVENT = "register.baselined"
+__all__ = ["BASELINE_EVENT", "AuditChainCorruptError", "AuditEngine"]
 
 
 class AuditChainCorruptError(RuntimeError):

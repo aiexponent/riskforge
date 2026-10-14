@@ -71,7 +71,12 @@ import yaml
 from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
-from riskforge.integrity.chain import entry_to_dict, verify_links
+from riskforge.integrity.chain import (
+    BASELINE_EVENT,
+    entry_to_dict,
+    verify_links,
+    written_since_2_0,
+)
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -141,16 +146,19 @@ def _first_line(exc: BaseException) -> str:
     return str(exc).splitlines()[0] if str(exc) else type(exc).__name__
 
 
-# Largest stored file RiskForge reads. A larger register, system file, journal, head
-# file or audit log is reported instead of being read into memory.
+# Largest stored file RiskForge reads. A larger register, system file, journal or head
+# file, or a larger audit log, is reported instead of being read into memory.
 MAX_STORED_FILE_BYTES = 64 * 1024 * 1024
+MAX_AUDIT_LOG_BYTES = 1024 * 1024 * 1024
+# Most entries one commit appends (its own and the baseline of every other system).
+MAX_ENTRIES_PER_COMMIT = 10_000
 
 _BYTE_ORDER_MARKS = (b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")
 _JOURNAL_FILES = frozenset({"system.yaml", "register.yaml", "mitigations.yaml"})
 
 
-def _read_stored(path: Path, label: str) -> bytes:
-    """The bytes of a stored file, read only if it is a regular file of at most 64 MiB.
+def _read_stored(path: Path, label: str, limit: int = MAX_STORED_FILE_BYTES) -> bytes:
+    """The bytes of a stored file, read only if it is a regular file of at most ``limit``.
 
     The file is opened without blocking and checked through its descriptor, so a FIFO,
     a device or a symlink to one is refused without being read, and a file swapped in
@@ -173,16 +181,14 @@ def _read_stored(path: Path, label: str) -> bytes:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
             raise StoredFileCorruptError(f"{label} is not a regular file.")
-        too_large = StoredFileCorruptError(
-            f"{label} is larger than {MAX_STORED_FILE_BYTES // (1024 * 1024)} MiB."
-        )
-        if info.st_size > MAX_STORED_FILE_BYTES:
+        too_large = StoredFileCorruptError(f"{label} is larger than {limit // (1024 * 1024)} MiB.")
+        if info.st_size > limit:
             raise too_large
         chunks: list[bytes] = []
         total = 0
         while chunk := os.read(fd, 1024 * 1024):
             total += len(chunk)
-            if total > MAX_STORED_FILE_BYTES:
+            if total > limit:
                 raise too_large
             chunks.append(chunk)
         return b"".join(chunks)
@@ -203,6 +209,54 @@ def _load_yaml(data: bytes, label: str) -> object:
         raise StoredFileCorruptError(f"{label} does not parse: it is nested too deeply.") from exc
 
 
+def _settle_outcome(journal: dict, tail: bytes) -> tuple[str, list[AuditEntry]]:
+    """What recovery does with the bytes an interrupted commit left after ``log_size``.
+
+    ``("forward", entries)``: exactly ``count`` complete lines hold the entries
+    ``after_seq + 1`` to ``after_seq + count``, the first being the change's own and any
+    others ``register.baselined``, so the append finished. ``("discard", [])``: fewer of
+    them followed by nothing or by a cut-off line, or one complete line that is not an
+    entry, are what is left of an append that failed part way. ``("fail", [])``: anything
+    else, which this commit did not write and recovery must not remove.
+    """
+    count = journal["count"]
+    lines = tail.split(b"\n")
+    rest = lines.pop()
+    expected: list[AuditEntry] = []
+    for offset, raw in enumerate(lines):
+        entry = _parse_entry(raw)
+        if entry is None or entry.seq != journal["after_seq"] + 1 + offset:
+            break
+        expected.append(entry)
+    if len(expected) == len(lines) == count and not rest:
+        if all(entry.event == BASELINE_EVENT for entry in expected[1:]):
+            return "forward", expected
+        return "fail", []
+    torn = len(expected) == len(lines) < count
+    garbled_last = (
+        len(expected) == len(lines) - 1
+        and len(lines) <= count
+        and not rest
+        and _parse_entry(lines[-1]) is None
+    )
+    return ("discard", []) if torn or garbled_last else ("fail", [])
+
+
+def _journal_mismatch(journal: dict, log: bytes) -> str | None:
+    """Why the journal cannot describe a commit to this log, or None when it can."""
+    log_size, after_seq = journal["log_size"], journal["after_seq"]
+    if log_size > len(log):
+        return "log_size is beyond the end of the audit log"
+    if log_size == 0:
+        return None if after_seq == -1 else "after_seq must be -1 when log_size is 0"
+    if log[log_size - 1 : log_size] != b"\n":
+        return "log_size is not at the end of a line of the audit log"
+    entry = _parse_entry(log[: log_size - 1].rsplit(b"\n", 1)[-1])
+    if entry is None or entry.seq != after_seq:
+        return "after_seq is not the seq of the entry that ends at log_size"
+    return None
+
+
 class _BadLine(ValueError):
     """A line of the audit log that is not exactly one stored entry."""
 
@@ -210,9 +264,13 @@ class _BadLine(ValueError):
 def _entry_from_line(raw: bytes) -> AuditEntry:
     """Parse one line of ``audit.jsonl``, which RiskForge writes as one UTF-8 JSON object.
 
-    Anything else on the line (a byte order mark, a carriage return, white space, another
-    encoding) is refused, so every reader of the log sees the same entries.
+    One ``\\r`` before the line feed is part of the line end (1.1.3 on Windows wrote
+    ``\\r\\n``). Anything else on the line (a byte order mark, any other carriage
+    return, white space, another encoding) is refused, so every reader of the log sees
+    the same entries.
     """
+    if raw.endswith(b"\r"):
+        raw = raw[:-1]
     if not raw:
         raise _BadLine("blank line")
     if raw.startswith(_BYTE_ORDER_MARKS):
@@ -245,7 +303,7 @@ def _parse_entry(raw: bytes) -> AuditEntry | None:
 def _parse_log(data: bytes) -> tuple[list[tuple[str, AuditEntry]], list[str]]:
     """Every entry of the log with its line label, and every line that is not an entry.
 
-    Lines end with ``\\n`` only; the log must end with one.
+    Lines end with ``\\n`` (or ``\\r\\n``); the log must end with one.
     """
     entries: list[tuple[str, AuditEntry]] = []
     errors: list[str] = []
@@ -294,8 +352,11 @@ class FileStore(StorageBackend):
         self, project_dir: Path, lock_timeout: float | None = None, *, read_only: bool = False
     ) -> None:
         self._read_only = read_only
-        # Where the audit log ended before an unfinished change (read-only views only).
+        # Read-only views of the state recovery would leave (see view_after_recovery):
+        # where the log ends, staged files read in place of committed ones, the head.
         self._log_limit: int | None = None
+        self._overlay: frozenset[str] = frozenset()
+        self._head_override: dict | None = None
         self._root = project_dir / ".riskforge"
         self._key = os.path.realpath(self._root)
         self._lock_timeout = DEFAULT_LOCK_TIMEOUT if lock_timeout is None else lock_timeout
@@ -374,7 +435,8 @@ class FileStore(StorageBackend):
     def _readable(self, path: Path) -> Path:
         """The file a read should see: this unit of work's staged copy, else the committed one."""
         scope = self._scope()
-        if scope is not None and self._relative(path) in scope.staged:
+        rel = self._relative(path)
+        if (scope is not None and rel in scope.staged) or rel in self._overlay:
             return _pending(path)
         return path
 
@@ -418,6 +480,8 @@ class FileStore(StorageBackend):
             value = journal.get(key)
             if not isinstance(value, int) or isinstance(value, bool) or value < lowest:
                 raise malformed(f"{key} must be an integer of at least {lowest}")
+        if journal["count"] > MAX_ENTRIES_PER_COMMIT:
+            raise malformed(f"count is above {MAX_ENTRIES_PER_COMMIT}")
         files = journal.get("files")
         if not isinstance(files, list):
             raise malformed("files must be a list")
@@ -435,49 +499,55 @@ class FileStore(StorageBackend):
 
     def _log_bytes(self) -> bytes:
         """The audit log as stored, or up to where it ended before an unfinished change."""
-        data = _read_stored(self._audit_path, "audit.jsonl")
+        data = _read_stored(self._audit_path, "audit.jsonl", MAX_AUDIT_LOG_BYTES)
         return data if self._log_limit is None else data[: self._log_limit]
+
+    def _checked_journal(self) -> tuple[dict, bytes] | None:
+        """The journal and the whole audit log, once the journal is known to fit the log.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the journal is malformed or cannot describe a commit to this log.
+        """
+        journal = self._read_journal()
+        if journal is None:
+            return None
+        try:
+            log = _read_stored(self._audit_path, "audit.jsonl", MAX_AUDIT_LOG_BYTES)
+        except FileNotFoundError:
+            log = b""
+        problem = _journal_mismatch(journal, log)
+        if problem is not None:
+            raise StoredFileCorruptError(
+                f"txn.json does not match the audit log ({problem}), so the unfinished "
+                "change it describes cannot be finished or discarded."
+            )
+        return journal, log
 
     def _settle_log(self, journal: dict) -> AuditEntry | None:
         """The last entry an interrupted commit appended, or None after cutting off its append.
 
-        The commit appended ``count`` lines with one write at ``log_size``. Exactly those
-        lines, complete, holding the entries ``after_seq + 1`` to ``after_seq + count``,
-        mean the append finished. Fewer of them followed by nothing or by a cut-off line,
-        or one complete line that is not an entry, are what is left of an append that
-        failed part way; they are cut off so the log ends where it did before the commit.
-        Anything else was not written by this commit and is never removed.
+        The commit appended ``count`` lines with one write at ``log_size``;
+        ``_settle_outcome`` decides whether they are kept, cut off, or left as they are
+        with an error because this commit did not write them.
         """
         if not self._audit_path.exists():
             return None
-        log_size, count = journal["log_size"], journal["count"]
+        log_size = journal["log_size"]
         with self._audit_path.open("r+b") as fh:
             fh.seek(0, os.SEEK_END)
             if fh.tell() <= log_size:
                 return None
             fh.seek(log_size)
-            lines = fh.read().split(b"\n")
-            rest = lines.pop()
-            expected: list[AuditEntry] = []
-            for offset, raw in enumerate(lines):
-                entry = _parse_entry(raw)
-                if entry is None or entry.seq != journal["after_seq"] + 1 + offset:
-                    break
-                expected.append(entry)
-            if len(expected) == len(lines) == count and not rest:
-                return expected[-1]
-            torn = len(expected) == len(lines) < count
-            garbled_last = (
-                len(expected) == len(lines) - 1
-                and len(lines) <= count
-                and not rest
-                and _parse_entry(lines[-1]) is None
-            )
-            if not (torn or garbled_last):
+            outcome, appended = _settle_outcome(journal, fh.read())
+            if outcome == "fail":
                 raise AuditLogCorruptError(
                     "The audit log changed in a way an interrupted RiskForge commit cannot "
                     "explain, so it was left as it is."
                 )
+            if outcome == "forward":
+                return appended[-1]
             fh.truncate(log_size)
             fh.flush()
             os.fsync(fh.fileno())
@@ -498,8 +568,9 @@ class FileStore(StorageBackend):
         deleted, and a system directory left empty by that is removed.
         """
         emptied: set[Path] = set()
-        journal = self._read_journal()
-        if journal is not None:
+        checked = self._checked_journal()
+        if checked is not None:
+            journal, _log = checked
             appended = self._settle_log(journal)
             for rel in journal["files"]:
                 final = self._root / rel
@@ -714,11 +785,7 @@ class FileStore(StorageBackend):
         """Return the sorted ids of systems whose ``system.yaml`` is committed."""
 
         def _sync() -> list[str]:
-            return [
-                name
-                for name in self._system_directories()
-                if (self._systems_dir / name / "system.yaml").exists()
-            ]
+            return [name for name in self._system_directories() if self._has_record(name)]
 
         return await asyncio.to_thread(_sync)
 
@@ -732,15 +799,48 @@ class FileStore(StorageBackend):
         """
         return await asyncio.to_thread(self._system_directories)
 
+    def _has_record(self, name: str) -> bool:
+        """Whether ``systems/<name>/system.yaml`` is there to read.
+
+        A directory that cannot be searched counts as having one, so reading it reports
+        the directory instead of the system silently disappearing.
+        """
+        if f"systems/{name}/system.yaml" in self._overlay:
+            return True
+        try:
+            os.stat(self._systems_dir / name / "system.yaml")
+        except (FileNotFoundError, NotADirectoryError):
+            return False
+        except OSError:
+            return True
+        return True
+
     def _system_directories(self) -> list[str]:
         if not self._systems_dir.exists():
             return []
         try:
-            return sorted(entry.name for entry in self._systems_dir.iterdir() if entry.is_dir())
+            names = sorted(entry.name for entry in self._systems_dir.iterdir() if entry.is_dir())
         except OSError as exc:
             raise StoredFileCorruptError(
                 f"systems/ cannot be listed: {exc.strerror or exc}."
             ) from exc
+        if self._log_limit is None and not self._overlay and self._head_override is None:
+            return names
+        return [name for name in names if self._survives_recovery(name)]
+
+    def _survives_recovery(self, name: str) -> bool:
+        """Whether recovery would keep this directory (it removes ones it empties)."""
+        if any(rel.startswith(f"systems/{name}/") for rel in self._overlay):
+            return True
+        try:
+            children = [child.name for child in (self._systems_dir / name).iterdir()]
+        except OSError:
+            return True
+        return any(
+            not child.endswith(PENDING_SUFFIX)
+            and not (child.startswith(".") and child.endswith(".tmp"))
+            for child in children
+        )
 
     # ------------------------------------------------------------------ #
     # Risk register CRUD                                                   #
@@ -964,30 +1064,31 @@ class FileStore(StorageBackend):
             be read.
         """
 
-        def _sync() -> dict | None:
-            try:
-                data = _read_stored(self._head_path, "audit.head.json")
-            except FileNotFoundError:
-                return None
-            try:
-                head = json.loads(data)
-            except (ValueError, RecursionError) as exc:
-                raise StoredFileCorruptError(
-                    f"audit.head.json does not parse: {_first_line(exc)}."
-                ) from exc
-            if (
-                not isinstance(head, dict)
-                or not isinstance(head.get("seq"), int)
-                or isinstance(head.get("seq"), bool)
-                or not isinstance(head.get("entry_hash"), str)
-            ):
-                raise StoredFileCorruptError(
-                    "audit.head.json does not parse: it needs an integer seq and a string "
-                    "entry_hash."
-                )
-            return {"seq": head["seq"], "entry_hash": head["entry_hash"]}
+        if self._head_override is not None:
+            return dict(self._head_override)
+        return await asyncio.to_thread(self._read_head)
 
-        return await asyncio.to_thread(_sync)
+    def _read_head(self) -> dict | None:
+        try:
+            data = _read_stored(self._head_path, "audit.head.json")
+        except FileNotFoundError:
+            return None
+        try:
+            head = json.loads(data)
+        except (ValueError, RecursionError) as exc:
+            raise StoredFileCorruptError(
+                f"audit.head.json does not parse: {_first_line(exc)}."
+            ) from exc
+        if (
+            not isinstance(head, dict)
+            or not isinstance(head.get("seq"), int)
+            or isinstance(head.get("seq"), bool)
+            or not isinstance(head.get("entry_hash"), str)
+        ):
+            raise StoredFileCorruptError(
+                "audit.head.json does not parse: it needs an integer seq and a string entry_hash."
+            )
+        return {"seq": head["seq"], "entry_hash": head["entry_hash"]}
 
     async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
         """Return the raw bytes of ``txn.json`` and ``audit.head.json``, each None if absent.
@@ -1020,13 +1121,60 @@ class FileStore(StorageBackend):
         journal = await asyncio.to_thread(self._read_journal)
         if journal is None:
             return None
-        systems = frozenset(rel.split("/")[1] for rel in journal["files"])
-        return PendingChange(systems=systems, position=journal["log_size"])
+        return PendingChange(systems=frozenset(rel.split("/")[1] for rel in journal["files"]))
 
-    def view_before(self, pending: PendingChange) -> FileStore:
-        """A read-only view that sees the audit log only up to where ``pending`` began."""
+    async def view_after_recovery(self) -> FileStore:
+        """A read-only view of the project as recovery of the unfinished change would leave it.
+
+        Nothing is written. If recovery would cut off the append, the view ends the log at
+        ``log_size`` and reads the committed files and head. If it would keep the append,
+        the view reads the staged files in place of the committed ones and takes the last
+        appended entry as the head, after checking that the stored head is the one before
+        the change or the one after it.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the journal is malformed, does not fit the log, or recovery would refuse it.
+        """
+        return await asyncio.to_thread(self._view_after_recovery)
+
+    def _view_after_recovery(self) -> FileStore:
+        checked = self._checked_journal()
+        if checked is None:
+            return self
+        journal, log = checked
+        log_size = journal["log_size"]
+        outcome, appended = _settle_outcome(journal, log[log_size:])
+        if outcome == "fail":
+            raise StoredFileCorruptError(
+                "txn.json records a change that does not match the end of the audit log, so "
+                "recovery would refuse it."
+            )
         view = FileStore(self._root.parent, self._lock_timeout, read_only=True)
-        view._log_limit = pending.position  # type: ignore[assignment]
+        if outcome == "discard":
+            view._log_limit = log_size
+            return view
+        before_entries, _errors = _parse_log(log[:log_size])
+        before = [entry for _label, entry in before_entries]
+        after = {"seq": appended[-1].seq, "entry_hash": appended[-1].entry_hash}
+        head = self._read_head()
+        if head is None:
+            head_fits = not any(written_since_2_0(entry) for entry in before)
+        else:
+            head_fits = head == after or (
+                bool(before)
+                and head == {"seq": before[-1].seq, "entry_hash": before[-1].entry_hash}
+            )
+        if not head_fits:
+            raise StoredFileCorruptError(
+                "audit.head.json matches neither the end of the audit log before the "
+                "unfinished change in txn.json nor the end after it."
+            )
+        view._overlay = frozenset(
+            rel for rel in journal["files"] if _pending(self._root / rel).exists()
+        )
+        view._head_override = after
         return view
 
     async def verify_chain(self) -> tuple[bool, list[str]]:
@@ -1053,8 +1201,6 @@ class FileStore(StorageBackend):
                 return False, [str(exc)]
             labelled, errors = _parse_log(data)
             errors.extend(verify_links(labelled))
-            if errors:
-                logger.warning("Audit chain verification failed: %d error(s).", len(errors))
             return not errors, errors
 
         return await asyncio.to_thread(_sync)

@@ -15,6 +15,16 @@ OPTIONAL_ENTRY_FIELDS = ("register_fingerprint", "key_id", "signature")
 
 SIGNING_DOMAIN = b"riskforge.audit-entry.v1\n"
 
+BASELINE_EVENT = "register.baselined"
+
+# Events only RiskForge 2.0 and later write (ADR-03 section 7). A log holding one, or
+# a fingerprint, was kept with a head file.
+EVENTS_SINCE_2_0 = frozenset({"system.created", "register.created", BASELINE_EVENT})
+
+
+def written_since_2_0(entry: AuditEntry) -> bool:
+    return entry.register_fingerprint is not None or entry.event in EVENTS_SINCE_2_0
+
 
 def entry_to_dict(entry: AuditEntry) -> dict:
     """The entry as it is stored and hashed. ``None`` inside ``payload`` is kept."""

@@ -16,12 +16,10 @@ from riskforge.models.system import AISystem
 class PendingChange:
     """A change a writer started and has not finished (or never will, after a crash).
 
-    ``systems`` are the systems whose files the change writes. ``position`` is where
-    the backend's audit log ended before the change, in the backend's own terms.
+    ``systems`` are the systems whose files the change writes.
     """
 
     systems: frozenset[str]
-    position: object = None
 
 
 class StorageBackend(ABC):
@@ -317,12 +315,15 @@ class StorageBackend(ABC):
         """
         return None
 
-    def view_before(self, pending: PendingChange) -> StorageBackend:
+    async def view_after_recovery(self) -> StorageBackend:
         """
-        A read-only view of the project as it was before ``pending`` began.
+        A read-only view of the project as finishing or discarding ``read_pending_change``
+        would leave it, without writing anything.
 
-        Only the audit log needs to be cut back; files the change writes are skipped by
-        the caller. The default suits a backend whose reads see only committed changes.
+        Raises
+        ------
+        StoredFileCorruptError
+            If the record of the unfinished change does not fit the stored log.
         """
         return self
 
