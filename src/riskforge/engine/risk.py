@@ -62,10 +62,10 @@ class RiskEngine:
         """
         async with self._audit.unit_of_work():
             try:
-                return await self._storage.read_register(system_id), False
+                return await self._audit.read_register(system_id), False
             except RegisterNotFoundError:
                 pass
-            system = await self._storage.read_system(system_id)
+            system = await self._audit.read_system(system_id)
             now = datetime.now(UTC)
             register = RiskRegister(
                 system=system,
@@ -76,6 +76,7 @@ class RiskEngine:
                 question_bank_version="1.0.0",
             )
             await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
             await self._audit.record(
                 "register.created",
                 system_id,
@@ -90,9 +91,10 @@ class RiskEngine:
     async def add_risk(self, system_id: str, item: RiskItem) -> RiskItem:
         item.mitigations = [self._flag_vague(m) for m in item.mitigations]
         async with self._audit.unit_of_work():
-            register = await self._storage.read_register(system_id)
+            register = await self._audit.read_register(system_id)
             register.items.append(item)
             await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
             await self._audit.record(
                 "risk_item.created",
                 system_id,
@@ -107,13 +109,14 @@ class RiskEngine:
     async def update_risk(self, system_id: str, item: RiskItem) -> RiskItem:
         item.mitigations = [self._flag_vague(m) for m in item.mitigations]
         async with self._audit.unit_of_work():
-            register = await self._storage.read_register(system_id)
+            register = await self._audit.read_register(system_id)
             idx = next((i for i, r in enumerate(register.items) if r.id == item.id), None)
             if idx is None:
                 raise RiskNotFoundError(str(item.id))
             old_score = register.items[idx].risk_score
             register.items[idx] = item
             await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
             await self._audit.record(
                 "risk_item.updated",
                 system_id,
@@ -131,13 +134,14 @@ class RiskEngine:
         if not rationale.strip():
             raise RationaleRequiredError("Acceptance rationale is required and cannot be empty.")
         async with self._audit.unit_of_work():
-            register = await self._storage.read_register(system_id)
+            register = await self._audit.read_register(system_id)
             item = self._resolve_risk_item(register.items, risk_id)
             risk_id = str(item.id)
             old_accepted = item.accepted
             item.accepted = True
             item.acceptance_rationale = rationale
             await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
             await self._audit.record(
                 "risk.accepted",
                 system_id,
@@ -160,7 +164,7 @@ class RiskEngine:
     ) -> RiskItem:
         """Append a mitigation to a risk item and optionally re-score residual risk."""
         async with self._audit.unit_of_work():
-            register = await self._storage.read_register(system_id)
+            register = await self._audit.read_register(system_id)
             item = self._resolve_risk_item(register.items, risk_id)
             item.mitigations.append(self._flag_vague(mitigation))
             if residual_likelihood is not None:
@@ -168,6 +172,7 @@ class RiskEngine:
             if residual_severity is not None:
                 item.residual_severity = Severity(residual_severity)
             await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
             await self._audit.record(
                 "mitigation.added",
                 system_id,

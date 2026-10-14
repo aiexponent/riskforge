@@ -5,10 +5,20 @@ from __future__ import annotations
 from contextlib import AbstractAsyncContextManager
 from datetime import UTC, datetime
 
-from riskforge.engine.integrity import IntegrityReport, checked_unit_of_work
+from riskforge.engine.integrity import (
+    ChangeGuard,
+    IntegrityReport,
+    change_guard,
+    checked_unit_of_work,
+    file_digest,
+    read_register_checked,
+    read_system_checked,
+)
 from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
 from riskforge.integrity.chain import BASELINE_EVENT, GENESIS_PREV_HASH, compute_entry_hash
 from riskforge.models.audit import AuditActor, AuditEntry
+from riskforge.models.register import RiskRegister
+from riskforge.models.system import AISystem
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import RegisterNotFoundError, StoredFileCorruptError
 
@@ -47,32 +57,75 @@ class AuditEngine:
         """
         return checked_unit_of_work(self._storage)
 
+    async def read_register(self, system_id: str) -> RiskRegister:
+        """The register, compared with what this change's integrity check saw.
+
+        Raises
+        ------
+        RegisterNotFoundError
+            If the system has no register, and the check saw none either.
+        IntegrityError
+            If the register changed outside RiskForge after the check.
+        """
+        return await read_register_checked(self._storage, system_id)
+
+    async def read_system(self, system_id: str) -> AISystem:
+        """The system record, compared with what this change's integrity check saw.
+
+        Raises
+        ------
+        SystemNotFoundError
+            If there is no such system, and the check saw none either.
+        IntegrityError
+            If the system file changed outside RiskForge after the check.
+        """
+        return await read_system_checked(self._storage, system_id)
+
+    def wrote_register(self, system_id: str) -> None:
+        """Note that this change wrote the system's register, so ``record`` takes it as is."""
+        self._guard().written_registers.add(system_id)
+
+    def wrote_system(self, system_id: str) -> None:
+        """Note that this change wrote the system file."""
+        self._guard().written_systems.add(system_id)
+
+    def _guard(self) -> ChangeGuard:
+        guard = change_guard(self._storage)
+        if guard is None:
+            raise RuntimeError("Changes must run inside AuditEngine.unit_of_work().")
+        return guard
+
     async def record(self, event: str, system_id: str, payload: dict) -> AuditEntry:
         """Append a hash-chained entry and return it.
 
         Runs in ``unit_of_work()``, so nothing is appended unless the whole project
-        passed its integrity check in this outermost unit of work. A unit of work
-        opened on the storage directly, with writes already staged, is checked here
-        with those writes in place, so it fails: open changes with ``unit_of_work()``.
+        passed its integrity check in this outermost unit of work. Every register the
+        entries fingerprint must read as that check saw it unless this change wrote it
+        (``wrote_register``), so a register changed outside RiskForge after the check is
+        refused, not recorded. A unit of work opened on the storage directly, with
+        writes already staged, is checked here with those writes in place, so it fails:
+        open changes with ``unit_of_work()``.
 
         Chains from the current tail (read inside the unit of work) and verifies that
         tail entry's own hash before appending.
 
         The first entry written in a project that has no head file yet (a new project,
         or one last changed by RiskForge 1.1) is followed, in the same unit of work, by
-        one ``register.baselined`` entry for every other system on disk, so each system
-        is covered by the log from then on (ADR-03 section 6). The check has passed by
-        then, so a register changed outside RiskForge is never baselined.
+        one ``register.baselined`` entry for every other system the check saw, so each
+        system is covered by the log from then on (ADR-03 section 6). The check has
+        passed by then, so a register changed outside RiskForge is never baselined.
 
         Raises
         ------
         IntegrityError
-            If the project fails its integrity check. Nothing is appended.
+            If the project fails its integrity check, or a file it saw changed since.
+            Nothing is appended.
         """
         async with self.unit_of_work():
+            guard = self._guard()
             baseline: list[tuple[str, str, str | None]] = []
             if await self._storage.read_audit_head() is None:
-                baseline = await self._baseline_targets(exclude=system_id)
+                baseline = await self._baseline_targets(guard, exclude=system_id)
             last = await self._storage.read_last_audit_entry()
             if last is None:
                 prev_hash, seq = GENESIS_PREV_HASH, 0
@@ -90,7 +143,7 @@ class AuditEngine:
                     event,
                     system_id,
                     payload,
-                    await self._register_fingerprint(system_id),
+                    await self._register_fingerprint(guard, system_id),
                 )
             ]
             for other_id, name, fingerprint in baseline:
@@ -105,8 +158,19 @@ class AuditEngine:
                         fingerprint,
                     )
                 )
+            written = {
+                sid for kind, sid in guard.written_in_storage() if kind == "system"
+            } | guard.written_systems
+            systems = {
+                sid: file_digest(await self._storage.read_system_document(sid)) for sid in written
+            }
             # One append, so the change and its baseline entries commit together.
             await self._storage.append_audit(entries)
+            for entry in entries:
+                guard.registers[entry.system_id] = entry.register_fingerprint
+            guard.systems.update(systems)
+            guard.written_registers.clear()
+            guard.written_systems.clear()
             return entries[0]
 
     def _entry(
@@ -131,32 +195,39 @@ class AuditEngine:
         entry.entry_hash = compute_entry_hash(entry)
         return entry
 
-    async def _baseline_targets(self, exclude: str) -> list[tuple[str, str, str | None]]:
-        """Each other system's id, name and register fingerprint.
+    async def _baseline_targets(
+        self, guard: ChangeGuard, exclude: str
+    ) -> list[tuple[str, str, str | None]]:
+        """Each other system the check saw: its id, name and register fingerprint.
 
-        Read before anything is appended, so a file that cannot be read stops the
-        change before any of it is recorded.
+        Read before anything is appended, so a file that cannot be read, or changed
+        since the check, stops the change before any of it is recorded.
         """
         targets: list[tuple[str, str, str | None]] = []
-        for other_id in await self._storage.list_systems():
-            if other_id == exclude:
+        for other_id in sorted(guard.systems):
+            if other_id == exclude or guard.systems[other_id] is None:
                 continue
-            system = await self._storage.read_system(other_id)
-            targets.append((other_id, system.name, await self._register_fingerprint(other_id)))
+            system = await read_system_checked(self._storage, other_id)
+            targets.append(
+                (other_id, system.name, await self._register_fingerprint(guard, other_id))
+            )
         return targets
 
-    async def _register_fingerprint(self, system_id: str) -> str | None:
+    async def _register_fingerprint(self, guard: ChangeGuard, system_id: str) -> str | None:
         """The fingerprint of the system's register as stored, or None when it has none.
 
         Inside a unit of work the store returns the staged register, so the fingerprint
-        is taken from the exact YAML text this change wrote.
+        is taken from the exact YAML text this change wrote. A register this change did
+        not write must read as the check saw it.
         """
         if not system_id:
             return None
         try:
             document = await self._storage.read_register_document(system_id)
         except RegisterNotFoundError:
+            guard.confirm_register(system_id, None)
             return None
+        guard.confirm_register(system_id, file_digest(document))
         try:
             return document_fingerprint(document)
         except UnfingerprintableDocumentError as exc:

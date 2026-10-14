@@ -125,17 +125,17 @@ async def test_one_check_per_outermost_unit_of_work(
     assert calls == 3
 
 
-class _NoMarksStore(FileStore):
-    """A backend that keeps no unit-of-work marks (the StorageBackend default)."""
+class _NoStateStore(FileStore):
+    """A backend that keeps no unit-of-work state (the StorageBackend default)."""
 
-    def unit_of_work_marks(self) -> set[str] | None:
+    def unit_of_work_state(self) -> dict | None:
         return None
 
 
-async def test_backend_without_marks_still_checks_once_per_change(
+async def test_backend_without_state_still_checks_once_per_change(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    store = _NoMarksStore(tmp_path)
+    store = _NoStateStore(tmp_path)
     audit, engine, sid = await _project(store)
     calls = 0
     real_check = integrity.check_integrity

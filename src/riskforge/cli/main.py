@@ -145,13 +145,9 @@ def _exit_on_integrity_error(exc: Exception) -> None:
     from riskforge.engine.integrity import IntegrityError
 
     if isinstance(exc, IntegrityError):
-        from riskforge.cli.project import print_integrity_failure
+        from riskforge.cli.project import print_refusal
 
-        print_integrity_failure(exc.report)
-        err_console.print(
-            "The change was not made. Run `riskforge verify` for the full report.",
-            highlight=False,
-        )
+        print_refusal(exc)
         sys.exit(EXIT_TAMPERED)
     if isinstance(exc, AuditChainCorruptError):
         _one_line_error(str(exc))

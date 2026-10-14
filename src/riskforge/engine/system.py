@@ -27,6 +27,7 @@ class SystemEngine:
         system_id = str(system.id)
         async with self._audit.unit_of_work():
             await self._storage.write_system(system_id, system)
+            self._audit.wrote_system(system_id)
             await self._audit.record(
                 "system.created",
                 system_id,
@@ -49,13 +50,14 @@ class SystemEngine:
             If the project has no system with this id.
         """
         async with self._audit.unit_of_work():
-            system = await self._storage.read_system(system_id)
+            system = await self._audit.read_system(system_id)
             system.annex_iii_self_classification_documented = True
             if category is not None:
                 system.annex_iii_category = category
             await self._storage.write_system(system_id, system)
+            self._audit.wrote_system(system_id)
             try:
-                register = await self._storage.read_register(system_id)
+                register = await self._audit.read_register(system_id)
             except RegisterNotFoundError:
                 register = None
             if register is not None:
@@ -64,6 +66,7 @@ class SystemEngine:
                 if category is not None:
                     register.system.annex_iii_category = category
                 await self._storage.write_register(system_id, register)
+                self._audit.wrote_register(system_id)
             recorded = category or system.annex_iii_category
             await self._audit.record(
                 "system.classified",

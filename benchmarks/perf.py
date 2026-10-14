@@ -10,6 +10,10 @@ Two measurements:
    this path is O(n^2) in the number of items by design of the flat-file store;
    it is fast at the register sizes a real assessment produces (tens of items).
 
+Both run their loop inside one ``AuditEngine.unit_of_work()``, so the integrity check
+that opens every change runs once. Separate changes each run the full check, which
+reads the whole log, as every CLI command does once.
+
     python benchmarks/perf.py
 
 Timings are wall-clock on the current machine and are indicative, not a guarantee.
@@ -83,8 +87,11 @@ async def _bench_audit(size: int) -> tuple[float, float]:
         store, sid = await _setup(Path(tmp))
         audit = AuditEngine(store, AuditActor(type="ci", identity="bench"))
         start = time.perf_counter()
-        for _ in range(size):
-            await audit.record("bench.event", sid, {})
+        # One unit of work, so the integrity check runs once (each separate change runs
+        # its own full check, which is O(n) in the log).
+        async with audit.unit_of_work():
+            for _ in range(size):
+                await audit.record("bench.event", sid, {})
         append_total = time.perf_counter() - start
         start = time.perf_counter()
         await store.verify_chain()
@@ -94,10 +101,12 @@ async def _bench_audit(size: int) -> tuple[float, float]:
 async def _bench_add_risk(size: int) -> float:
     with tempfile.TemporaryDirectory() as tmp:
         store, sid = await _setup(Path(tmp))
-        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="ci", identity="bench")))
+        audit = AuditEngine(store, AuditActor(type="ci", identity="bench"))
+        engine = RiskEngine(store, audit)
         start = time.perf_counter()
-        for i in range(size):
-            await engine.add_risk(sid, _item(i))
+        async with audit.unit_of_work():
+            for i in range(size):
+                await engine.add_risk(sid, _item(i))
         return time.perf_counter() - start
 
 
