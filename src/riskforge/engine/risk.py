@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime, timedelta
 
+from riskforge.engine.actor import require_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
@@ -131,8 +132,18 @@ class RiskEngine:
     async def accept_risk(
         self, system_id: str, risk_id: str, rationale: str, actor_identity: str
     ) -> RiskItem:
+        """Accept a risk item and store ``actor_identity`` as its ``accepted_by``.
+
+        Raises
+        ------
+        RationaleRequiredError
+            If the rationale is blank.
+        ActorNameError
+            If ``actor_identity`` is blank or not one line of text.
+        """
         if not rationale.strip():
             raise RationaleRequiredError("Acceptance rationale is required and cannot be empty.")
+        actor_identity = require_actor_name(actor_identity)
         async with self._audit.unit_of_work():
             register = await self._audit.read_register(system_id)
             item = self._resolve_risk_item(register.items, risk_id)
@@ -140,6 +151,7 @@ class RiskEngine:
             old_accepted = item.accepted
             item.accepted = True
             item.acceptance_rationale = rationale
+            item.accepted_by = actor_identity
             await self._storage.write_register(system_id, register)
             self._audit.wrote_register(system_id)
             await self._audit.record(
@@ -161,11 +173,25 @@ class RiskEngine:
         mitigation: Mitigation,
         residual_likelihood: int | None = None,
         residual_severity: int | None = None,
+        *,
+        recorded_by: str | None = None,
     ) -> RiskItem:
-        """Append a mitigation to a risk item and optionally re-score residual risk."""
+        """Append a mitigation to a risk item and optionally re-score residual risk.
+
+        ``recorded_by``, when given, is stored on the mitigation in the same change.
+
+        Raises
+        ------
+        ActorNameError
+            If the mitigation's ``recorded_by`` is blank or not one line of text.
+        """
+        name = recorded_by if recorded_by is not None else mitigation.recorded_by
+        if name is not None:
+            name = require_actor_name(name)
         async with self._audit.unit_of_work():
             register = await self._audit.read_register(system_id)
             item = self._resolve_risk_item(register.items, risk_id)
+            mitigation.recorded_by = name
             item.mitigations.append(self._flag_vague(mitigation))
             if residual_likelihood is not None:
                 item.residual_likelihood = Likelihood(residual_likelihood)

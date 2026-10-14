@@ -26,6 +26,8 @@ def offline_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     # first), and NO_COLOR alone does not remove bold, so output would differ from local runs.
     for var in ("GITHUB_ACTIONS", "FORCE_COLOR", "PY_COLORS"):
         env.pop(var, None)
+    # A developer's own RISKFORGE_ACTOR would otherwise answer `--by` for every test.
+    env.pop("RISKFORGE_ACTOR", None)
     env["NO_COLOR"] = "1"
     env["COLUMNS"] = "200"
     if extra:
@@ -38,8 +40,12 @@ def run_rf(
     cwd: Path | str | None = None,
     input_text: str | None = None,
     timeout: int = 180,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
-    """Run ``riskforge <args>`` offline. The result gains ``.output`` (stdout plus stderr)."""
+    """Run ``riskforge <args>`` offline, with *env* added to the environment.
+
+    The result gains ``.output`` (stdout plus stderr).
+    """
     stdin_kwargs = (
         {"input": input_text} if input_text is not None else {"stdin": subprocess.DEVNULL}
     )
@@ -48,7 +54,7 @@ def run_rf(
         capture_output=True,
         text=True,
         cwd=cwd,
-        env=offline_env(),
+        env=offline_env(env),
         timeout=timeout,
         **stdin_kwargs,
     )

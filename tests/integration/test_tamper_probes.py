@@ -91,7 +91,8 @@ def pristine(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str]:
         if item["residual_risk_score"] > register["risk_appetite_threshold"]:
             accepted = _rf(
                 project,
-                ["risk", "accept", sid, item["id"][:8], "-r", "Residual within appetite."],
+                ["risk", "accept", sid, item["id"][:8], "-r", "Residual within appetite."]
+                + ["--by", "Alice Chen, AI Governance Lead"],
             )
             assert accepted.returncode == 0, accepted.output
     exported = _rf(project, ["export", sid, "-f", "json", "-o", str(project / "rmf.json")])
@@ -122,9 +123,11 @@ def _command(name: str, project: Path, sid: str, rid: str) -> list[str]:
         "export --force": ["export", sid, "-f", "json", "-o", str(project / "forced.json")]
         + ["--force"],
         "assess": ["assess", sid, "-a", "A", "-r", "B", "--answers", str(EXAMPLE / "answers.yaml")],
-        "risk accept": ["risk", "accept", sid, rid, "-r", "accepted on a tampered project"],
+        "risk accept": ["risk", "accept", sid, rid, "-r", "accepted on a tampered project"]
+        + ["--by", "Probe"],
         "risk mitigate": ["risk", "mitigate", sid, rid]
-        + ["-m", "Block release above a 0.10 parity gap", "-c", "preventive", "--owner", "X"],
+        + ["-m", "Block release above a 0.10 parity gap", "-c", "preventive", "--owner", "X"]
+        + ["--by", "Probe"],
         "system classify": ["system", "classify", sid, "--confirm"],
         "import": ["import", sid, "-a", "rag-benchmarking", "-r", str(RAG_REPORT)],
         "tests generate": ["tests", "generate", sid],

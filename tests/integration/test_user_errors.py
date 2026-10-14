@@ -195,7 +195,10 @@ def test_residual_score_out_of_range(tmp_path: Path) -> None:
 def test_unknown_risk_id(tmp_path: Path) -> None:
     sid = _init(tmp_path)
     _assess(tmp_path, sid)
-    result = run_rf(["risk", "accept", sid, "00000000", "-r", "x", "--project-dir", str(tmp_path)])
+    result = run_rf(
+        ["risk", "accept", sid, "00000000", "-r", "x", "--by", "A"]
+        + ["--project-dir", str(tmp_path)]
+    )
     _assert_clean(result, 3, "No risk item matches")
 
 
@@ -244,7 +247,9 @@ def test_empty_acceptance_rationale(tmp_path: Path) -> None:
     sid = _init(tmp_path)
     _assess(tmp_path, sid)
     rid = _first_risk_id(tmp_path)
-    result = run_rf(["risk", "accept", sid, rid, "-r", " ", "--project-dir", str(tmp_path)])
+    result = run_rf(
+        ["risk", "accept", sid, rid, "-r", " ", "--by", "A", "--project-dir", str(tmp_path)]
+    )
     _assert_clean(result, 3, "rationale is required")
 
 
@@ -264,7 +269,9 @@ def test_corrupt_audit_log_is_not_a_usage_error(tmp_path: Path) -> None:
     audit = tmp_path / ".riskforge" / "audit.jsonl"
     lines = audit.read_text().splitlines()
     audit.write_text("\n".join(lines[:-1] + [lines[-1][: len(lines[-1]) // 2]]) + "\n")
-    result = run_rf(["risk", "accept", sid, rid, "-r", "ok", "--project-dir", str(tmp_path)])
+    result = run_rf(
+        ["risk", "accept", sid, rid, "-r", "ok", "--by", "A", "--project-dir", str(tmp_path)]
+    )
     assert result.returncode not in (0, 3), result.output
 
 

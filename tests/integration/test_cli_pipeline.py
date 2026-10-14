@@ -217,12 +217,26 @@ def test_risk_accept_by_prefix_and_clean_error() -> None:
         prefix = str(reg.items[0].id)[:8]
 
         ok = _run(
-            ["risk", "accept", sid, prefix, "-r", "Accepted after review.", "--project-dir", str(d)]
+            ["risk", "accept", sid, prefix, "-r", "Accepted after review.", "--by", "Jane Doe"]
+            + ["--project-dir", str(d)]
         )
         assert ok.returncode == 0, f"prefix accept failed:\n{ok.output}"
         assert "accepted" in ok.output.lower()
 
-        bad = _run(["risk", "accept", sid, "00000000", "-r", "x", "--project-dir", str(d)])
+        bad = _run(
+            [
+                "risk",
+                "accept",
+                sid,
+                "00000000",
+                "-r",
+                "x",
+                "--by",
+                "Jane Doe",
+                "--project-dir",
+                str(d),
+            ]
+        )
         assert bad.returncode == 3, f"expected clean exit 3, got {bad.returncode}:\n{bad.output}"
         assert "Traceback" not in bad.output, f"unhandled crash:\n{bad.output}"
         assert "No risk item matches" in bad.output
@@ -450,6 +464,8 @@ def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
                 "1",
                 "--residual-severity",
                 "1",
+                "--by",
+                "Jane Doe",
                 "--project-dir",
                 str(d),
             ]
@@ -495,6 +511,8 @@ def test_risk_mitigate_flags_vague() -> None:
                 "detective",
                 "--owner",
                 "X",
+                "--by",
+                "Jane Doe",
                 "--project-dir",
                 str(d),
             ]
