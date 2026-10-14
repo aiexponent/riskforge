@@ -25,3 +25,7 @@ class InvalidSystemIdError(ValueError):
 
 class AuditLogCorruptError(ValueError):
     """The audit log holds a line that is not a valid audit entry."""
+
+
+class ProjectLockedError(TimeoutError):
+    """Another process held the project's write lock for longer than the wait allowed."""

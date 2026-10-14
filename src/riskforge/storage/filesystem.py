@@ -28,8 +28,9 @@ Every file is replaced atomically (temp file, fsync, rename), so a reader sees
 the old file or the new one, never a mix. Inside ``unit_of_work()``, register
 and system writes are staged as ``<name>.pending`` and renamed into place only
 after the audit entry that records them is appended. A journal (``txn.json``)
-written before the append lets the next unit of work finish a change whose
-entry reached the log, or discard one whose entry did not.
+written before the append records the log length, so the next unit of work can
+finish a change whose entry reached the log in full, or cut off a torn append and
+discard the change.
 
 Security model
 --------------
@@ -48,6 +49,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import contextvars
+import errno
 import hashlib
 import json
 import logging
@@ -70,6 +72,7 @@ from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
     ProjectExistsError,
+    ProjectLockedError,
     ProjectNotFoundError,
     RegisterNotFoundError,
     SystemNotFoundError,
@@ -79,10 +82,21 @@ logger = logging.getLogger(__name__)
 
 SENTINEL = ".nodelete"
 PENDING_SUFFIX = ".pending"
+DEFAULT_LOCK_TIMEOUT = 120.0
+_LOCK_POLL_SECONDS = 0.02
 
-# ids of the FileStore instances whose unit of work is open in the current context
-_ACTIVE_UOW: contextvars.ContextVar[frozenset[int]] = contextvars.ContextVar(
-    "riskforge_filestore_uow", default=frozenset()
+
+class _Scope:
+    """The writes staged by one open unit of work, as paths relative to ``.riskforge``."""
+
+    def __init__(self) -> None:
+        self.staged: list[str] = []
+
+
+# Open units of work in the current context, keyed by the resolved .riskforge path, so
+# two FileStore objects for one project join the same scope instead of waiting on each other.
+_ACTIVE_UOW: contextvars.ContextVar[dict[str, _Scope] | None] = contextvars.ContextVar(
+    "riskforge_filestore_uow", default=None
 )
 
 
@@ -113,6 +127,17 @@ def _pending(path: Path) -> Path:
     return path.with_name(path.name + PENDING_SUFFIX)
 
 
+def _first_line(exc: Exception) -> str:
+    return str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+
+
+def _parse_entry(line: bytes | str) -> AuditEntry | None:
+    try:
+        return AuditEntry.model_validate(json.loads(line))
+    except ValueError:  # JSONDecodeError, UnicodeDecodeError and pydantic ValidationError
+        return None
+
+
 def _last_line(path: Path) -> str:
     last = ""
     with path.open("r", encoding="utf-8") as fh:
@@ -138,10 +163,16 @@ class FileStore(StorageBackend):
     project_dir:
         The project working directory.  All RiskForge data is stored
         under ``project_dir / ".riskforge"``.
+    lock_timeout:
+        Seconds ``unit_of_work()`` waits for another process to release the
+        project lock before it raises :class:`ProjectLockedError`. Defaults to
+        ``DEFAULT_LOCK_TIMEOUT`` (120 s).
     """
 
-    def __init__(self, project_dir: Path) -> None:
+    def __init__(self, project_dir: Path, lock_timeout: float | None = None) -> None:
         self._root = project_dir / ".riskforge"
+        self._key = os.path.realpath(self._root)
+        self._lock_timeout = DEFAULT_LOCK_TIMEOUT if lock_timeout is None else lock_timeout
         self._audit_path = self._root / "audit.jsonl"
         self._head_path = self._root / "audit.head.json"
         self._journal_path = self._root / "txn.json"
@@ -149,7 +180,6 @@ class FileStore(StorageBackend):
         self._systems_dir = self._root / "systems"
         self._async_lock: asyncio.Lock | None = None
         self._lock_loop: asyncio.AbstractEventLoop | None = None
-        self._staged: list[Path] = []
 
     # ------------------------------------------------------------------ #
     # Internal sync helpers (called via asyncio.to_thread)                #
@@ -205,35 +235,59 @@ class FileStore(StorageBackend):
             )
         return self._systems_dir / system_id
 
-    def _in_uow(self) -> bool:
-        return id(self) in _ACTIVE_UOW.get()
+    def _relative(self, path: Path) -> str:
+        return path.relative_to(self._root).as_posix()
+
+    def _scope(self) -> _Scope | None:
+        return (_ACTIVE_UOW.get() or {}).get(self._key)
 
     def _readable(self, path: Path) -> Path:
         """The file a read should see: this unit of work's staged copy, else the committed one."""
-        if self._in_uow() and path in self._staged:
+        scope = self._scope()
+        if scope is not None and self._relative(path) in scope.staged:
             return _pending(path)
         return path
 
     def _write(self, path: Path, data: bytes) -> None:
-        if self._in_uow():
+        scope = self._scope()
+        if scope is not None:
             _atomic_write(_pending(path), data)
-            if path not in self._staged:
-                self._staged.append(path)
+            if self._relative(path) not in scope.staged:
+                scope.staged.append(self._relative(path))
         else:
             _atomic_write(path, data)
 
-    def _tail_seq(self) -> int:
+    def _settle_log(self, journal: dict) -> AuditEntry | None:
+        """The entry an interrupted commit appended, or None after removing a torn append.
+
+        The commit appended at most one line, with a single write, at ``log_size``. One
+        complete line holding the entry that follows ``after_seq`` means the append
+        finished. Bytes without a line end, or one line that is not an entry, are what is
+        left of an append that failed part way; they are cut off so the log ends where it
+        did before the commit. Anything else (more than one line, or a valid entry with
+        another seq) was not written by this commit and is never removed.
+        """
         if not self._audit_path.exists():
-            return -1
-        last = _last_line(self._audit_path)
-        if not last:
-            return -1
-        try:
-            return int(json.loads(last)["seq"])
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-            raise AuditLogCorruptError(
-                f"The last audit log line is not a valid entry: {exc}"
-            ) from exc
+            return None
+        with self._audit_path.open("r+b") as fh:
+            fh.seek(0, os.SEEK_END)
+            if fh.tell() <= journal["log_size"]:
+                return None
+            fh.seek(journal["log_size"])
+            tail = fh.read()
+            complete = tail.endswith(b"\n") and tail.count(b"\n") == 1
+            entry = _parse_entry(tail) if complete else None
+            if entry is not None and entry.seq == journal["after_seq"] + 1:
+                return entry
+            if b"\n" in tail[:-1] or entry is not None:
+                raise AuditLogCorruptError(
+                    "The audit log changed in a way an interrupted RiskForge commit cannot "
+                    "explain, so it was left as it is. Run `riskforge verify`."
+                )
+            fh.truncate(journal["log_size"])
+            fh.flush()
+            os.fsync(fh.fileno())
+        return None
 
     def _write_head(self, seq: int, entry_hash: str) -> None:
         head = {"seq": seq, "entry_hash": entry_hash}
@@ -242,36 +296,47 @@ class FileStore(StorageBackend):
     def _recover(self) -> None:
         """Finish or discard a change that an earlier unit of work left behind.
 
-        The journal names the staged files and the chain head before the append.
-        If the log grew past that head, the append happened, so the staged files
-        are renamed into place; otherwise they are deleted. Any other pending or
-        temp file is an uncommitted write and is deleted.
+        The journal names the staged files, the chain head before the append and the
+        log length before it. If the appended entry is complete, the staged files are
+        renamed into place; otherwise the torn append is cut off and the staged files
+        are deleted. Any other pending or temp file is an uncommitted write and is
+        deleted, and a system directory left empty by that is removed.
         """
+        emptied: set[Path] = set()
         if self._journal_path.exists():
             journal = json.loads(self._journal_path.read_text(encoding="utf-8"))
-            committed = self._tail_seq() > journal["after_seq"]
+            appended = self._settle_log(journal)
             for rel in journal["files"]:
                 final = self._root / rel
                 pending = _pending(final)
-                if committed and pending.exists():
+                if appended is not None and pending.exists():
                     os.replace(pending, final)
                     _fsync_dir(final.parent)
-                elif not committed:
+                elif appended is None:
                     pending.unlink(missing_ok=True)
-            if committed:
-                last = json.loads(_last_line(self._audit_path))
-                self._write_head(last["seq"], last["entry_hash"])
+                    emptied.add(final.parent)
+            if appended is not None:
+                self._write_head(appended.seq, appended.entry_hash)
             self._journal_path.unlink()
             _fsync_dir(self._root)
         if self._systems_dir.exists():
-            for leftover in self._systems_dir.glob(f"*/*{PENDING_SUFFIX}"):
+            leftovers = [
+                *self._systems_dir.glob(f"*/*{PENDING_SUFFIX}"),
+                *self._systems_dir.glob("*/.*.tmp"),
+            ]
+            for leftover in leftovers:
                 leftover.unlink()
-            for leftover in self._systems_dir.glob("*/.*.tmp"):
-                leftover.unlink()
+                emptied.add(leftover.parent)
         if self._root.exists():
             for leftover in self._root.glob(".*.tmp"):
                 leftover.unlink()
-        self._staged.clear()
+        for directory in emptied:
+            if directory.parent == self._systems_dir and directory.is_dir():
+                if not any(directory.iterdir()):
+                    directory.rmdir()
+        scope = self._scope()
+        if scope is not None:
+            scope.staged.clear()
 
     # ------------------------------------------------------------------ #
     # Hash computation                                                     #
@@ -314,11 +379,20 @@ class FileStore(StorageBackend):
     async def unit_of_work(self) -> AsyncIterator[None]:
         """Hold the project write lock; commit staged writes with the audit entry.
 
-        Re-entrant: a nested call joins the open scope. On entry and exit the
-        scope finishes or discards anything an interrupted commit left behind.
+        Re-entrant: a nested call, from this or another FileStore for the same
+        project, joins the open scope. On entry, and on exit, the scope finishes or
+        discards anything an interrupted commit left behind.
+
+        Raises
+        ------
+        ProjectLockedError
+            If another process holds the project lock for longer than ``lock_timeout``.
+        RuntimeError
+            If the scope ends without an error but with writes that no audit entry
+            recorded. The writes are discarded.
         """
-        active = _ACTIVE_UOW.get()
-        if id(self) in active:
+        active = _ACTIVE_UOW.get() or {}
+        if self._key in active:
             yield
             return
         loop = asyncio.get_running_loop()
@@ -330,19 +404,41 @@ class FileStore(StorageBackend):
         async with self._async_lock:
             await asyncio.to_thread(self._ensure_dirs)
             lock = FileLock(str(self._lock_path))
+            deadline = loop.time() + self._lock_timeout
             while True:
                 try:
                     lock.acquire(timeout=0)
                     break
                 except Timeout:
-                    await asyncio.sleep(0.02)
-            token = _ACTIVE_UOW.set(active | {id(self)})
+                    if loop.time() >= deadline:
+                        raise ProjectLockedError(
+                            "Another riskforge process holds the project lock "
+                            f"({self._lock_path}); gave up after {self._lock_timeout:g} s. "
+                            "Try again when it has finished."
+                        ) from None
+                    await asyncio.sleep(_LOCK_POLL_SECONDS)
+            scope = _Scope()
+            token = _ACTIVE_UOW.set({**active, self._key: scope})
             try:
                 await asyncio.to_thread(self._recover)
                 try:
                     yield
-                finally:
-                    await asyncio.to_thread(self._recover)
+                except BaseException as exc:
+                    try:
+                        await asyncio.to_thread(self._recover)
+                    except Exception as recovery_error:
+                        exc.add_note(
+                            "Cleaning up the project after this error also failed: "
+                            f"{recovery_error!r}. The next RiskForge command retries it."
+                        )
+                    raise
+                unrecorded = list(scope.staged)
+                await asyncio.to_thread(self._recover)
+                if unrecorded:
+                    raise RuntimeError(
+                        "A unit of work ended with writes that no audit entry recorded, so "
+                        f"they were discarded: {', '.join(unrecorded)}."
+                    )
             finally:
                 _ACTIVE_UOW.reset(token)
                 lock.release()
@@ -513,35 +609,49 @@ class FileStore(StorageBackend):
     async def append_audit(self, entry: AuditEntry) -> None:
         """Append *entry* to ``audit.jsonl`` and commit the writes staged before it.
 
-        Order: journal, fsynced append, rename of each staged file, head file,
-        journal removed. A crash at any point leaves a state ``_recover`` can
-        finish (the entry reached the log) or discard (it did not).
+        Order: journal (with the log length before the append), one fsynced write of
+        the line, rename of each staged file, head file, journal removed. A crash at
+        any point leaves a state ``_recover`` can finish (the whole line reached the
+        log) or discard (it did not, and any torn part of it is cut off).
 
         Raises
         ------
         RuntimeError
             If called outside ``unit_of_work()``.
         """
-        if not self._in_uow():
+        scope = self._scope()
+        if scope is None:
             raise RuntimeError("append_audit must run inside FileStore.unit_of_work().")
 
         def _sync() -> None:
+            created = not self._audit_path.exists()
             journal = {
                 "after_seq": entry.seq - 1,
-                "files": [str(path.relative_to(self._root)) for path in self._staged],
+                "log_size": 0 if created else self._audit_path.stat().st_size,
+                "files": list(scope.staged),
             }
             _atomic_write(self._journal_path, json.dumps(journal).encode("utf-8"))
             line = json.dumps(entry.model_dump(mode="json"), separators=(",", ":")) + "\n"
-            with self._audit_path.open("a", encoding="utf-8") as fh:
-                fh.write(line)
-                fh.flush()
-                os.fsync(fh.fileno())
+            data = line.encode("utf-8")
+            fd = os.open(self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            try:
+                written = os.write(fd, data)
+                if written != len(data):
+                    raise OSError(
+                        errno.EIO, f"Wrote {written} of {len(data)} bytes to the audit log."
+                    )
+                os.fsync(fd)
+            finally:
+                os.close(fd)
             os.chmod(self._audit_path, stat.S_IRUSR | stat.S_IWUSR)
-            for path in self._staged:
+            if created:
+                _fsync_dir(self._root)
+            staged = [self._root / rel for rel in scope.staged]
+            for path in staged:
                 os.replace(_pending(path), path)
-            for directory in {path.parent for path in self._staged}:
+            for directory in {path.parent for path in staged}:
                 _fsync_dir(directory)
-            self._staged.clear()
+            scope.staged.clear()
             self._write_head(entry.seq, entry.entry_hash)
             self._journal_path.unlink()
 
@@ -586,7 +696,7 @@ class FileStore(StorageBackend):
                 entry = AuditEntry.model_validate(json.loads(line))
             except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
                 raise AuditLogCorruptError(
-                    f"Audit log line {lineno} is not a valid entry: {exc}"
+                    f"Audit log line {lineno} is not a valid entry: {_first_line(exc)}."
                 ) from exc
             if entry.seq < since_seq:
                 continue
@@ -608,7 +718,12 @@ class FileStore(StorageBackend):
                         last_line = stripped
             if not last_line:
                 return None
-            return AuditEntry.model_validate(json.loads(last_line))
+            try:
+                return AuditEntry.model_validate(json.loads(last_line))
+            except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
+                raise AuditLogCorruptError(
+                    f"The last audit log line is not a valid entry: {_first_line(exc)}."
+                ) from exc
 
         return await asyncio.to_thread(_sync)
 

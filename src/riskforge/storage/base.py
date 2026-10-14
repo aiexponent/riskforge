@@ -171,8 +171,10 @@ class StorageBackend(ABC):
         is open, reads return this scope's own writes. A register or system write
         and the audit entry that records it become visible to other readers
         together; if the scope ends without recording an entry, the write is
-        discarded. A backend may commit at each appended entry (the file backend
-        does) or at the end of the outermost scope (a database transaction does).
+        discarded, and a scope that ends without an error should raise
+        ``RuntimeError`` so the lost write is not silent. A backend may commit at
+        each appended entry (the file backend does) or at the end of the
+        outermost scope (a database transaction does).
 
         Returns
         -------
