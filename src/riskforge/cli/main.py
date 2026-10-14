@@ -7,7 +7,8 @@ import sys
 import click
 import typer
 
-from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_USAGE
+from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_TAMPERED, EXIT_USAGE, err_console
+from riskforge.storage.errors import AuditLogCorruptError, ProjectLockedError
 
 
 def _version_callback(value: bool) -> None:
@@ -81,11 +82,18 @@ def _show_click_error(exc: click.ClickException) -> None:
         rich_format_error(exc)
 
 
+def _one_line_error(message: str) -> None:
+    from rich.markup import escape
+
+    err_console.print(f"[red]✗[/red] {escape(message)}", highlight=False, soft_wrap=True)
+
+
 def run() -> None:
     """Console entry point.
 
     Click reports usage errors with exit 2, which RiskForge reserves for integrity
-    failures, so they leave with EXIT_USAGE instead.
+    failures, so they leave with EXIT_USAGE instead. A held project lock exits 1 and a
+    corrupt audit log exits 2, each with one line and no traceback.
     """
     try:
         code = app(prog_name="riskforge", standalone_mode=False)
@@ -103,4 +111,10 @@ def run() -> None:
     except click.exceptions.Abort:
         click.echo("Aborted.", err=True)
         sys.exit(EXIT_FAILED)
+    except ProjectLockedError as exc:
+        _one_line_error(str(exc))
+        sys.exit(EXIT_FAILED)
+    except AuditLogCorruptError as exc:
+        _one_line_error(f"{exc} Run `riskforge verify` for details.")
+        sys.exit(EXIT_TAMPERED)
     sys.exit(code if isinstance(code, int) else EXIT_OK)

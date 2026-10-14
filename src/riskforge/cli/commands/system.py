@@ -49,6 +49,7 @@ def classify_system(
     from riskforge.cli.errors import fail
     from riskforge.cli.project import open_project, parse_category, read_system_or_fail
     from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.system import SystemEngine
     from riskforge.models.audit import AuditActor
 
     if not confirm:
@@ -61,34 +62,9 @@ def classify_system(
     store = open_project(project_dir)
 
     async def _run() -> None:
-        system = await read_system_or_fail(store, system_id)
-
-        system.annex_iii_self_classification_documented = True
-        if cat_enum is not None:
-            system.annex_iii_category = cat_enum
-        await store.write_system(system_id, system)
-
-        # Keep the register's embedded system in sync: validate reads it, not system.yaml.
-        try:
-            register = await store.read_register(system_id)
-        except FileNotFoundError:
-            register = None
-        if register is not None:
-            register.system.annex_iii_self_classification_documented = True
-            if cat_enum is not None:
-                register.system.annex_iii_category = cat_enum
-            await store.write_register(system_id, register)
-
-        recorded_category = cat_enum or system.annex_iii_category
+        await read_system_or_fail(store, system_id)
         audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
-        await audit.record(
-            "system.classified",
-            system_id,
-            {
-                "annex_iii_self_classification_documented": True,
-                "annex_iii_category": recorded_category.value if recorded_category else None,
-            },
-        )
+        await SystemEngine(store, audit).classify(system_id, cat_enum)
 
     asyncio.run(_run())
     console.print(

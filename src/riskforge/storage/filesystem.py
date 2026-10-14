@@ -12,14 +12,25 @@ Directory layout
     ├── riskforge.yaml          chmod 600  # project manifest
     └── .riskforge/             chmod 700
         ├── audit.jsonl         chmod 600  # append-only audit chain
+        ├── audit.head.json                # seq and hash of the last entry written
+        ├── audit.lock                     # serialises writers across processes
+        ├── txn.json                       # journal, only while a commit is in flight
         ├── .nodelete                      # sentinel preventing accidental deletion
         └── systems/
             └── <system_id>/
                 ├── system.yaml
                 ├── register.yaml
-                ├── mitigations.yaml
-                └── exports/
-                    └── <export_id>.<fmt>
+                └── mitigations.yaml       # derived catalogue, never read back
+
+Writes
+------
+Every file is replaced atomically (temp file, fsync, rename), so a reader sees
+the old file or the new one, never a mix. Inside ``unit_of_work()``, register
+and system writes are staged as ``<name>.pending`` and renamed into place only
+after the audit entry that records them is appended. A journal (``txn.json``)
+written before the append records the log length, so the next unit of work can
+finish a change whose entry reached the log in full, or cut off a torn append and
+discard the change.
 
 Security model
 --------------
@@ -37,15 +48,17 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
+import errno
 import hashlib
 import json
 import logging
 import os
 import stat
 import subprocess
+import tempfile
 import warnings
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 
 import yaml
@@ -56,8 +69,10 @@ from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import (
+    AuditLogCorruptError,
     InvalidSystemIdError,
     ProjectExistsError,
+    ProjectLockedError,
     ProjectNotFoundError,
     RegisterNotFoundError,
     SystemNotFoundError,
@@ -66,6 +81,71 @@ from riskforge.storage.errors import (
 logger = logging.getLogger(__name__)
 
 SENTINEL = ".nodelete"
+PENDING_SUFFIX = ".pending"
+DEFAULT_LOCK_TIMEOUT = 120.0
+_LOCK_POLL_SECONDS = 0.02
+
+
+class _Scope:
+    """The writes staged by one open unit of work, as paths relative to ``.riskforge``."""
+
+    def __init__(self) -> None:
+        self.staged: list[str] = []
+
+
+# Open units of work in the current context, keyed by the resolved .riskforge path, so
+# two FileStore objects for one project join the same scope instead of waiting on each other.
+_ACTIVE_UOW: contextvars.ContextVar[dict[str, _Scope] | None] = contextvars.ContextVar(
+    "riskforge_filestore_uow", default=None
+)
+
+
+def _fsync_dir(directory: Path) -> None:
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    """Replace ``path`` with ``data`` so readers see the old or the new file, never a mix."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+    _fsync_dir(path.parent)
+
+
+def _pending(path: Path) -> Path:
+    return path.with_name(path.name + PENDING_SUFFIX)
+
+
+def _first_line(exc: Exception) -> str:
+    return str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+
+
+def _parse_entry(line: bytes | str) -> AuditEntry | None:
+    try:
+        return AuditEntry.model_validate(json.loads(line))
+    except ValueError:  # JSONDecodeError, UnicodeDecodeError and pydantic ValidationError
+        return None
+
+
+def _last_line(path: Path) -> str:
+    last = ""
+    with path.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            stripped = raw.strip()
+            if stripped:
+                last = stripped
+    return last
 
 
 class FileStore(StorageBackend):
@@ -83,13 +163,23 @@ class FileStore(StorageBackend):
     project_dir:
         The project working directory.  All RiskForge data is stored
         under ``project_dir / ".riskforge"``.
+    lock_timeout:
+        Seconds ``unit_of_work()`` waits for another process to release the
+        project lock before it raises :class:`ProjectLockedError`. Defaults to
+        ``DEFAULT_LOCK_TIMEOUT`` (120 s).
     """
 
-    def __init__(self, project_dir: Path) -> None:
+    def __init__(self, project_dir: Path, lock_timeout: float | None = None) -> None:
         self._root = project_dir / ".riskforge"
+        self._key = os.path.realpath(self._root)
+        self._lock_timeout = DEFAULT_LOCK_TIMEOUT if lock_timeout is None else lock_timeout
         self._audit_path = self._root / "audit.jsonl"
-        self._async_lock = None
+        self._head_path = self._root / "audit.head.json"
+        self._journal_path = self._root / "txn.json"
+        self._lock_path = self._root / "audit.lock"
         self._systems_dir = self._root / "systems"
+        self._async_lock: asyncio.Lock | None = None
+        self._lock_loop: asyncio.AbstractEventLoop | None = None
 
     # ------------------------------------------------------------------ #
     # Internal sync helpers (called via asyncio.to_thread)                #
@@ -145,8 +235,108 @@ class FileStore(StorageBackend):
             )
         return self._systems_dir / system_id
 
-    def _exports_dir(self, system_id: str) -> Path:
-        return self._system_dir(system_id) / "exports"
+    def _relative(self, path: Path) -> str:
+        return path.relative_to(self._root).as_posix()
+
+    def _scope(self) -> _Scope | None:
+        return (_ACTIVE_UOW.get() or {}).get(self._key)
+
+    def _readable(self, path: Path) -> Path:
+        """The file a read should see: this unit of work's staged copy, else the committed one."""
+        scope = self._scope()
+        if scope is not None and self._relative(path) in scope.staged:
+            return _pending(path)
+        return path
+
+    def _write(self, path: Path, data: bytes) -> None:
+        scope = self._scope()
+        if scope is not None:
+            _atomic_write(_pending(path), data)
+            if self._relative(path) not in scope.staged:
+                scope.staged.append(self._relative(path))
+        else:
+            _atomic_write(path, data)
+
+    def _settle_log(self, journal: dict) -> AuditEntry | None:
+        """The entry an interrupted commit appended, or None after removing a torn append.
+
+        The commit appended at most one line, with a single write, at ``log_size``. One
+        complete line holding the entry that follows ``after_seq`` means the append
+        finished. Bytes without a line end, or one line that is not an entry, are what is
+        left of an append that failed part way; they are cut off so the log ends where it
+        did before the commit. Anything else (more than one line, or a valid entry with
+        another seq) was not written by this commit and is never removed.
+        """
+        if not self._audit_path.exists():
+            return None
+        with self._audit_path.open("r+b") as fh:
+            fh.seek(0, os.SEEK_END)
+            if fh.tell() <= journal["log_size"]:
+                return None
+            fh.seek(journal["log_size"])
+            tail = fh.read()
+            complete = tail.endswith(b"\n") and tail.count(b"\n") == 1
+            entry = _parse_entry(tail) if complete else None
+            if entry is not None and entry.seq == journal["after_seq"] + 1:
+                return entry
+            if b"\n" in tail[:-1] or entry is not None:
+                raise AuditLogCorruptError(
+                    "The audit log changed in a way an interrupted RiskForge commit cannot "
+                    "explain, so it was left as it is."
+                )
+            fh.truncate(journal["log_size"])
+            fh.flush()
+            os.fsync(fh.fileno())
+        return None
+
+    def _write_head(self, seq: int, entry_hash: str) -> None:
+        head = {"seq": seq, "entry_hash": entry_hash}
+        _atomic_write(self._head_path, json.dumps(head).encode("utf-8"))
+
+    def _recover(self) -> None:
+        """Finish or discard a change that an earlier unit of work left behind.
+
+        The journal names the staged files, the chain head before the append and the
+        log length before it. If the appended entry is complete, the staged files are
+        renamed into place; otherwise the torn append is cut off and the staged files
+        are deleted. Any other pending or temp file is an uncommitted write and is
+        deleted, and a system directory left empty by that is removed.
+        """
+        emptied: set[Path] = set()
+        if self._journal_path.exists():
+            journal = json.loads(self._journal_path.read_text(encoding="utf-8"))
+            appended = self._settle_log(journal)
+            for rel in journal["files"]:
+                final = self._root / rel
+                pending = _pending(final)
+                if appended is not None and pending.exists():
+                    os.replace(pending, final)
+                    _fsync_dir(final.parent)
+                elif appended is None:
+                    pending.unlink(missing_ok=True)
+                    emptied.add(final.parent)
+            if appended is not None:
+                self._write_head(appended.seq, appended.entry_hash)
+            self._journal_path.unlink()
+            _fsync_dir(self._root)
+        if self._systems_dir.exists():
+            leftovers = [
+                *self._systems_dir.glob(f"*/*{PENDING_SUFFIX}"),
+                *self._systems_dir.glob("*/.*.tmp"),
+            ]
+            for leftover in leftovers:
+                leftover.unlink()
+                emptied.add(leftover.parent)
+        if self._root.exists():
+            for leftover in self._root.glob(".*.tmp"):
+                leftover.unlink()
+        for directory in emptied:
+            if directory.parent == self._systems_dir and directory.is_dir():
+                if not any(directory.iterdir()):
+                    directory.rmdir()
+        scope = self._scope()
+        if scope is not None:
+            scope.staged.clear()
 
     # ------------------------------------------------------------------ #
     # Hash computation                                                     #
@@ -182,6 +372,78 @@ class FileStore(StorageBackend):
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     # ------------------------------------------------------------------ #
+    # Unit of work                                                         #
+    # ------------------------------------------------------------------ #
+
+    @contextlib.asynccontextmanager
+    async def unit_of_work(self) -> AsyncIterator[None]:
+        """Hold the project write lock; commit staged writes with the audit entry.
+
+        Re-entrant: a nested call, from this or another FileStore for the same
+        project, joins the open scope. On entry, and on exit, the scope finishes or
+        discards anything an interrupted commit left behind.
+
+        Raises
+        ------
+        ProjectLockedError
+            If another process holds the project lock for longer than ``lock_timeout``.
+        RuntimeError
+            If the scope ends without an error but with writes that no audit entry
+            recorded. The writes are discarded.
+        """
+        active = _ACTIVE_UOW.get() or {}
+        if self._key in active:
+            yield
+            return
+        loop = asyncio.get_running_loop()
+        if self._async_lock is None or self._lock_loop is not loop:
+            # CLI commands call asyncio.run more than once on one store, and an
+            # asyncio.Lock must not outlive the loop it was first used on.
+            self._async_lock = asyncio.Lock()
+            self._lock_loop = loop
+        async with self._async_lock:
+            await asyncio.to_thread(self._ensure_dirs)
+            lock = FileLock(str(self._lock_path))
+            deadline = loop.time() + self._lock_timeout
+            while True:
+                try:
+                    lock.acquire(timeout=0)
+                    break
+                except Timeout:
+                    if loop.time() >= deadline:
+                        raise ProjectLockedError(
+                            "Another riskforge process holds the project lock "
+                            f"({self._lock_path}); gave up after {self._lock_timeout:g} s. "
+                            "Try again when it has finished."
+                        ) from None
+                    await asyncio.sleep(_LOCK_POLL_SECONDS)
+            scope = _Scope()
+            token = _ACTIVE_UOW.set({**active, self._key: scope})
+            try:
+                await asyncio.to_thread(self._recover)
+                try:
+                    yield
+                except BaseException as exc:
+                    try:
+                        await asyncio.to_thread(self._recover)
+                    except Exception as recovery_error:
+                        exc.add_note(
+                            "Cleaning up the project after this error also failed: "
+                            f"{recovery_error!r}. The next RiskForge command retries it."
+                        )
+                    raise
+                unrecorded = list(scope.staged)
+                await asyncio.to_thread(self._recover)
+                if unrecorded:
+                    raise RuntimeError(
+                        "A unit of work ended with writes that no audit entry recorded, so "
+                        f"they were discarded: {', '.join(unrecorded)}."
+                    )
+            finally:
+                _ACTIVE_UOW.reset(token)
+                lock.release()
+
+    # ------------------------------------------------------------------ #
     # Project lifecycle                                                    #
     # ------------------------------------------------------------------ #
 
@@ -200,17 +462,19 @@ class FileStore(StorageBackend):
             self._ensure_dirs()
             self._gitignore_check()
             manifest_path = self._root.parent / "riskforge.yaml"
-            if manifest_path.exists():
+            content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
+            data = yaml.dump(content, sort_keys=False, allow_unicode=True).encode("utf-8")
+            try:
+                fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError as exc:
                 raise ProjectExistsError(
                     f"A RiskForge project already exists in {self._root.parent.resolve()} "
                     "(riskforge.yaml found)."
-                )
-            content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
-            manifest_path.write_text(
-                yaml.dump(content, sort_keys=False, allow_unicode=True),
-                encoding="utf-8",
-            )
-            os.chmod(manifest_path, stat.S_IRUSR | stat.S_IWUSR)
+                ) from exc
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(data)
+                fh.flush()
+                os.fsync(fh.fileno())
             logger.info("Project '%s' initialised at %s", project_id, self._root.parent)
 
         await asyncio.to_thread(_sync)
@@ -235,13 +499,9 @@ class FileStore(StorageBackend):
             sdir = self._system_dir(system_id)
             sdir.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(sdir, stat.S_IRWXU)
-            path = sdir / "system.yaml"
-            path.write_text(
-                yaml.dump(data.model_dump(mode="json"), sort_keys=False, allow_unicode=True),
-                encoding="utf-8",
-            )
-            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
-            logger.debug("Wrote system '%s' to %s", system_id, path)
+            payload = yaml.dump(data.model_dump(mode="json"), sort_keys=False, allow_unicode=True)
+            self._write(sdir / "system.yaml", payload.encode("utf-8"))
+            logger.debug("Wrote system '%s'", system_id)
 
         await asyncio.to_thread(_sync)
 
@@ -255,7 +515,7 @@ class FileStore(StorageBackend):
         """
 
         def _sync() -> AISystem:
-            path = self._system_dir(system_id) / "system.yaml"
+            path = self._readable(self._system_dir(system_id) / "system.yaml")
             if not path.exists():
                 raise SystemNotFoundError(f"No system '{system_id}' in this project.")
             return AISystem.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
@@ -263,12 +523,16 @@ class FileStore(StorageBackend):
         return await asyncio.to_thread(_sync)
 
     async def list_systems(self) -> list[str]:
-        """Return sorted list of all system IDs under ``systems/``."""
+        """Return the sorted ids of systems whose ``system.yaml`` is committed."""
 
         def _sync() -> list[str]:
             if not self._systems_dir.exists():
                 return []
-            return sorted(entry.name for entry in self._systems_dir.iterdir() if entry.is_dir())
+            return sorted(
+                entry.name
+                for entry in self._systems_dir.iterdir()
+                if entry.is_dir() and (entry / "system.yaml").exists()
+            )
 
         return await asyncio.to_thread(_sync)
 
@@ -290,44 +554,43 @@ class FileStore(StorageBackend):
             sdir = self._system_dir(system_id)
             sdir.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(sdir, stat.S_IRWXU)
-
-            # Serialise register; mitigations are also included inline for
-            # simple reconstruction and separately for readability.
             reg_dict = register.model_dump(mode="json")
-
-            # Build flat mitigation catalogue with risk_item_id back-link
-            mitigations_catalogue = []
-            for item in reg_dict.get("items", []):
-                for m in item.get("mitigations", []):
-                    m_copy = dict(m)
-                    m_copy["_risk_item_id"] = item["id"]
-                    mitigations_catalogue.append(m_copy)
-
-            reg_path = sdir / "register.yaml"
-            reg_path.write_text(
-                yaml.dump(reg_dict, sort_keys=False, allow_unicode=True),
-                encoding="utf-8",
-            )
-            os.chmod(reg_path, stat.S_IRUSR | stat.S_IWUSR)
-
-            mit_path = sdir / "mitigations.yaml"
-            mit_path.write_text(
-                yaml.dump(
-                    {"mitigations": mitigations_catalogue},
-                    sort_keys=False,
-                    allow_unicode=True,
-                ),
-                encoding="utf-8",
-            )
-            os.chmod(mit_path, stat.S_IRUSR | stat.S_IWUSR)
+            catalogue = [
+                {**mitigation, "_risk_item_id": item["id"]}
+                for item in reg_dict.get("items", [])
+                for mitigation in item.get("mitigations", [])
+            ]
+            reg_bytes = yaml.dump(reg_dict, sort_keys=False, allow_unicode=True).encode("utf-8")
+            mit_bytes = yaml.dump(
+                {"mitigations": catalogue}, sort_keys=False, allow_unicode=True
+            ).encode("utf-8")
+            self._write(sdir / "register.yaml", reg_bytes)
+            self._write(sdir / "mitigations.yaml", mit_bytes)
             logger.debug(
                 "Wrote register for system '%s' (%d items, %d mitigations)",
                 system_id,
                 len(reg_dict.get("items", [])),
-                len(mitigations_catalogue),
+                len(catalogue),
             )
 
         await asyncio.to_thread(_sync)
+
+    async def read_register_document(self, system_id: str) -> dict:
+        """Return ``register.yaml`` as stored, as a dict.
+
+        Raises
+        ------
+        RegisterNotFoundError
+            If ``register.yaml`` does not exist for *system_id* (a ``FileNotFoundError``).
+        """
+
+        def _sync() -> dict:
+            path = self._readable(self._system_dir(system_id) / "register.yaml")
+            if not path.exists():
+                raise RegisterNotFoundError(f"System '{system_id}' has no risk register yet.")
+            return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+        return await asyncio.to_thread(_sync)
 
     async def read_register(self, system_id: str) -> RiskRegister:
         """Read and reconstruct a :class:`RiskRegister` from YAML.
@@ -337,57 +600,60 @@ class FileStore(StorageBackend):
         RegisterNotFoundError
             If ``register.yaml`` does not exist for *system_id* (a ``FileNotFoundError``).
         """
-
-        def _sync() -> RiskRegister:
-            reg_path = self._system_dir(system_id) / "register.yaml"
-            if not reg_path.exists():
-                raise RegisterNotFoundError(f"System '{system_id}' has no risk register yet.")
-            raw = yaml.safe_load(reg_path.read_text(encoding="utf-8"))
-            return RiskRegister.model_validate(raw)
-
-        return await asyncio.to_thread(_sync)
+        return RiskRegister.model_validate(await self.read_register_document(system_id))
 
     # ------------------------------------------------------------------ #
     # Audit log                                                            #
     # ------------------------------------------------------------------ #
 
-    @contextlib.asynccontextmanager
-    async def audit_lock(self) -> AbstractAsyncContextManager[None]:
-        """Acquire an exclusive file lock for mutating the audit chain."""
-        lock_path = self._root / "audit.lock"
-
-        if getattr(self, "_async_lock", None) is None:
-            self._async_lock = asyncio.Lock()
-
-        async with self._async_lock:
-            self._ensure_dirs()
-            lock = FileLock(lock_path)
-
-            while True:
-                try:
-                    lock.acquire(timeout=0)
-                    break
-                except Timeout:
-                    await asyncio.sleep(0.05)
-
-            try:
-                yield
-            finally:
-                lock.release()
-
     async def append_audit(self, entry: AuditEntry) -> None:
-        """Append *entry* as a single JSON line to ``audit.jsonl``.
+        """Append *entry* to ``audit.jsonl`` and commit the writes staged before it.
 
-        The file is opened in append mode.  Callers in concurrent environments
-        should serialise access externally; no file-level locking is applied.
+        Order: journal (with the log length before the append), one fsynced write of
+        the line, rename of each staged file, head file, journal removed. A crash at
+        any point leaves a state ``_recover`` can finish (the whole line reached the
+        log) or discard (it did not, and any torn part of it is cut off).
+
+        Raises
+        ------
+        RuntimeError
+            If called outside ``unit_of_work()``.
         """
+        scope = self._scope()
+        if scope is None:
+            raise RuntimeError("append_audit must run inside FileStore.unit_of_work().")
 
         def _sync() -> None:
-            self._ensure_dirs()
+            created = not self._audit_path.exists()
+            journal = {
+                "after_seq": entry.seq - 1,
+                "log_size": 0 if created else self._audit_path.stat().st_size,
+                "files": list(scope.staged),
+            }
+            _atomic_write(self._journal_path, json.dumps(journal).encode("utf-8"))
             line = json.dumps(entry.model_dump(mode="json"), separators=(",", ":")) + "\n"
-            with self._audit_path.open("a", encoding="utf-8") as fh:
-                fh.write(line)
+            data = line.encode("utf-8")
+            fd = os.open(self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            try:
+                written = os.write(fd, data)
+                if written != len(data):
+                    raise OSError(
+                        errno.EIO, f"Wrote {written} of {len(data)} bytes to the audit log."
+                    )
+                os.fsync(fd)
+            finally:
+                os.close(fd)
             os.chmod(self._audit_path, stat.S_IRUSR | stat.S_IWUSR)
+            if created:
+                _fsync_dir(self._root)
+            staged = [self._root / rel for rel in scope.staged]
+            for path in staged:
+                os.replace(_pending(path), path)
+            for directory in {path.parent for path in staged}:
+                _fsync_dir(directory)
+            scope.staged.clear()
+            self._write_head(entry.seq, entry.entry_hash)
+            self._journal_path.unlink()
 
         await asyncio.to_thread(_sync)
 
@@ -408,6 +674,11 @@ class FileStore(StorageBackend):
         Yields
         ------
         AuditEntry
+
+        Raises
+        ------
+        AuditLogCorruptError
+            If a line is not a valid audit entry. A corrupt line is never skipped.
         """
 
         def _read_lines() -> list[str]:
@@ -417,16 +688,16 @@ class FileStore(StorageBackend):
 
         lines = await asyncio.to_thread(_read_lines)
 
-        for line in lines:
-            line = line.strip()
+        for lineno, raw in enumerate(lines, start=1):
+            line = raw.strip()
             if not line:
                 continue
             try:
-                raw = json.loads(line)
-            except json.JSONDecodeError as exc:
-                logger.warning("Skipping malformed audit line: %s", exc)
-                continue
-            entry = AuditEntry.model_validate(raw)
+                entry = AuditEntry.model_validate(json.loads(line))
+            except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
+                raise AuditLogCorruptError(
+                    f"Audit log line {lineno} is not a valid entry: {_first_line(exc)}."
+                ) from exc
             if entry.seq < since_seq:
                 continue
             if system_id is not None and entry.system_id != system_id:
@@ -447,7 +718,12 @@ class FileStore(StorageBackend):
                         last_line = stripped
             if not last_line:
                 return None
-            return AuditEntry.model_validate(json.loads(last_line))
+            try:
+                return AuditEntry.model_validate(json.loads(last_line))
+            except ValueError as exc:  # JSONDecodeError and pydantic ValidationError
+                raise AuditLogCorruptError(
+                    f"The last audit log line is not a valid entry: {_first_line(exc)}."
+                ) from exc
 
         return await asyncio.to_thread(_sync)
 
@@ -515,42 +791,5 @@ class FileStore(StorageBackend):
             else:
                 logger.warning("Audit chain verification failed: %d error(s).", len(errors))
             return ok, errors
-
-        return await asyncio.to_thread(_sync)
-
-    # ------------------------------------------------------------------ #
-    # Exports                                                              #
-    # ------------------------------------------------------------------ #
-
-    async def write_export(
-        self,
-        system_id: str,
-        export_id: str,
-        payload: bytes,
-        fmt: str,
-    ) -> str:
-        """Write a binary export artefact to ``systems/{system_id}/exports/``.
-
-        Returns
-        -------
-        str
-            Absolute path to the written file.
-        """
-
-        def _sync() -> str:
-            exports_dir = self._exports_dir(system_id)
-            exports_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-            os.chmod(exports_dir, stat.S_IRWXU)
-            out = exports_dir / f"{export_id}.{fmt}"
-            out.write_bytes(payload)
-            os.chmod(out, stat.S_IRUSR | stat.S_IWUSR)
-            logger.debug(
-                "Wrote export '%s.%s' for system '%s' (%d bytes)",
-                export_id,
-                fmt,
-                system_id,
-                len(payload),
-            )
-            return str(out.resolve())
 
         return await asyncio.to_thread(_sync)

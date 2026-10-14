@@ -54,3 +54,34 @@ def run_rf(
     )
     result.output = result.stdout + result.stderr  # type: ignore[attr-defined]
     return result
+
+
+def add_risks_worker(project: str, system_id: str, worker_id: int, count: int) -> None:
+    """Child-process body for the concurrency test: add ``count`` items through RiskEngine."""
+    import asyncio
+
+    from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.risk import RiskEngine
+    from riskforge.models.audit import AuditActor
+    from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+    from riskforge.storage.filesystem import FileStore
+
+    async def run() -> None:
+        store = FileStore(Path(project))
+        actor = AuditActor(type="human", identity=f"worker-{worker_id}")
+        engine = RiskEngine(store, AuditEngine(store, actor))
+        for n in range(count):
+            await engine.add_risk(
+                system_id,
+                RiskItem(
+                    dimension=RiskDimension.privacy,
+                    title=f"w{worker_id}-{n}",
+                    description="concurrency probe",
+                    likelihood=Likelihood(2),
+                    severity=Severity(2),
+                    residual_likelihood=Likelihood(2),
+                    residual_severity=Severity(2),
+                ),
+            )
+
+    asyncio.run(run())

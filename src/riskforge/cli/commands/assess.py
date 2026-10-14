@@ -1,7 +1,6 @@
 """riskforge assess: interactive 8-dimension Article 9 risk assessment."""
 
 import asyncio
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 needs Optional)
 
@@ -124,7 +123,6 @@ async def _run_assess(
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
-    from riskforge.models.register import RiskRegister
     from riskforge.models.risk import Likelihood, RiskDimension, Severity
 
     # ── Bootstrap storage + engines ───────────────────────────────────────────
@@ -150,24 +148,14 @@ async def _run_assess(
     system = await read_system_or_fail(store, system_id)
 
     # ── Get or create register ─────────────────────────────────────────────────
-    try:
-        register = await store.read_register(system_id)
-        existing_count = len(register.items)
-        if existing_count:
-            console.print(
-                f"[yellow]ℹ[/yellow]  Register already has {existing_count} item(s). "
-                "New items will be appended."
-            )
-    except FileNotFoundError:
-        register = RiskRegister(
-            system=system,
-            assessor_name=assessor_name,
-            assessor_role=assessor_role,
-            assessment_date=datetime.now(UTC),
-            review_date=datetime.now(UTC) + timedelta(days=30 * review_months),
-            question_bank_version="1.0.0",
+    register, created = await risk_engine.create_register(
+        system_id, assessor_name, assessor_role, review_months
+    )
+    if not created and register.items:
+        console.print(
+            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
+            "New items will be appended."
         )
-        await store.write_register(system_id, register)
 
     # ── Header ─────────────────────────────────────────────────────────────────
     console.print(Rule("[bold]RiskForge: EU AI Act Article 9 Assessment[/bold]"))
@@ -419,7 +407,6 @@ async def _run_noninteractive(
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
-    from riskforge.models.register import RiskRegister
     from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
 
     if not answers_path.is_file():
@@ -453,19 +440,14 @@ async def _run_noninteractive(
 
     system = await read_system_or_fail(store, system_id)
 
-    try:
-        register = await store.read_register(system_id)
-        _ = register
-    except FileNotFoundError:
-        register = RiskRegister(
-            system=system,
-            assessor_name=assessor_name,
-            assessor_role=assessor_role,
-            assessment_date=datetime.now(UTC),
-            review_date=datetime.now(UTC) + timedelta(days=30 * review_months),
-            question_bank_version="1.0.0",
+    register, created = await risk_engine.create_register(
+        system_id, assessor_name, assessor_role, review_months
+    )
+    if not created and register.items:
+        console.print(
+            f"[yellow]ℹ[/yellow]  Register already has {len(register.items)} item(s). "
+            "New items will be appended."
         )
-        await store.write_register(system_id, register)
 
     # Pattern injection (identical to the interactive path)
     purpose_words = system.purpose.lower().split()

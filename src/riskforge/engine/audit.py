@@ -30,11 +30,11 @@ class AuditEngine:
     async def record(self, event: str, system_id: str, payload: dict) -> AuditEntry:
         """Append a hash-chained entry.
 
-        Chains from the current tail (read under the audit lock) and verifies that
+        Chains from the current tail (read inside the unit of work) and verifies that
         tail entry's own hash before appending, so building N entries is O(N), not
         O(N^2). Full-chain verification is the job of ``riskforge verify``.
         """
-        async with self._storage.audit_lock():
+        async with self._storage.unit_of_work():
             last = await self._storage.read_last_audit_entry()
             if last is None:
                 prev_hash = "0000000000"

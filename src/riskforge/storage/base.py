@@ -136,6 +136,21 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
+    async def read_register_document(self, system_id: str) -> dict:
+        """
+        Return the stored register as stored, as a JSON-compatible dict.
+
+        A register written with ``write_register`` must read back equal to
+        ``register.model_dump(mode="json")``.
+
+        Raises
+        ------
+        RegisterNotFoundError
+            If the system has no register.
+        """
+        ...
+
+    @abstractmethod
     async def list_systems(self) -> list[str]:
         """
         Return the IDs of all AI systems currently stored in the project.
@@ -148,13 +163,18 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def audit_lock(self) -> AbstractAsyncContextManager[None]:
+    def unit_of_work(self) -> AbstractAsyncContextManager[None]:
         """
-        Return an asynchronous context manager that acquires an exclusive
-        lock for mutating the audit chain.
+        Exclusive, all-or-nothing scope for state changes and their audit entries.
 
-        This must be held across read-validate-append operations to prevent
-        branching the hash chain in concurrent environments.
+        Entering it again inside an open unit of work joins the open one. While it
+        is open, reads return this scope's own writes. A register or system write
+        and the audit entry that records it become visible to other readers
+        together; if the scope ends without recording an entry, the write is
+        discarded, and a scope that ends without an error should raise
+        ``RuntimeError`` so the lost write is not silent. A backend may commit at
+        each appended entry (the file backend does) or at the end of the
+        outermost scope (a database transaction does).
 
         Returns
         -------
@@ -169,7 +189,8 @@ class StorageBackend(ABC):
 
         Implementations must guarantee append-only semantics; existing entries
         must never be modified.  The entry is serialised as a single JSON line
-        and appended to ``audit.jsonl``.
+        and appended to ``audit.jsonl``.  Must be called inside
+        ``unit_of_work()``; the writes staged in that scope commit with it.
 
         Parameters
         ----------
@@ -229,36 +250,5 @@ class StorageBackend(ABC):
         tuple[bool, list[str]]
             ``(True, [])`` if the chain is intact, or
             ``(False, [<error>, ...])`` listing all integrity failures found.
-        """
-        ...
-
-    @abstractmethod
-    async def write_export(
-        self,
-        system_id: str,
-        export_id: str,
-        payload: bytes,
-        fmt: str,
-    ) -> str:
-        """
-        Write a binary export artefact (PDF, JSON, etc.) to storage.
-
-        Artefacts are stored under ``systems/{system_id}/exports/{export_id}.{fmt}``.
-
-        Parameters
-        ----------
-        system_id:
-            ID of the AI system this export relates to.
-        export_id:
-            A unique identifier for this export, e.g. a UUID string.
-        payload:
-            Raw bytes of the export artefact.
-        fmt:
-            File extension / format identifier, e.g. ``"pdf"``, ``"json"``.
-
-        Returns
-        -------
-        str
-            URI or absolute path to the written file.
         """
         ...
