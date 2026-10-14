@@ -52,6 +52,6 @@ A product-route pattern (Article 6(1)) replaces `annex_iii_point` with:
 - Every pattern names its high-risk route, checked against the Official Journal text on EUR-Lex (the AI Act Service Desk can be used as a cross-check). An Annex III pattern names the point it covers in `annex_iii_point` and lists that point's category in `annex_iii_categories`. A product-route pattern sets `high_risk_route: annex_i`, cites `article_6_ref: "Art.6(1)"`, names the Annex I legislation in `annex_i_legislation` and leaves `annex_iii_categories` empty.
 - Each pattern should generate 2-4 risk items, not just one
 - `likelihood_hint` and `severity_hint` are starting points; assessors always override them
-- A keyword matches when it starts a word, or a run of words, in the system purpose. Matching ignores case and punctuation, so `credit` matches "Creditworthiness" and `facial recognition` matches "facial-recognition", but `test` does not match "contest". Pick keywords that do not also start unrelated words.
+- A keyword matches when it starts a word, or a run of words, in the system purpose. Matching ignores case, accents and punctuation, so `credit` matches "Creditworthiness" and `facial recognition` matches "facial-recognition", but `test` does not match "contest". Pick keywords that do not also start unrelated words.
 - Do not change a kept risk's `title`: `assess` matches existing register items by pattern id and title, so a new title adds a new item when a project is assessed again
 - Include at least one NIST AI RMF reference and one ISO/IEC 42001 reference per risk

@@ -20,6 +20,27 @@ POINT_CATEGORY = {
     7: "migration",
     8: "justice",
 }
+# Every risk title the 1.1.3 patterns shipped. assess matches a register item to its
+# pattern risk by pattern id and title, so renaming one would add a duplicate item
+# when a 1.1.3 project is assessed again.
+KEPT_PATTERN_TITLES = {
+    ("CREDIT_SCORING_BIAS", "Demographic bias in credit scoring outputs"),
+    ("CREDIT_SCORING_BIAS", "Lack of explanation for credit decisions"),
+    ("HIRING_SCREENING", "Proxy discrimination in automated CV screening"),
+    ("HIRING_SCREENING", "Lack of explainability for rejection decisions"),
+    ("HIRING_SCREENING", "Automation bias in recruiter review of shortlisted candidates"),
+    ("LAW_ENFORCEMENT_BIOMETRIC", "Chilling effect on freedom of assembly and expression"),
+    (
+        "LAW_ENFORCEMENT_BIOMETRIC",
+        "Higher false match rates for under-represented demographic groups",
+    ),
+    ("EDUCATION_ASSESSMENT", "Bias in automated educational assessment"),
+    ("EDUCATION_ASSESSMENT", "Students unable to understand or contest automated grade decisions"),
+    ("MEDICAL_DIAGNOSIS", "False negatives in medical screening causing delayed treatment"),
+    ("MEDICAL_DIAGNOSIS", "Clinician over-reliance on AI diagnostic suggestions"),
+    ("MIGRATION_ASYLUM", "AI-assisted asylum decisions affecting right to protection"),
+    ("MIGRATION_ASYLUM", "Applicants unable to understand factors influencing their assessment"),
+}
 CV_SCREENING_PURPOSE = (
     "Automated resume screening and candidate ranking for hiring decisions in recruitment."
 )
@@ -143,3 +164,47 @@ def test_exam_scheduling_does_not_get_the_education_pattern() -> None:
 
 def test_essay_marking_selects_the_education_pattern() -> None:
     assert _ids("education", "Automated essay marking") == ["EDUCATION_ASSESSMENT"]
+
+
+def test_every_1_1_3_pattern_risk_title_is_kept() -> None:
+    current = {
+        (pattern["pattern_id"], risk["title"])
+        for pattern in ENGINE.load_patterns()
+        for risk in pattern["risks"]
+    }
+    assert KEPT_PATTERN_TITLES - current == set()
+
+
+@pytest.mark.parametrize(
+    ("keyword", "purpose", "expected"),
+    [
+        ("credit", "Évaluation du crédit à la consommation", True),
+        ("loan", "Réseau éloan interne", False),
+        ("facial recognition", "FACIAL RECOGNITION at gates", True),
+        ("strasse", "Adressen in der Hauptstraße", False),
+        ("strasse", "Straße names", True),
+    ],
+)
+def test_keyword_matching_folds_accents_and_case(
+    keyword: str, purpose: str, expected: bool
+) -> None:
+    assert keyword_matches(keyword, purpose) is expected
+
+
+@pytest.mark.parametrize("version", ["1.0.0", None])
+def test_load_patterns_refuses_another_schema_version(tmp_path: Path, version: str | None) -> None:
+    patterns_dir = tmp_path / "patterns"
+    patterns_dir.mkdir()
+    header = f'schema_version: "{version}"\n' if version else ""
+    (patterns_dir / "patterns.yaml").write_text(header + "patterns: []\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"schema_version.*1\.1\.0"):
+        AssessEngine(tmp_path).load_patterns()
+
+
+def test_load_patterns_reads_schema_1_1_0(tmp_path: Path) -> None:
+    patterns_dir = tmp_path / "patterns"
+    patterns_dir.mkdir()
+    (patterns_dir / "patterns.yaml").write_text(
+        'schema_version: "1.1.0"\npatterns: []\n', encoding="utf-8"
+    )
+    assert AssessEngine(tmp_path).load_patterns() == []

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -10,9 +11,15 @@ import yaml
 
 from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
 
+PATTERN_SCHEMA_VERSION = "1.1.0"
+
 
 def _normalise(text: str) -> str:
-    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+    # Fold accents and case first, so "crédit" reads as "credit" and an accented
+    # letter is not taken for a word break.
+    decomposed = unicodedata.normalize("NFKD", text)
+    folded = "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", folded).split())
 
 
 def keyword_matches(keyword: str, purpose: str) -> bool:
@@ -54,7 +61,13 @@ class AssessEngine:
         """Load risk patterns from the pattern library."""
         if not self._patterns_path.exists():
             return []
-        data = yaml.safe_load(self._patterns_path.read_text())
+        data = yaml.safe_load(self._patterns_path.read_text(encoding="utf-8"))
+        version = data.get("schema_version") if isinstance(data, dict) else None
+        if version != PATTERN_SCHEMA_VERSION:
+            raise ValueError(
+                f"{self._patterns_path} has pattern schema_version {version!r}; "
+                f"this release reads schema_version {PATTERN_SCHEMA_VERSION!r}"
+            )
         return data.get("patterns", [])
 
     def match_patterns(self, annex_iii_category: str, purpose: str) -> list[dict[str, Any]]:
