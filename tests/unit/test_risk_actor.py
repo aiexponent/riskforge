@@ -13,7 +13,7 @@ import yaml
 from riskforge.engine.actor import ActorNameError, normalise_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.engine.risk import RiskEngine
-from riskforge.exporters.markdown_exporter import MarkdownExporter
+from riskforge.exporters.markdown_exporter import MarkdownExporter, _md
 from riskforge.exporters.pdf.pdf_exporter import PDFExporter
 from riskforge.models.audit import AuditActor
 from riskforge.models.register import RiskRegister
@@ -219,6 +219,15 @@ def test_markdown_escapes_user_text() -> None:
     # A line break in a field must not end the block quote and start a heading or list.
     assert "> \\# Heading - list &lt;script&gt;" in text
     assert not any(line.startswith(("#  Heading", "- list")) for line in text.splitlines())
+
+
+@pytest.mark.parametrize(
+    ("raw", "escaped"),
+    [("1. first", "1\\. first"), ("12) x", "12\\) x"), ("- x", "\\- x"), ("+ x", "\\+ x")],
+)
+def test_markdown_escapes_only_the_list_marker_punctuation(raw: str, escaped: str) -> None:
+    # CommonMark reads a backslash before a digit literally, so only the punctuation is escaped.
+    assert _md(raw) == escaped
 
 
 def test_markdown_says_when_the_acceptor_was_not_recorded() -> None:

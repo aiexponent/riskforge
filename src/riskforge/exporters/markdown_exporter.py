@@ -9,7 +9,7 @@ from riskforge.models.rmf import RiskManagementFile
 
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_\[\]#|~!])")
 _LINE_BREAKS = re.compile(r"\s*[\r\n\u0085\u2028\u2029]+\s*")
-_LIST_MARKER = re.compile(r"^(\s*)([-+]|\d+[.)])(?=\s|$)")
+_LIST_MARKER = re.compile(r"^(\s*\d*)([-+]|(?<=\d)[.)])(?=\s|$)")
 
 
 def _md(text: str) -> str:
@@ -21,7 +21,8 @@ def _md(text: str) -> str:
     text = _LINE_BREAKS.sub(" ", text)
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     text = _MARKDOWN_SPECIAL.sub(r"\\\1", text)
-    return _LIST_MARKER.sub(lambda m: m.group(1) + "".join("\\" + c for c in m.group(2)), text)
+    # CommonMark reads a backslash before a digit literally: escape only the punctuation.
+    return _LIST_MARKER.sub(r"\1\\\2", text)
 
 
 class MarkdownExporter(Exporter):
