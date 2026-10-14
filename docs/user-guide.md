@@ -186,8 +186,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`, or an unexpected crash (prints a traceback) |
-| 2 | Audit chain corrupt or tampered, or an RMF file that does not match its digest |
+| 1 | A validation FAIL gate without `--force`, `verify` finding a change in progress or unfinished, or an unexpected crash (prints a traceback) |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest |
 | 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag

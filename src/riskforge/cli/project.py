@@ -11,9 +11,10 @@ from typing import TYPE_CHECKING
 
 import typer
 
-from riskforge.cli.errors import fail
+from riskforge.cli.errors import err_console, fail
 
 if TYPE_CHECKING:
+    from riskforge.engine.integrity import IntegrityReport
     from riskforge.models.register import RiskRegister
     from riskforge.models.risk import RiskDimension
     from riskforge.models.system import AISystem, AnnexIIICategory
@@ -31,6 +32,38 @@ def open_project(project_dir: Path) -> FileStore:
     except ProjectNotFoundError as exc:
         fail(f"{exc} Run `riskforge init` there first, or pass --project-dir.")
     return store
+
+
+def open_project_for_reading(project_dir: Path) -> FileStore:
+    """The project's store opened read-only: no lock, no recovery, no file written.
+
+    ``riskforge verify`` uses it so a read-only copy or an archive mount can be checked.
+    Exits 3 when the directory holds no project.
+    """
+    from riskforge.storage.filesystem import FileStore
+
+    open_project(project_dir)
+    return FileStore(project_dir, read_only=True)
+
+
+def print_integrity_failure(report: IntegrityReport) -> None:
+    """Print each finding of a failed integrity check on its own line, to stderr."""
+    from rich.markup import escape
+
+    count = len(report.errors)
+    err_console.print(
+        f"[red]✗[/red] Integrity check failed with {count} finding{'s' if count != 1 else ''}:",
+        highlight=False,
+    )
+    for error in report.errors:
+        err_console.print(f"  [red]•[/red] {escape(error)}", highlight=False, soft_wrap=True)
+
+
+def print_integrity_warnings(report: IntegrityReport) -> None:
+    from rich.markup import escape
+
+    for warning in report.warnings:
+        err_console.print(f"[yellow]![/yellow] {escape(warning)}", highlight=False, soft_wrap=True)
 
 
 async def read_system_or_fail(store: FileStore, system_id: str) -> AISystem:
