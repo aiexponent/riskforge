@@ -6,7 +6,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 from rf_testkit import run_rf
 
@@ -160,11 +159,7 @@ def test_unknown_then_yes_clears_the_knowledge_gap(tmp_path: Path) -> None:
     assert (item["likelihood"], item["severity"]) == (2, 3)
 
 
-def test_changed_score_on_a_mitigated_item_keeps_its_residual(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # Names the actor for a `risk mitigate` that requires one (PRD-356); ignored otherwise.
-    monkeypatch.setenv("RISKFORGE_ACTOR", "Alice, Lead")
+def test_changed_score_on_a_mitigated_item_keeps_its_residual(tmp_path: Path) -> None:
     sid = _init(tmp_path)
     assert _assess(tmp_path, sid, ANSWERS).returncode == 0
     target = _item(tmp_path, "DI-001")
@@ -180,6 +175,8 @@ def test_changed_score_on_a_mitigated_item_keeps_its_residual(
             "detective",
             "--owner",
             "Model Risk",
+            "--by",
+            "Alice, Lead",
             "--residual-likelihood",
             "2",
             "--residual-severity",
@@ -201,16 +198,23 @@ def test_changed_score_on_a_mitigated_item_keeps_its_residual(
     assert len(item["mitigations"]) == 1
 
 
-def test_changed_score_on_an_accepted_item_keeps_the_acceptance(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # Names the actor for a `risk accept` that requires one (PRD-356); ignored otherwise.
-    monkeypatch.setenv("RISKFORGE_ACTOR", "Alice, Lead")
+def test_changed_score_on_an_accepted_item_keeps_the_acceptance(tmp_path: Path) -> None:
     sid = _init(tmp_path)
     assert _assess(tmp_path, sid, ANSWERS).returncode == 0
     target = _item(tmp_path, "DI-001")
     accepted = run_rf(
-        ["risk", "accept", sid, target["id"][:8], "-r", "Reviewed.", "--project-dir", str(tmp_path)]
+        [
+            "risk",
+            "accept",
+            sid,
+            target["id"][:8],
+            "-r",
+            "Reviewed.",
+            "--by",
+            "Alice, Lead",
+            "--project-dir",
+            str(tmp_path),
+        ]
     )
     assert accepted.returncode == 0, accepted.output
     changed = _answers_with(tmp_path, DI_001={"applies": "yes", "likelihood": 5, "severity": 5})
@@ -251,15 +255,23 @@ def test_items_written_by_v113_are_recognised(v113_project: tuple[Path, str]) ->
     assert _snapshot(root) == before
 
 
-def test_knowledge_gap_change_on_an_accepted_item_names_the_flag(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("RISKFORGE_ACTOR", "Alice, Lead")
+def test_knowledge_gap_change_on_an_accepted_item_names_the_flag(tmp_path: Path) -> None:
     sid = _init(tmp_path)
     assert _assess(tmp_path, sid, ANSWERS).returncode == 0
     target = _item(tmp_path, "DG-001")
     accepted = run_rf(
-        ["risk", "accept", sid, target["id"][:8], "-r", "Reviewed.", "--project-dir", str(tmp_path)]
+        [
+            "risk",
+            "accept",
+            sid,
+            target["id"][:8],
+            "-r",
+            "Reviewed.",
+            "--by",
+            "Alice, Lead",
+            "--project-dir",
+            str(tmp_path),
+        ]
     )
     assert accepted.returncode == 0, accepted.output
     same_scores = {
