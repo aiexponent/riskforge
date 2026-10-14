@@ -388,3 +388,133 @@ def test_read_only_command_waits_out_an_unfinished_change_with_exit_1(
     assert "in progress or unfinished" in result.output
     assert "Traceback" not in result.output
     assert _snapshot(project) == before
+
+
+# A riskforge process whose integrity check, once it has passed, replaces a stored file
+# with an edited copy: the swap a racing writer could make between the check and the
+# change's read, made deterministic.
+SWAP_AFTER_CHECK = """
+import os, shutil, sys
+import riskforge.engine.integrity as integrity
+
+edited, target = sys.argv[1], sys.argv[2]
+real_check = integrity.check_integrity
+swapped = []
+
+
+async def check_then_swap(storage):
+    report = await real_check(storage)
+    if not swapped:
+        shutil.copyfile(edited, target + ".swap")
+        os.replace(target + ".swap", target)
+        swapped.append(True)
+    return report
+
+
+integrity.check_integrity = check_then_swap
+from riskforge.cli.main import run
+
+sys.argv = ["riskforge", *sys.argv[3:]]
+run()
+"""
+
+
+def _run_with_swap(tmp_path: Path, edited: Path, target: Path, args: list[str]):  # noqa: ANN202
+    import subprocess
+    import sys
+
+    from rf_testkit import offline_env
+
+    script = tmp_path / "swap_after_check.py"
+    script.write_text(SWAP_AFTER_CHECK, encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(script), str(edited), str(target), *args],
+        capture_output=True,
+        text=True,
+        env=offline_env(),
+        stdin=subprocess.DEVNULL,
+        timeout=180,
+    )
+    result.output = result.stdout + result.stderr  # type: ignore[attr-defined]
+    return result
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["risk accept", "risk mitigate", "system classify", "export", "export --force", "import"]
+    + ["assess"],
+)
+def test_register_swapped_after_the_check_is_refused(
+    pristine, tmp_path: Path, command: str
+) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    target = _register_path(project, sid)
+    original = target.read_bytes()
+    edited_copy = tmp_path / "edited"
+    edited_copy.mkdir()
+    shutil.copytree(project, edited_copy / "project")
+    _register_edited(edited_copy / "project", sid)
+    edited = _register_path(edited_copy / "project", sid)
+    log_before = _log(project).read_bytes()
+    args = [*_command(command, project, sid, rid), "--project-dir", str(project)]
+    result = _run_with_swap(tmp_path, edited, target, args)
+    assert target.read_bytes() == edited.read_bytes() != original
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "changed after" in result.output, result.output
+    assert _log(project).read_bytes() == log_before
+    assert not (project / "again.json").exists()
+    assert not (project / "forced.json").exists()
+    assert _rf(project, ["verify"]).returncode == 2
+
+
+def test_system_yaml_swapped_after_the_check_is_refused(pristine, tmp_path: Path) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    target = _riskforge(project) / "systems" / sid / "system.yaml"
+    edited = tmp_path / "system.yaml"
+    edited.write_text(
+        target.read_text(encoding="utf-8").replace("Acme Financial Services", "Someone Else"),
+        encoding="utf-8",
+    )
+    log_before = _log(project).read_bytes()
+    args = ["system", "classify", sid, "--confirm", "--project-dir", str(project)]
+    result = _run_with_swap(tmp_path, edited, target, args)
+    assert result.returncode == 2, result.output
+    assert "system.yaml" in result.output
+    assert _log(project).read_bytes() == log_before
+    assert _rf(project, ["verify"]).returncode == 2
+
+
+def test_planted_torn_journal_does_not_cut_the_log(pristine, tmp_path: Path) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    lines = _log(project).read_bytes().splitlines(keepends=True)
+    # More lines than the log holds after seq 1, so recovery would read them as a torn
+    # append and cut them off if it trusted the journal.
+    count = len(lines) + 1
+    journal = {"after_seq": 1, "log_size": len(b"".join(lines[:2])), "count": count, "files": []}
+    (_riskforge(project) / "txn.json").write_text(json.dumps(journal), encoding="utf-8")
+    before = _snapshot(project)
+    result = _rf(project, _command("risk accept", project, sid, rid))
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "audit.head.json" in result.output
+    assert _snapshot(project) == before
+    assert _rf(project, ["verify"]).returncode == 2
+
+
+def test_refusal_after_recovery_does_not_claim_nothing_changed(pristine, tmp_path: Path) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    rid = _unaccepted_id(project, sid)
+    log = _log(project).read_bytes()
+    last = json.loads(log.splitlines()[-1])
+    journal = {"after_seq": last["seq"], "log_size": len(log), "count": 1, "files": []}
+    (_riskforge(project) / "txn.json").write_text(json.dumps(journal), encoding="utf-8")
+    _log(project).write_bytes(log + b'{"seq":')
+    _register_edited(project, sid)
+    result = _rf(project, _command("risk accept", project, sid, rid))
+    assert result.returncode == 2, result.output
+    assert _log(project).read_bytes() == log
+    assert "Nothing was changed" not in result.output
+    assert "unfinished earlier change" in result.output
