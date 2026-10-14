@@ -122,7 +122,15 @@ _ACTIVE_UOW: contextvars.ContextVar[dict[str, _Scope] | None] = contextvars.Cont
 )
 
 
+# Windows cannot open a directory with os.open, and opens file descriptors in text mode
+# unless O_BINARY is passed, which would turn each "\n" written into "\r\n".
+_IS_WINDOWS = os.name == "nt"
+_O_BINARY = getattr(os, "O_BINARY", 0)
+
+
 def _fsync_dir(directory: Path) -> None:
+    if _IS_WINDOWS:
+        return
     fd = os.open(directory, os.O_RDONLY)
     try:
         os.fsync(fd)
@@ -179,7 +187,7 @@ def _read_stored(path: Path, label: str, limit: int = MAX_STORED_FILE_BYTES) -> 
         If it is not a regular file, is too large or cannot be read.
     """
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0))
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | _O_BINARY)
     except FileNotFoundError:
         raise
     except OSError as exc:
@@ -776,7 +784,7 @@ class FileStore(StorageBackend):
             content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
             data = yaml.dump(content, sort_keys=False, allow_unicode=True).encode("utf-8")
             try:
-                fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_BINARY, 0o600)
             except FileExistsError as exc:
                 raise ProjectExistsError(
                     f"A RiskForge project already exists in {self._root.parent.resolve()} "
@@ -1032,7 +1040,9 @@ class FileStore(StorageBackend):
                 (json.dumps(entry_to_dict(entry), separators=(",", ":")) + "\n").encode("utf-8")
                 for entry in batch
             )
-            fd = os.open(self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            fd = os.open(
+                self._audit_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | _O_BINARY, 0o600
+            )
             try:
                 written = os.write(fd, data)
                 if written != len(data):
