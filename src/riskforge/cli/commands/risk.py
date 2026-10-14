@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
@@ -16,6 +17,28 @@ if TYPE_CHECKING:
 
 app = typer.Typer(help="Manage risk items: list, accept, mitigate.")
 console = Console()
+
+ACTOR_ENV = "RISKFORGE_ACTOR"
+_BY_HELP = (
+    'Who is doing this, as "Name, Role". Required. Falls back to the '
+    f"{ACTOR_ENV} environment variable. Self-declared: RiskForge records the name "
+    "as given and does not verify it."
+)
+
+
+def _resolve_actor(by: Optional[str]) -> str:
+    """Return the name from --by, else from RISKFORGE_ACTOR; exit 3 when neither gives one."""
+    from riskforge.cli.errors import fail
+    from riskforge.engine.actor import ActorNameError, normalise_actor_name
+
+    source = "--by" if by is not None else ACTOR_ENV
+    try:
+        name = normalise_actor_name(by if by is not None else os.environ.get(ACTOR_ENV))
+    except ActorNameError as exc:
+        fail(f"{source}: {exc}")
+    if name is None:
+        fail(f'Say who is doing this: pass --by "Name, Role" or set {ACTOR_ENV}.')
+    return name
 
 
 @app.command("list")
@@ -60,9 +83,10 @@ def accept_risk(
     system_id: str = typer.Argument(..., help="System ID"),
     risk_id: str = typer.Argument(..., help="Risk item ID (or first 8 chars)"),
     rationale: str = typer.Option(..., "--rationale", "-r", help="Acceptance rationale"),
+    by: Optional[str] = typer.Option(None, "--by", help=_BY_HELP),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
-    """Accept a risk item with a documented rationale."""
+    """Accept a risk item with a documented rationale and the name of who accepts it."""
     from riskforge.cli.errors import fail
     from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
@@ -74,10 +98,12 @@ def accept_risk(
     )
     from riskforge.models.audit import AuditActor
 
+    actor = _resolve_actor(by)
+
     async def _accept(store: FileStore) -> RiskItem:
         await read_register_or_fail(store, system_id)
-        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
-        return await engine.accept_risk(system_id, risk_id, rationale, "cli")
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity=actor)))
+        return await engine.accept_risk(system_id, risk_id, rationale, actor)
 
     try:
         item = run_checked(project_dir, _accept)
@@ -107,6 +133,7 @@ def mitigate_risk(
     residual_severity: Optional[int] = typer.Option(
         None, "--residual-severity", min=1, max=5, help="Post-mitigation severity (1-5)"
     ),
+    by: Optional[str] = typer.Option(None, "--by", help=_BY_HELP),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
     """Add a mitigation to a risk item, optionally re-scoring residual risk."""
@@ -126,15 +153,21 @@ def mitigate_risk(
             "must be planned, implemented or verified.", param_hint="'--status'"
         )
 
+    actor = _resolve_actor(by)
     mitigation = Mitigation(
         description=description, control_type=control_type, owner=owner, status=status
     )
 
     async def _mitigate(store: FileStore) -> RiskItem:
         await read_register_or_fail(store, system_id)
-        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity=actor)))
         return await engine.add_mitigation(
-            system_id, risk_id, mitigation, residual_likelihood, residual_severity
+            system_id,
+            risk_id,
+            mitigation,
+            residual_likelihood,
+            residual_severity,
+            recorded_by=actor,
         )
 
     try:

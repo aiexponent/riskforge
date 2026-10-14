@@ -188,7 +188,7 @@ def test_markdown_export_shows_who_accepted_and_who_recorded(tmp_path: Path) -> 
     assert _accept(tmp_path, sid, rid, "--by", JANE).returncode == 0
     out = tmp_path / "rmf.md"
     result = run_rf(
-        ["export", sid, "-f", "markdown", "-o", str(out), "--project-dir", str(tmp_path)]
+        ["export", sid, "-f", "markdown", "-o", str(out), "--force", "--project-dir", str(tmp_path)]
     )
     assert result.returncode == 0, result.output
     text = out.read_text(encoding="utf-8")
@@ -205,7 +205,9 @@ def test_json_export_still_validates_against_rmf_1_0_0(tmp_path: Path) -> None:
     assert _mitigate(tmp_path, sid, rid, "--by", "Sam Lee, ML Lead").returncode == 0
     assert _accept(tmp_path, sid, rid, "--by", JANE).returncode == 0
     out = tmp_path / "rmf.json"
-    result = run_rf(["export", sid, "-f", "json", "-o", str(out), "--project-dir", str(tmp_path)])
+    result = run_rf(
+        ["export", sid, "-f", "json", "-o", str(out), "--force", "--project-dir", str(tmp_path)]
+    )
     assert result.returncode == 0, result.output
     rmf = json.loads(out.read_text(encoding="utf-8"))
     assert rmf["rmf_schema_version"] == "1.0.0"
