@@ -199,8 +199,8 @@ as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
 exports show it as "Accepted by" and "Recorded by". The JSON export (RMF schema
 1.0.0) does not include these two fields yet. The SHA-256 that the Markdown and
 PDF exports show (the PDF labels it "Document SHA-256") is the hash of the JSON
-export, so it does not cover the "Accepted by" and "Recorded by" text until RMF
-schema 1.1.0 (PRD-338). Acceptances recorded before 2.0.0 show "Accepted by: not
+export, so it does not cover the "Accepted by" and "Recorded by" text until a later RMF
+schema (1.1.0). Acceptances recorded before 2.0.0 show "Accepted by: not
 recorded".
 
 ### The 8 validation gates
@@ -225,8 +225,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`, `verify` finding a change in progress or unfinished, or an unexpected crash (prints a traceback) |
-| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest |
+| 1 | A validation FAIL gate without `--force`; `verify`, `validate` or `tests generate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest. Commands that change or export data exit 2 on such a project and change nothing |
 | 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
