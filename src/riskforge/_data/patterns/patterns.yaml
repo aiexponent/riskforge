@@ -1,10 +1,15 @@
-schema_version: "1.0.0"
+schema_version: "1.1.0"
+# Each pattern names its high-risk route under Regulation (EU) 2024/1689: an Annex III
+# point, or Article 6(1) with the Annex I legislation. Re-check the routes whenever
+# Article 6, Annex I or Annex III is amended.
+# Article 6(1) applies only where the product is required to undergo a third-party conformity assessment under that legislation (Art.6(1)(b)).
 patterns:
   - pattern_id: CREDIT_SCORING_BIAS
     name: "Credit scoring: demographic bias risk"
+    annex_iii_point: "5(b)"
     triggers:
-      annex_iii_category: essential_services
-      purpose_keywords: ["credit", "loan", "mortgage", "underwriting", "insurance"]
+      annex_iii_categories: [essential_services]
+      purpose_keywords: ["credit", "loan", "mortgage", "underwriting"]
     risks:
       - dimension: discrimination
         title: "Demographic bias in credit scoring outputs"
@@ -16,17 +21,18 @@ patterns:
         iso42001_ref: "Clause A.7"
       - dimension: transparency
         title: "Lack of explanation for credit decisions"
-        description: "Automated credit decisions must be explainable to affected individuals under GDPR Article 22. The system may not currently provide this."
+        description: "Where a credit decision is based solely on automated processing, GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this."
         likelihood_hint: 3
         severity_hint: 3
-        article_refs: ["Art.13"]
+        article_refs: ["Art.13", "Art.86(1)"]
         nist_rmf_ref: "GOVERN 1.7"
         iso42001_ref: "Clause A.6"
 
   - pattern_id: HIRING_SCREENING
     name: "Hiring and CV screening: risk cluster"
+    annex_iii_point: "4(a)"
     triggers:
-      annex_iii_category: employment
+      annex_iii_categories: [employment]
       purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "interview", "candidate"]
     risks:
       - dimension: discrimination
@@ -56,9 +62,10 @@ patterns:
 
   - pattern_id: LAW_ENFORCEMENT_BIOMETRIC
     name: "Law enforcement: biometric identification risk cluster"
+    annex_iii_point: "1(a)"
     triggers:
-      annex_iii_category: law_enforcement
-      purpose_keywords: ["facial recognition", "biometric", "identification", "surveillance", "matching"]
+      annex_iii_categories: [biometric, law_enforcement]
+      purpose_keywords: ["facial recognition", "face recognition", "biometric", "identification", "surveillance", "matching"]
     risks:
       - dimension: fundamental_rights
         title: "Chilling effect on freedom of assembly and expression"
@@ -79,9 +86,10 @@ patterns:
 
   - pattern_id: EDUCATION_ASSESSMENT
     name: "Education: automated student assessment risk"
+    annex_iii_point: "3(b)"
     triggers:
-      annex_iii_category: education
-      purpose_keywords: ["assessment", "grading", "scoring", "evaluation", "exam", "test"]
+      annex_iii_categories: [education]
+      purpose_keywords: ["assessment", "grading", "scoring", "evaluation", "marking"]
     risks:
       - dimension: discrimination
         title: "Bias in automated educational assessment"
@@ -102,13 +110,18 @@ patterns:
 
   - pattern_id: MEDICAL_DIAGNOSIS
     name: "Healthcare: medical diagnosis or clinical decision support"
+    high_risk_route: annex_i
+    article_6_ref: "Art.6(1)"
+    annex_i_legislation:
+      - "Regulation (EU) 2017/745 on medical devices (Annex I, Section A, point 11)"
+      - "Regulation (EU) 2017/746 on in vitro diagnostic medical devices (Annex I, Section A, point 12)"
     triggers:
-      annex_iii_category: essential_services
-      purpose_keywords: ["diagnosis", "clinical", "medical", "patient", "triage", "prognosis", "screening"]
+      annex_iii_categories: []
+      purpose_keywords: ["medical diagnos", "clinical diagnos", "patient diagnos", "diagnostic imaging", "in vitro diagnostic", "clinical prognos", "clinical decision", "radiology", "medical imaging", "medical device"]
     risks:
       - dimension: health_safety
         title: "False negatives in medical screening causing delayed treatment"
-        description: "AI-based screening tools that produce false negatives may delay life-critical treatment. The clinical consequences of failure must be quantified."
+        description: "AI-based screening tools that produce false negatives may delay life-critical treatment. The clinical consequences of failure should be estimated and evaluated (Art.9(2)(b))."
         likelihood_hint: 2
         severity_hint: 5
         article_refs: ["Art.9(2)(b)", "Art.14(1)"]
@@ -116,7 +129,7 @@ patterns:
         iso42001_ref: "Clause 6.1"
       - dimension: human_oversight
         title: "Clinician over-reliance on AI diagnostic suggestions"
-        description: "Studies show clinicians may defer to AI suggestions even when clinical judgement contradicts them. Human oversight may become nominal without workload safeguards."
+        description: "Clinicians may defer to AI suggestions even when clinical judgement contradicts them. Human oversight may become nominal without workload safeguards."
         likelihood_hint: 3
         severity_hint: 5
         article_refs: ["Art.14"]
@@ -125,8 +138,9 @@ patterns:
 
   - pattern_id: MIGRATION_ASYLUM
     name: "Migration and asylum: decision support risk cluster"
+    annex_iii_point: "7(c)"
     triggers:
-      annex_iii_category: migration
+      annex_iii_categories: [migration]
       purpose_keywords: ["asylum", "border", "visa", "migration", "refugee", "immigration"]
     risks:
       - dimension: fundamental_rights
@@ -145,3 +159,35 @@ patterns:
         article_refs: ["Art.13"]
         nist_rmf_ref: "GOVERN 1.7"
         iso42001_ref: "Clause A.6"
+
+  - pattern_id: CRIMINAL_RISK_ASSESSMENT
+    name: "Law enforcement: offending risk assessment"
+    annex_iii_point: "6(d)"
+    triggers:
+      annex_iii_categories: [law_enforcement]
+      purpose_keywords: ["recidivism", "re-offending", "reoffending", "offending risk", "risk of offending", "criminal risk"]
+    risks:
+      - dimension: fundamental_rights
+        title: "Risk assessment that relies solely on profiling"
+        description: "Article 5(1)(d) prohibits AI systems that assess or predict the risk of a natural person committing a criminal offence based solely on profiling or on assessing their personality traits and characteristics, except where they support a human assessment already based on objective and verifiable facts directly linked to a criminal activity. Annex III point 6(d) covers systems used by or on behalf of law enforcement authorities, or by Union institutions, bodies, offices or agencies in support of them, to assess the risk of a natural person offending or re-offending not solely on the basis of profiling. Document how the system stays outside the Article 5(1)(d) prohibition."
+        likelihood_hint: 3
+        severity_hint: 5
+        article_refs: ["Art.5(1)(d)", "Art.9(2)(a)"]
+        nist_rmf_ref: "MAP 1.5"
+        iso42001_ref: "Clause 6.1"
+      - dimension: discrimination
+        title: "Biased re-offending scores for protected groups"
+        description: "Scores trained on historical arrest or conviction data can reproduce enforcement bias against protected groups. Article 9(9) requires providers to consider whether the system is likely to have an adverse impact on persons under 18 and, as appropriate, other vulnerable groups."
+        likelihood_hint: 4
+        severity_hint: 5
+        article_refs: ["Art.9(2)(a)", "Art.9(9)", "Art.10(2)(f)"]
+        nist_rmf_ref: "MEASURE 2.9"
+        iso42001_ref: "Clause A.7"
+      - dimension: human_oversight
+        title: "Decision makers deferring to the risk score"
+        description: "Law enforcement officers shown a risk score may follow it without an independent assessment, which weakens human oversight of decisions that can affect a person's liberty."
+        likelihood_hint: 4
+        severity_hint: 4
+        article_refs: ["Art.14(1)", "Art.14(4)(b)"]
+        nist_rmf_ref: "MANAGE 1.1"
+        iso42001_ref: "Clause A.9"

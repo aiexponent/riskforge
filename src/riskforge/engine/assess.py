@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+
+
+def _normalise(text: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
+def keyword_matches(keyword: str, purpose: str) -> bool:
+    """True when the keyword starts a word, or a run of words, in the purpose.
+
+    "credit" matches "Creditworthiness", "facial recognition" matches
+    "facial-recognition", and "test" does not match "contest".
+    """
+    needle = _normalise(keyword)
+    if not needle:
+        return False
+    return re.search(rf"(?<![a-z0-9]){re.escape(needle)}", _normalise(purpose)) is not None
 
 
 class AssessEngine:
@@ -40,21 +57,20 @@ class AssessEngine:
         data = yaml.safe_load(self._patterns_path.read_text())
         return data.get("patterns", [])
 
-    def match_patterns(
-        self,
-        annex_iii_category: str,
-        purpose_keywords: list[str],
-    ) -> list[dict[str, Any]]:
-        """Return patterns that trigger for this system's category and purpose."""
+    def match_patterns(self, annex_iii_category: str, purpose: str) -> list[dict[str, Any]]:
+        """Patterns whose route fits this system and whose keywords appear in its purpose.
+
+        An Annex III pattern needs the system's Annex III category. A product-route
+        pattern (``high_risk_route: annex_i``) matches on keywords alone, because an
+        AI system covered by Article 6(1) usually has no Annex III category.
+        """
         matched: list[dict[str, Any]] = []
         for pattern in self.load_patterns():
-            triggers = pattern.get("triggers", {})
-            cat_match = triggers.get("annex_iii_category") == annex_iii_category
-            kw_match = any(
-                kw.lower() in [k.lower() for k in triggers.get("purpose_keywords", [])]
-                for kw in purpose_keywords
-            )
-            if cat_match and kw_match:
+            triggers = pattern["triggers"]
+            product_route = pattern.get("high_risk_route") == "annex_i"
+            if not product_route and annex_iii_category not in triggers["annex_iii_categories"]:
+                continue
+            if any(keyword_matches(keyword, purpose) for keyword in triggers["purpose_keywords"]):
                 matched.append(pattern)
         return matched
 
