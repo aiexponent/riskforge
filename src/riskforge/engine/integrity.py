@@ -17,9 +17,10 @@ from riskforge.engine.audit import BASELINE_EVENT
 from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
 from riskforge.models.audit import AuditEntry
 from riskforge.models.system import AISystem
-from riskforge.storage.base import StorageBackend
+from riskforge.storage.base import PendingChange, StorageBackend
 from riskforge.storage.errors import (
     AuditLogCorruptError,
+    InvalidSystemIdError,
     RegisterNotFoundError,
     StoredFileCorruptError,
 )
@@ -105,8 +106,8 @@ async def _read_register(storage: StorageBackend, system_id: str) -> _Register:
         document = await storage.read_register_document(system_id)
     except RegisterNotFoundError:
         return _Register()
-    except StoredFileCorruptError:
-        return _Register(exists=True, problem="it does not parse as YAML")
+    except StoredFileCorruptError as exc:
+        return _Register(exists=True, problem=str(exc).rstrip("."))
     try:
         return _Register(exists=True, document=document, fingerprint=document_fingerprint(document))
     except UnfingerprintableDocumentError:
@@ -172,8 +173,8 @@ async def _system_findings(
     prefix = f"System {system_id}: system.yaml"
     try:
         document = await storage.read_system_document(system_id)
-    except StoredFileCorruptError:
-        return [f"{prefix} does not parse as YAML."]
+    except StoredFileCorruptError as exc:
+        return [f"System {system_id}: {exc}"]
     try:
         system = AISystem.model_validate(document)
     except ValidationError as exc:
@@ -222,11 +223,15 @@ def _register_findings(
     return errors, warnings
 
 
-async def check_integrity(storage: StorageBackend) -> IntegrityReport:
+async def check_integrity(
+    storage: StorageBackend, *, pending: PendingChange | None = None
+) -> IntegrityReport:
     """Check the chain, the head file, every register and system file, and the files on disk.
 
     Reads only. Reports every finding of ADR-03 section 5 rather than stopping at the
-    first, and reports a file that does not parse as a finding instead of raising.
+    first, and reports a file that cannot be read or parsed as a finding instead of
+    raising. With ``pending`` (an unfinished change), ``storage`` is the view before it:
+    the head file and the systems the change writes are not checked.
     """
     _chain_ok, chain_errors = await storage.verify_chain()
     errors: list[str] = list(chain_errors)
@@ -234,8 +239,11 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     try:
         entries = [entry async for entry in storage.read_audit()]
         log_readable = True
-    except AuditLogCorruptError:  # verify_chain already named the line
+    except AuditLogCorruptError as exc:
         entries, log_readable = [], False
+        errors.append(
+            "The audit log cannot be read, so no register or system was compared with it: " f"{exc}"
+        )
 
     head: dict | None = None
     try:
@@ -245,18 +253,34 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
         errors.append(str(exc))
         head_present = True
 
-    systems = await storage.list_systems()
-    registers = {system_id: await _read_register(storage, system_id) for system_id in systems}
-    for system_id in systems:
-        errors.extend(await _system_findings(storage, system_id, registers[system_id]))
+    skipped = pending.systems if pending is not None else frozenset()
+    try:
+        on_disk = await storage.list_system_directories()
+        with_record = set(await storage.list_systems())
+    except StoredFileCorruptError as exc:
+        errors.append(str(exc))
+        on_disk, with_record = [], set()
+    registers: dict[str, _Register] = {}
+    for name in on_disk:
+        if name in skipped:
+            continue
+        try:
+            registers[name] = await _read_register(storage, name)
+        except InvalidSystemIdError:
+            errors.append(f"systems/{name} is not a valid system directory name.")
+    directories = list(registers)
+    for system_id in directories:
+        if system_id in with_record:
+            errors.extend(await _system_findings(storage, system_id, registers[system_id]))
 
     if not log_readable:
         return IntegrityReport(errors=errors, warnings=warnings, entries=[])
 
-    errors.extend(_head_findings(head, head_present, entries))
+    if pending is None:
+        errors.extend(_head_findings(head, head_present, entries))
 
-    if systems and not entries:
-        with_items = [sid for sid in systems if registers[sid].holds_items]
+    if directories and not entries:
+        with_items = [sid for sid in directories if registers[sid].holds_items]
         if head_present or with_items:
             files = [f"systems/{sid}/register.yaml" for sid in with_items]
             if head_present:
@@ -274,7 +298,7 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
 
     latest = latest_fingerprints(entries)
     changed = {entry.system_id for entry in entries if _changes_register(entry)}
-    for system_id in systems:
+    for system_id in directories:
         found, noted = _register_findings(
             system_id, registers[system_id], latest, head_present, changed
         )
@@ -282,15 +306,16 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
         warnings.extend(noted)
 
     named = {entry.system_id for entry in entries if entry.system_id}
-    for system_id in sorted(named - set(systems)):
+    for system_id in sorted(named - set(on_disk)):
         errors.append(f"System {system_id} appears in the audit log, but its files are missing.")
-    if head_present:
-        for system_id in systems:
-            if system_id not in named:
-                errors.append(
-                    f"System {system_id}: no audit entry names it, so it was added outside "
-                    "RiskForge."
-                )
+    for system_id in directories:
+        if system_id in named and system_id not in with_record:
+            errors.append(f"System {system_id}: system.yaml is missing.")
+        elif system_id not in named and head_present:
+            errors.append(
+                f"System {system_id}: no audit entry names it, so it was added outside "
+                "RiskForge."
+            )
     return IntegrityReport(errors=errors, warnings=warnings, entries=entries)
 
 
@@ -309,19 +334,26 @@ async def check_integrity_settled(
 
     The commit markers (the journal and the head) are read before and after each
     check. If either moved, or a journal is present, a writer was busy, so the check
-    is repeated up to ``repeats`` times (ADR-03 section 5).
+    is repeated up to ``repeats`` times (ADR-03 section 5). A journal RiskForge did
+    not write is a finding at once. When a journal stays, everything outside the
+    change it records is checked, and any finding there is returned.
 
     Raises
     ------
     ChangeInProgressError
         If a writer was busy for every attempt.
     """
+    pending: PendingChange | None = None
     for attempt in range(repeats + 1):
         if attempt:
             await asyncio.sleep(pause)
-        before = await storage.read_commit_markers()
-        if before[0] is not None:
+        try:
+            pending = await storage.read_pending_change()
+        except StoredFileCorruptError as exc:
+            return IntegrityReport(errors=[str(exc)])
+        if pending is not None:
             continue
+        before = await storage.read_commit_markers()
         try:
             report = await check_integrity(storage)
         except OSError:
@@ -332,6 +364,18 @@ async def check_integrity_settled(
             continue
         if await storage.read_commit_markers() == before:
             return report
+    if pending is not None:
+        # The change may never finish (a crash). Everything it does not touch must
+        # still be intact, so tampering cannot hide behind a planted journal.
+        report = await check_integrity(storage.view_before(pending), pending=pending)
+        if not report.ok:
+            note = (
+                "A change is in progress or unfinished (.riskforge/txn.json); the files it "
+                "writes were not checked."
+            )
+            return IntegrityReport(
+                errors=report.errors, warnings=[*report.warnings, note], entries=report.entries
+            )
     raise ChangeInProgressError(
         "A change to this project is in progress or unfinished (.riskforge/txn.json), so "
         "it was not checked. Run verify again when it has finished; if no riskforge command "
