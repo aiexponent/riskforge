@@ -213,6 +213,22 @@ class StorageBackend(ABC):
         """
         ...
 
+    def unit_of_work_marks(self) -> set[str] | None:
+        """
+        Labels shared by every scope of the open outermost unit of work.
+
+        Engines add a label to do a step once per change rather than once per nested
+        scope; the integrity check that ``AuditEngine`` runs before a change is one.
+        The set starts empty when the outermost scope opens and is dropped when it
+        ends. Returns None outside a unit of work. This default always returns None,
+        and callers then track the step themselves.
+
+        Returns
+        -------
+        set[str] | None
+        """
+        return None
+
     @abstractmethod
     async def append_audit(self, entries: AuditEntry | Sequence[AuditEntry]) -> None:
         """

@@ -11,6 +11,9 @@ from riskforge.storage.errors import RegisterNotFoundError
 class SystemEngine:
     """Writes to ``system.yaml`` go through here, in one unit of work with their entry.
 
+    Each change runs in ``AuditEngine.unit_of_work()``, so it raises ``IntegrityError``
+    and changes nothing in a project that fails its integrity check.
+
     Register changes stay in :class:`~riskforge.engine.risk.RiskEngine`; ``classify``
     also updates the register's embedded copy of the system so the two never disagree.
     """
@@ -22,7 +25,7 @@ class SystemEngine:
     async def create(self, system: AISystem) -> AISystem:
         """Store a new system record and record ``system.created``."""
         system_id = str(system.id)
-        async with self._storage.unit_of_work():
+        async with self._audit.unit_of_work():
             await self._storage.write_system(system_id, system)
             await self._audit.record(
                 "system.created",
@@ -45,7 +48,7 @@ class SystemEngine:
         SystemNotFoundError
             If the project has no system with this id.
         """
-        async with self._storage.unit_of_work():
+        async with self._audit.unit_of_work():
             system = await self._storage.read_system(system_id)
             system.annex_iii_self_classification_documented = True
             if category is not None:

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from datetime import UTC, datetime
 
+from riskforge.engine.integrity import IntegrityReport, checked_unit_of_work
 from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
 from riskforge.integrity.chain import BASELINE_EVENT, GENESIS_PREV_HASH, compute_entry_hash
 from riskforge.models.audit import AuditActor, AuditEntry
@@ -22,27 +24,52 @@ class AuditEngine:
 
     Every state mutation must go through record(). Each entry carries the fingerprint
     of its system's register as stored after the change (ADR-03), so `riskforge verify`
-    can tell when a register was changed outside RiskForge. Exit code 2 is the contract
-    for riskforge verify failures (CI-detectable).
+    can tell when a register was changed outside RiskForge. Nothing is appended to a
+    project that fails its integrity check. Exit code 2 is the contract for
+    riskforge verify failures (CI-detectable).
     """
 
     def __init__(self, storage: StorageBackend, actor: AuditActor) -> None:
         self._storage = storage
         self._actor = actor
 
+    def unit_of_work(self) -> AbstractAsyncContextManager[IntegrityReport | None]:
+        """The storage unit of work, entered only when the project passes its integrity check.
+
+        Open a change with this rather than ``storage.unit_of_work()``, so the check
+        runs before the change stages anything. The check runs once per outermost
+        unit of work (see ``checked_unit_of_work``).
+
+        Raises
+        ------
+        IntegrityError
+            If the project fails its integrity check.
+        """
+        return checked_unit_of_work(self._storage)
+
     async def record(self, event: str, system_id: str, payload: dict) -> AuditEntry:
         """Append a hash-chained entry and return it.
 
+        Runs in ``unit_of_work()``, so nothing is appended unless the whole project
+        passed its integrity check in this outermost unit of work. A unit of work
+        opened on the storage directly, with writes already staged, is checked here
+        with those writes in place, so it fails: open changes with ``unit_of_work()``.
+
         Chains from the current tail (read inside the unit of work) and verifies that
-        tail entry's own hash before appending, so building N entries is O(N), not
-        O(N^2). Full-chain verification is the job of ``riskforge verify``.
+        tail entry's own hash before appending.
 
         The first entry written in a project that has no head file yet (a new project,
         or one last changed by RiskForge 1.1) is followed, in the same unit of work, by
         one ``register.baselined`` entry for every other system on disk, so each system
-        is covered by the log from then on (ADR-03 section 6).
+        is covered by the log from then on (ADR-03 section 6). The check has passed by
+        then, so a register changed outside RiskForge is never baselined.
+
+        Raises
+        ------
+        IntegrityError
+            If the project fails its integrity check. Nothing is appended.
         """
-        async with self._storage.unit_of_work():
+        async with self.unit_of_work():
             baseline: list[tuple[str, str, str | None]] = []
             if await self._storage.read_audit_head() is None:
                 baseline = await self._baseline_targets(exclude=system_id)

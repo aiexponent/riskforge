@@ -1,13 +1,17 @@
 """One integrity check for the whole project (ADR-03 section 5).
 
 ``check_integrity`` is the only verification path: ``riskforge verify`` runs it, and
-commands that change or export data run it first through ``require_intact``. It reads
-only, reports every finding, and never raises for a file that does not parse.
+every change runs it first through ``checked_unit_of_work``, which ``AuditEngine`` and
+the CLI pre-flight use. It reads only, reports every finding, and never raises for a
+file that does not parse.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import contextvars
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -312,6 +316,53 @@ async def require_intact(storage: StorageBackend) -> IntegrityReport:
     if not report.ok:
         raise IntegrityError(report)
     return report
+
+
+INTACT_MARK = "riskforge.integrity-checked"
+
+# For a backend that keeps no unit-of-work marks: the stores checked by an open
+# checked_unit_of_work in this context.
+_CHECKED_STORES: contextvars.ContextVar[frozenset[int]] = contextvars.ContextVar(
+    "riskforge_integrity_checked", default=frozenset()
+)
+
+
+@contextlib.asynccontextmanager
+async def checked_unit_of_work(storage: StorageBackend) -> AsyncIterator[IntegrityReport | None]:
+    """Open ``storage.unit_of_work()`` and refuse to go on unless the project is intact.
+
+    The check runs once per outermost unit of work, after the scope has taken the
+    lock and finished or discarded any interrupted change, and before anything is
+    staged, so nothing can change between the check and the change (ADR-03 sections
+    4 and 5). A nested scope joins the check its outer scope passed.
+
+    Yields the report when this call ran the check, None when the scope had already
+    passed it.
+
+    Raises
+    ------
+    IntegrityError
+        If the project fails its integrity check. Nothing has been written.
+    """
+    async with storage.unit_of_work():
+        marks = storage.unit_of_work_marks()
+        if marks is not None:
+            if INTACT_MARK in marks:
+                yield None
+                return
+            report = await require_intact(storage)
+            marks.add(INTACT_MARK)
+            yield report
+            return
+        if id(storage) in _CHECKED_STORES.get():
+            yield None
+            return
+        report = await require_intact(storage)
+        token = _CHECKED_STORES.set(_CHECKED_STORES.get() | {id(storage)})
+        try:
+            yield report
+        finally:
+            _CHECKED_STORES.reset(token)
 
 
 _IN_PROGRESS = (

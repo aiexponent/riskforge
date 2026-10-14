@@ -106,6 +106,7 @@ class _Scope:
 
     def __init__(self) -> None:
         self.staged: list[str] = []
+        self.marks: set[str] = set()
 
 
 # Open units of work in the current context, keyed by the resolved .riskforge path, so
@@ -431,6 +432,11 @@ class FileStore(StorageBackend):
 
     def _scope(self) -> _Scope | None:
         return (_ACTIVE_UOW.get() or {}).get(self._key)
+
+    def unit_of_work_marks(self) -> set[str] | None:
+        """Labels of the open unit of work for this project, shared by every joined scope."""
+        scope = self._scope()
+        return None if scope is None else scope.marks
 
     def _readable(self, path: Path) -> Path:
         """The file a read should see: this unit of work's staged copy, else the committed one."""
