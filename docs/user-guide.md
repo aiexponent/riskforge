@@ -147,8 +147,10 @@ answer updates the item's likelihood, severity and knowledge-gap flag and record
 `risk_item.updated`. The residual scores follow only while the item has no
 mitigation and its residual scores were never changed. An acceptance is kept, and
 `assess` prints a line asking you to review the item. `assess` never removes an
-item: if a question is now answered `no` or `skip`, its item stays and is listed so
-you can review it.
+item: if a question is now answered `no` or `skip`, or left out of the answers file,
+its item stays and is listed so you can review it. A register that RiskForge 1.1.3
+already doubled keeps its duplicates: `assess` updates the first item for each
+question or pattern risk and lists the others so you can review them.
 
 ---
 
