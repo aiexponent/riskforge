@@ -185,7 +185,7 @@ def test_pdf_exporter_uses_items_not_system() -> None:
 
     from riskforge.exporters.pdf.pdf_exporter import PDFExporter
 
-    source = inspect.getsource(PDFExporter.render)
+    source = inspect.getsource(PDFExporter.render_html)
     assert (
         "items=rmf.register.items" in source
     ), "PDF exporter bug detected: 'items' context variable not set to register.items"
