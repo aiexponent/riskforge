@@ -18,6 +18,10 @@ Versioning: [Semantic Versioning](https://semver.org/)
 - `risk accept` and `risk mitigate` require `--by "Name, Role"`, or the `RISKFORGE_ACTOR` environment variable when the flag is absent (the flag wins when both are set). Without a name, or with a blank one, they change nothing and exit 3. Scripts and CI jobs that call them must pass `--by` or set `RISKFORGE_ACTOR`. The name is self-declared and not verified. It is the audit entry's actor, where it used to be `cli`, and is stored as `accepted_by` on the risk item or `recorded_by` on the mitigation. Library API: `RiskEngine.accept_risk()` stores its `actor_identity` as `accepted_by` and raises the new `riskforge.engine.actor.ActorNameError` for a blank name or one with a line break, control character, bidirectional control or invisible character (zero-width joiners are allowed), and `RiskEngine.add_mitigation()` takes an optional `recorded_by` (PRD-356).
 - Library API: `AssessEngine.match_patterns()` takes the system's purpose text instead of a list of purpose words, and the bundled pattern file (schema 1.1.0) lists categories in `triggers.annex_iii_categories` instead of `triggers.annex_iii_category`. `riskforge.engine.assess.keyword_matches()` is new. `AssessEngine.load_patterns()` raises `ValueError` for a pattern file whose `schema_version` is not 1.1.0, so a `data_dir` holding a 1.x pattern file must be updated (PRD-335).
 
+### Added
+
+- `riskforge keygen --output FILE` creates an Ed25519 signing key pair: the private key in `FILE` (unencrypted PEM; on Linux and macOS readable only by its owner) and the public key in `FILE.pub`, and prints the key id and public key. It never overwrites an existing key file and exits 3 instead. RiskForge now depends on `cryptography` (PRD-336).
+
 ### Changed
 
 - `pip install riskforge` no longer installs `keyring`, `python-dotenv` or `pydantic-settings`, which RiskForge no longer imports (`pydantic-settings` was used only by the removed server), along with the packages `keyring` pulled in. Code that relied on RiskForge to bring these in must declare them itself (PRD-329).
