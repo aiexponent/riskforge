@@ -177,7 +177,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
 | `riskforge verify [--file rmf.json] [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. |
-| `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
+| `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
 Risk ids accept the first 8 characters shown by `riskforge risk list`. The
