@@ -34,8 +34,8 @@ riskforge export --system-id <id> --format myformat
 ## Step 3: Test
 
 The ExportEngine calls `render()` after:
-1. SHA-256 hashing the canonical JSON
-2. Schema validation against `rmf.schema.json`
+1. Computing the content digest (`riskforge.integrity.rmf.content_digest`)
+2. Schema validation against RMF schema 1.1.0 (`rmf-1.1.0.schema.json`)
 
 Your exporter only needs to handle serialisation. The `rmf` object passed to `render()` is fully populated and validated.
 
