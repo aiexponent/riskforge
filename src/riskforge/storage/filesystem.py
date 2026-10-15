@@ -78,6 +78,7 @@ from riskforge.integrity.chain import (
     verify_links,
     written_since_2_0,
 )
+from riskforge.integrity.strict_json import StrictJsonError, refuse_deep_nesting
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -328,6 +329,10 @@ def _entry_from_line(raw: bytes) -> AuditEntry:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise _BadLine("not UTF-8 text") from exc
+    try:
+        refuse_deep_nesting(text)
+    except StrictJsonError as exc:
+        raise _BadLine(f"holds {exc}, which RiskForge never writes") from exc
     try:
         document = json.loads(text)
     except (ValueError, RecursionError) as exc:

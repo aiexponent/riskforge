@@ -64,7 +64,12 @@ def _int(text: str) -> int:
         ) from exc
 
 
-def _refuse_deep_nesting(text: str) -> None:
+def refuse_deep_nesting(text: str) -> None:
+    """Raise :class:`StrictJsonError` if *text* nests arrays or objects over ``MAX_DEPTH``.
+
+    Audit log lines are checked with this too, so no entry reaches the entry hash
+    nested deeper than the hashing can follow.
+    """
     depth = 0
     for match in _STRING_OR_BRACKET.finditer(text):
         token = match.group()
@@ -92,7 +97,7 @@ def loads_strict(text: str) -> Any:
     json.JSONDecodeError
         If the text is not JSON.
     """
-    _refuse_deep_nesting(text)
+    refuse_deep_nesting(text)
     return json.loads(
         text,
         object_pairs_hook=_object_without_duplicates,
