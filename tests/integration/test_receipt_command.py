@@ -396,3 +396,18 @@ def test_control_characters_from_a_receipt_file_never_reach_the_terminal(tmp_pat
         assert char not in result.output, repr(char)
     assert "\\x1b]0;owned" in result.output
 
+
+def test_trusted_key_names_the_unsigned_entries_and_strict_fails_on_them(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    _seed(project)
+    key = _keygen(tmp_path / "k.pem")
+    count = len(_log_lines(project))
+    assert _rf(project, "verify", "--strict").returncode == 0
+    plain = _rf(project, "verify")
+    assert plain.returncode == 0 and "not signed" not in plain.output, plain.output
+    trusted = _rf(project, "verify", "--trusted-key", f"{key}.pub")
+    assert trusted.returncode == 0, trusted.output
+    assert f"{count} audit entries are not signed" in trusted.output
+    strict = _rf(project, "verify", "--strict", "--trusted-key", f"{key}.pub")
+    assert strict.returncode == 2, strict.output
+    assert f"{count} audit entries are not signed" in strict.output
