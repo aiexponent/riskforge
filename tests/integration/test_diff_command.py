@@ -101,3 +101,55 @@ def test_diff_refuses_a_register_without_an_item_list(tmp_path: Path) -> None:
     result = run_rf(["diff", broken["register"]["system"]["id"], str(path), str(FIXTURE)])
     assert result.returncode == 3, result.output
     assert "Traceback" not in result.output
+
+
+def _write_pair(tmp_path: Path, old: dict, new: dict) -> tuple[Path, Path]:
+    v1, v2 = tmp_path / "v1.json", tmp_path / "v2.json"
+    v1.write_text(json.dumps(old), encoding="utf-8")
+    v2.write_text(json.dumps(new), encoding="utf-8")
+    return v1, v2
+
+
+def test_diff_prints_list_text_and_system_changes(tmp_path: Path) -> None:
+    old = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    new = copy.deepcopy(old)
+    item = new["register"]["items"][0]
+    item["article_refs"] = ["Art.9(2)(a)", "[evidence]"]
+    item["knowledge_gap_reason"] = "No subgroup data yet"
+    item["mitigations"][0]["evidence_refs"] = ["evidence/parity.pdf"]
+    new["register"]["system"]["purpose"] = "credit scoring for consumer loans"
+    v1, v2 = _write_pair(tmp_path, old, new)
+
+    result = run_rf(["diff", old["register"]["system"]["id"], str(v1), str(v2)])
+
+    assert result.returncode == 0, result.output
+    assert "~1 changed" in result.output, result.output
+    old_refs = ", ".join(old["register"]["items"][0]["article_refs"]) or "none"
+    assert f"article_refs: {old_refs} -> Art.9(2)(a), [evidence]" in result.output
+    assert "knowledge_gap_reason: text changed" in result.output
+    mitigation = item["mitigations"][0]["id"][:8]
+    assert f"mitigation {mitigation} evidence_refs: none -> evidence/parity.pdf" in result.output
+    assert "register system.purpose: text changed" in result.output
+
+
+def test_diff_refuses_mitigations_that_are_not_a_list_of_objects(tmp_path: Path) -> None:
+    broken = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    broken["register"]["items"][0]["mitigations"] = "bad"
+    path = tmp_path / "broken.json"
+    path.write_text(json.dumps(broken), encoding="utf-8")
+    result = run_rf(["diff", broken["register"]["system"]["id"], str(FIXTURE), str(path)])
+    assert result.returncode == 3, result.output
+    assert "mitigations" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_diff_refuses_two_items_with_the_same_id(tmp_path: Path) -> None:
+    broken = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    items = broken["register"]["items"]
+    items.append(copy.deepcopy(items[0]))
+    path = tmp_path / "broken.json"
+    path.write_text(json.dumps(broken), encoding="utf-8")
+    result = run_rf(["diff", broken["register"]["system"]["id"], str(path), str(FIXTURE)])
+    assert result.returncode == 3, result.output
+    assert items[0]["id"] in result.output
+    assert "Traceback" not in result.output

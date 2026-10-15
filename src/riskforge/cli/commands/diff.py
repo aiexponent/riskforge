@@ -9,7 +9,17 @@ from rich.console import Console
 
 console = Console()
 
-TEXT_FIELDS = ("description", "acceptance_rationale")
+# Free text prints as "text changed"; the full text is in the two files.
+TEXT_FIELDS = frozenset(
+    {
+        "description",
+        "acceptance_rationale",
+        "knowledge_gap_reason",
+        "notes",
+        "purpose",
+        "deployment_context",
+    }
+)
 
 
 def cmd(
@@ -21,7 +31,7 @@ def cmd(
     from rich.markup import escape
 
     from riskforge.cli.errors import fail
-    from riskforge.engine.diff import diff_registers
+    from riskforge.engine.diff import diff_registers, fields_absent_from_schema
 
     from_data = _load(from_export)
     to_data = _load(to_export)
@@ -32,7 +42,10 @@ def cmd(
         if owner != system_id:
             fail(f"{path} belongs to system {owner}, not {system_id}.")
 
-    result = diff_registers(from_data["register"], to_data["register"])
+    ignore = fields_absent_from_schema(from_data.get("rmf_schema_version")) | (
+        fields_absent_from_schema(to_data.get("rmf_schema_version"))
+    )
+    result = diff_registers(from_data["register"], to_data["register"], ignore)
     console.print(
         f"[green]+{len(result.added)} added[/green]  [red]-{len(result.removed)} removed[/red]  "
         f"[yellow]~{len(result.changed)} changed[/yellow]"
@@ -46,9 +59,7 @@ def cmd(
         for moved in change.changes:
             console.print(escape(f"      {_describe(moved.field, moved.old, moved.new)}"))
     for moved in result.register_changes:
-        console.print(
-            escape(f"  register {moved.field}: {_value(moved.old)} -> {_value(moved.new)}")
-        )
+        console.print(escape(f"  register {_describe(moved.field, moved.old, moved.new)}"))
 
 
 def _label(item_id: str, title: object) -> str:
@@ -56,16 +67,28 @@ def _label(item_id: str, title: object) -> str:
 
 
 def _value(value: object) -> str:
-    return "not set" if value is None else str(value)
+    if value is None:
+        return "not set"
+    if isinstance(value, list):
+        return ", ".join(_value(entry) for entry in value) or "none"
+    if isinstance(value, dict):
+        import json
+
+        return json.dumps(value, sort_keys=True, ensure_ascii=False)
+    return str(value)
 
 
 def _describe(field: str, old: object, new: object) -> str:
-    if field in TEXT_FIELDS:
+    name = field.rsplit(" ", 1)[-1].rsplit(".", 1)[-1]
+    if field.startswith("mitigation ") and field.count(" ") == 1:
+        if old is None:
+            return f'{field}: added "{str(new or "")[:60]}"'
+        if new is None:
+            return f'{field}: removed "{str(old)[:60]}"'
+    if name in TEXT_FIELDS:
         return f"{field}: text changed"
-    if field == "title":
-        return f'title: "{str(old)[:60]}" -> "{str(new)[:60]}"'
-    if field == "mitigations" and old == new:
-        return f"mitigations: {old} -> {new}, edited"
+    if name == "title":
+        return f'{field}: "{str(old)[:60]}" -> "{str(new)[:60]}"'
     return f"{field}: {_value(old)} -> {_value(new)}"
 
 
@@ -88,4 +111,17 @@ def _load(path: Path) -> dict:
         isinstance(item, dict) and isinstance(item.get("id"), str) for item in items
     ):
         fail(f"{path} is not an RMF file: its register items are not a list of items with ids.")
+    seen: set[str] = set()
+    for item in items:
+        if item["id"] in seen:
+            fail(f"{path} is not a valid RMF file: item {item['id']} appears more than once.")
+        seen.add(item["id"])
+        mitigations = item.get("mitigations", [])
+        if not isinstance(mitigations, list) or not all(
+            isinstance(mitigation, dict) for mitigation in mitigations
+        ):
+            fail(f"{path} is not an RMF file: the mitigations of item {item['id']} are not a list.")
+        mitigation_ids = [m["id"] for m in mitigations if isinstance(m.get("id"), str)]
+        if len(mitigation_ids) != len(set(mitigation_ids)):
+            fail(f"{path} is not a valid RMF file: item {item['id']} repeats a mitigation id.")
     return data
