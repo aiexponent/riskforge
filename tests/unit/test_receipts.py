@@ -316,7 +316,7 @@ def test_receipt_file_with_a_seq_too_long_for_python_cannot_be_read(tmp_path: Pa
     text = json.dumps(data).replace('"seq": 4', '"seq": ' + "9" * 5000)
     path = tmp_path / "r.json"
     path.write_text(text, encoding="utf-8")
-    with pytest.raises(ReceiptFileError, match="too long"):
+    with pytest.raises(InvalidReceiptError, match="too long"):
         read_receipt_file(path)
 
 

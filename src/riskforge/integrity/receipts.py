@@ -18,7 +18,7 @@ from pydantic import ValidationError
 
 from riskforge.integrity.canonical import canonical_json
 from riskforge.integrity.signing import decode_public_key, key_id_for, verify_signature
-from riskforge.integrity.strict_json import StrictJsonError, loads_strict
+from riskforge.integrity.strict_json import NumberTooLongError, StrictJsonError, loads_strict
 from riskforge.models.audit import AuditEntry
 from riskforge.models.receipt import Receipt
 
@@ -264,10 +264,10 @@ def read_receipt_file(path: Path) -> Receipt:
     Raises
     ------
     ReceiptFileError
-        If the file cannot be read, is not UTF-8 JSON, holds an integer too long for
-        Python to read, or is not a receipt or RMF file.
+        If the file cannot be read, is not UTF-8 JSON, or is not a receipt or RMF file.
     InvalidReceiptError
-        If it holds a duplicate key or a non-finite number, or its receipt is refused.
+        If it holds a duplicate key, a non-finite number or an integer too long to read,
+        or its receipt is refused.
     """
     try:
         text = path.read_bytes().decode("utf-8")
@@ -279,11 +279,13 @@ def read_receipt_file(path: Path) -> Receipt:
         data = loads_strict(text)
     except StrictJsonError as exc:
         raise InvalidReceiptError(f"it holds {exc}, which RiskForge never writes.") from exc
+    except NumberTooLongError as exc:
+        # Like a duplicate key or NaN: RiskForge never writes one, so it is refused (exit 2).
+        raise InvalidReceiptError(
+            "it holds a number too long to read, which RiskForge never writes."
+        ) from exc
     except (json.JSONDecodeError, RecursionError) as exc:
         raise ReceiptFileError(f"it is not JSON ({exc}).") from exc
-    except ValueError as exc:
-        # Python refuses to read an integer of more than 4300 digits (sys.int_info).
-        raise ReceiptFileError("it holds a number too long to read.") from exc
     return receipt_from_document(data)
 
 

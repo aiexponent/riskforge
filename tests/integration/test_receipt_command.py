@@ -370,14 +370,14 @@ def test_receipt_fingerprint_that_differs_from_the_chain_exits_2(tmp_path: Path)
         assert "register fingerprint" in result.output
 
 
-def test_receipt_file_with_a_seq_too_long_for_python_exits_3(tmp_path: Path) -> None:
+def test_receipt_file_with_a_seq_too_long_for_python_exits_2(tmp_path: Path) -> None:
     project = tmp_path / "p"
     sid = _seed(project)
     path = tmp_path / "receipt.json"
     _receipt(project, sid, path)
     path.write_text(re.sub(r'"seq": \d+', '"seq": ' + "9" * 5000, path.read_text(), count=1))
     result = _rf(project, "verify", "--receipt", str(path))
-    assert result.returncode == 3, result.output
+    assert result.returncode == 2, result.output
     assert "Traceback" not in result.output
     assert "too long" in result.output
 
