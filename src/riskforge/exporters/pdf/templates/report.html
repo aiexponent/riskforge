@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Risk Management File: {{ system.name }} v{{ system.version }}</title>
-  <link rel="stylesheet" href="report.css">
+  <meta name="generator" content="RiskForge {{ riskforge_version }}">
 </head>
 <body>
 
-  <!-- Cover Page -->
+  <!-- Cover. Styles come from report.css, which the exporter passes to WeasyPrint. -->
   <section class="cover-page">
     <div class="cover-logo">AI Exponent LLC</div>
     <h1 class="cover-title">EU AI Act Article 9<br>Risk Management File</h1>
@@ -16,128 +15,111 @@
       <p class="system-name">{{ system.name }}</p>
       <p class="system-version">Version {{ system.version }}</p>
     </div>
+    <div class="cover-summary">
+      <div><span class="figure">{{ register.items | length }}</span> risk items</div>
+      <div><span class="figure">{{ register.open_items() | length }}</span> open above appetite</div>
+      <div><span class="figure">{{ register.knowledge_gaps() | length }}</span> knowledge gaps</div>
+    </div>
     <div class="cover-meta">
       <table>
         <tr><td>Provider</td><td>{{ system.provider_name }}</td></tr>
         <tr><td>Assessor</td><td>{{ register.assessor_name }}, {{ register.assessor_role }}</td></tr>
-        <tr><td>Assessment Date</td><td>{{ register.assessment_date.strftime('%d %B %Y') }}</td></tr>
-        <tr><td>Review Date</td><td>{{ register.review_date.strftime('%d %B %Y') }}</td></tr>
-        <tr><td>RMF Schema</td><td>v{{ rmf.rmf_schema_version }}</td></tr>
-        <tr><td>Generated</td><td>{{ rmf.generated_at.strftime('%d %B %Y %H:%M UTC') }}</td></tr>
+        <tr><td>Assessment date</td><td>{{ register.assessment_date.strftime('%d %B %Y') }}</td></tr>
+        <tr><td>Review date</td><td>{{ register.review_date.strftime('%d %B %Y') if register.review_date else 'Not set' }}</td></tr>
+        <tr><td>Annex III category</td><td>{{ category_label }}</td></tr>
+        <tr><td>Readiness gates</td><td>{{ status_line }}</td></tr>
       </table>
     </div>
     <div class="cover-hash">
-      <p>SHA-256: <code>{{ rmf.sha256_hash }}</code></p>
+      <p>Content digest (SHA-256)<br><code>{{ rmf.sha256_hash }}</code></p>
     </div>
   </section>
 
   <div class="page-break"></div>
 
-  <!-- Executive Summary -->
   <section class="section">
-    <h2>1. Executive Summary</h2>
+    <h2>1. Executive summary</h2>
     <p><strong>Purpose:</strong> {{ system.purpose }}</p>
-    <p><strong>Annex III Category:</strong>
-      {% if system.annex_iii_category %}
-        {{ system.annex_iii_category.value.replace('_', ' ').title() }}
-      {% else %}
-        Not classified
-      {% endif %}
-    </p>
-    <p><strong>Self-Classification Documented:</strong>
-      {{ 'Yes' if system.annex_iii_self_classification_documented else 'No, see Gate G2' }}
-    </p>
-    <p><strong>Total Risk Items:</strong> {{ register.items | length }}</p>
-    <p><strong>Open Items (above appetite threshold of {{ register.risk_appetite_threshold }}):</strong>
-      {{ register.open_items() | length }}
-    </p>
-    <p><strong>Knowledge Gaps:</strong> {{ register.knowledge_gaps() | length }}</p>
-  </section>
-
-  <!-- System Description -->
-  <section class="section">
-    <h2>2. System Description</h2>
+    <p><strong>Annex III category:</strong> {{ category_label }}</p>
+    <p><strong>Self-classification documented:</strong>
+      {{ 'Yes' if system.annex_iii_self_classification_documented else 'No, see gate G2' }}</p>
+    <p><strong>Risk items:</strong> {{ register.items | length }} in total. Before treatment,
+      {{ register.items_above_appetite() | length }} scored above the risk appetite threshold of
+      {{ register.risk_appetite_threshold }}; after treatment, {{ register.open_items() | length }} remain open.</p>
+    <p><strong>Knowledge gaps:</strong> {{ register.knowledge_gaps() | length }}</p>
+    <h3>System description</h3>
     <table class="metadata-table">
       <tr><th>Field</th><th>Value</th></tr>
       <tr><td>System ID</td><td><code>{{ system.id }}</code></td></tr>
       <tr><td>Name</td><td>{{ system.name }}</td></tr>
       <tr><td>Version</td><td>{{ system.version }}</td></tr>
       <tr><td>Provider</td><td>{{ system.provider_name }}</td></tr>
-      <tr><td>Provider Contact</td><td>{{ system.provider_contact or 'Not specified' }}</td></tr>
-      <tr><td>Intended Users</td><td>{{ system.intended_users | join(', ') or 'Not specified' }}</td></tr>
+      <tr><td>Provider contact</td><td>{{ system.provider_contact or 'Not specified' }}</td></tr>
+      <tr><td>Intended users</td><td>{{ system.intended_users | join(', ') or 'Not specified' }}</td></tr>
       <tr><td>Inputs</td><td>{{ system.inputs | join(', ') or 'Not specified' }}</td></tr>
       <tr><td>Outputs</td><td>{{ system.outputs | join(', ') or 'Not specified' }}</td></tr>
-      <tr><td>Deployment Context</td><td>{{ system.deployment_context or 'Not specified' }}</td></tr>
+      <tr><td>Deployment context</td><td>{{ system.deployment_context or 'Not specified' }}</td></tr>
     </table>
+    <p class="disclosure">{{ rmf.disclosure }}</p>
   </section>
 
-  <!-- Risk Register -->
   <section class="section">
-    <h2>3. Risk Register</h2>
-    <p>Risk appetite threshold: {{ register.risk_appetite_threshold }} (scores above this require mitigation or acceptance).</p>
+    <h2>2. Methodology</h2>
+    <p>The assessment uses the RiskForge question bank, version {{ register.question_bank_version }},
+      across {{ dimensions | length }} risk dimensions:
+      {{ dimensions | map('replace', '_', ' ') | join(', ') }}.</p>
+    <p>Each risk is scored for likelihood and severity on a five-point scale. The risk score is
+      likelihood times severity, from 1 to 25. Bands: low 1 to 4, medium 5 to 9, high 10 to 16,
+      critical 17 to 25. Likelihood and severity are scored again after mitigation to give the
+      residual score.</p>
+    <p>A risk is open while its residual score is above the risk appetite threshold of
+      {{ register.risk_appetite_threshold }} and it has not been accepted with a written rationale.
+      Gate G3 fails while any risk is open.</p>
+    <p>Risk patterns applied: {{ patterns_used | join(', ') if patterns_used else 'none' }}.</p>
+    <p>Readiness gates G1 to G8 are the checks <code>riskforge validate</code> runs. A FAIL gate
+      blocks export unless the export is forced. Results at export:</p>
+    <p class="gate-list">{% for gate in gates %}<span class="gate gate-{{ gate.status.value | lower }}">{{ gate.gate_id }} {{ gate.status.value }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  </section>
 
-    {% set dimensions = ['health_safety', 'fundamental_rights', 'discrimination', 'privacy', 'transparency', 'human_oversight', 'robustness', 'data_governance'] %}
+  <section class="section">
+    <h2>3. Risk register</h2>
+    <p>Risk appetite threshold: {{ register.risk_appetite_threshold }} (residual scores above it need
+      mitigation or acceptance).</p>
     {% for dim in dimensions %}
-      {% set dim_items = register.items | selectattr('dimension.value', 'equalto', dim) | list %}
-      <h3>3.{{ loop.index }} {{ dim.replace('_', ' ').title() }}</h3>
+      {% set dim_items = items | selectattr('dimension.value', 'equalto', dim) | list %}
+      <h3>3.{{ loop.index }} {{ dim.replace('_', ' ').capitalize() }}</h3>
       {% if dim_items %}
         {% for item in dim_items %}
           <div class="risk-item risk-band-{{ item.risk_band }}">
             <div class="risk-header">
               <span class="risk-title">{{ item.title }}</span>
-              <span class="risk-score-badge band-{{ item.risk_band }}">
-                {{ item.risk_band.upper() }} ({{ item.risk_score }})
-              </span>
+              <span class="risk-score-badge band-{{ item.risk_band }}">{{ item.risk_band.upper() }} ({{ item.risk_score }})</span>
             </div>
             <p class="risk-description">{{ item.description }}</p>
             <table class="risk-detail-table">
-              <tr>
-                <td>Likelihood</td><td>{{ item.likelihood.name }} ({{ item.likelihood }})</td>
-                <td>Severity</td><td>{{ item.severity.name }} ({{ item.severity }})</td>
-              </tr>
-              <tr>
-                <td>Residual Likelihood</td><td>{{ item.residual_likelihood.name }}</td>
-                <td>Residual Severity</td><td>{{ item.residual_severity.name }}</td>
-              </tr>
-              <tr>
-                <td>Source</td><td>{{ item.source }}</td>
-                <td>Regulatory Status</td><td>{{ item.regulatory_status }}</td>
-              </tr>
+              <tr><td>Likelihood</td><td>{{ item.likelihood.name }} ({{ item.likelihood.value }})</td>
+                <td>Severity</td><td>{{ item.severity.name }} ({{ item.severity.value }})</td></tr>
+              <tr><td>Residual likelihood</td><td>{{ item.residual_likelihood.name }} ({{ item.residual_likelihood.value }})</td>
+                <td>Residual severity</td><td>{{ item.residual_severity.name }} ({{ item.residual_severity.value }})</td></tr>
+              <tr><td>Source</td><td>{{ item.source }}</td>
+                <td>Regulatory status</td><td>{{ item.regulatory_status }}</td></tr>
             </table>
-            {% if item.article_refs %}
-              <p class="article-refs"><strong>Article refs:</strong> {{ item.article_refs | join(', ') }}</p>
-            {% endif %}
-            {% if item.nist_rmf_ref %}
-              <p class="cross-refs">NIST AI RMF: {{ item.nist_rmf_ref }}
-                {% if item.iso42001_ref %} | ISO/IEC 42001: {{ item.iso42001_ref }}{% endif %}
-              </p>
-            {% endif %}
+            {% if item.article_refs %}<p class="article-refs"><strong>Article refs:</strong> {{ item.article_refs | join(', ') }}</p>{% endif %}
+            {% if item.nist_rmf_ref %}<p class="cross-refs">NIST AI RMF: {{ item.nist_rmf_ref }}{% if item.iso42001_ref %} | ISO/IEC 42001: {{ item.iso42001_ref }}{% endif %}</p>{% endif %}
             {% if item.mitigations %}
-              <div class="mitigations">
-                <strong>Mitigations:</strong>
+              <div class="mitigations"><strong>Mitigations:</strong>
                 <ul>
                   {% for m in item.mitigations %}
-                    <li class="{{ 'vague-mitigation' if m.is_vague else '' }}">
-                      <strong>{{ m.control_type.title() }}</strong> [{{ m.status }}]:
-                      {{ m.description }}
-                      {% if m.is_vague %}<span class="vague-flag">(flagged: generic language)</span>{% endif %}
-                      {% if m.recorded_by %}<span class="recorded-by">Recorded by: {{ m.recorded_by }}</span>{% endif %}
-                    </li>
+                    <li class="{{ 'vague-mitigation' if m.is_vague else '' }}"><strong>{{ m.control_type.title() }}</strong> [{{ m.status }}]: {{ m.description }}{% if m.is_vague %} <span class="vague-flag">(flagged: generic language)</span>{% endif %}{% if m.recorded_by %}<span class="recorded-by">Recorded by: {{ m.recorded_by }}</span>{% endif %}</li>
                   {% endfor %}
                 </ul>
               </div>
             {% endif %}
             {% if item.accepted %}
-              <div class="acceptance-notice">
-                <strong>Accepted:</strong> {{ item.acceptance_rationale }}<br>
-                <strong>Accepted by:</strong> {{ item.accepted_by or 'not recorded' }}
-              </div>
+              <div class="acceptance-notice"><strong>Accepted:</strong> {{ item.acceptance_rationale }}<br>
+                <strong>Accepted by:</strong> {{ item.accepted_by or 'not recorded' }}</div>
             {% endif %}
-            {% if item.knowledge_gap %}
-              <div class="knowledge-gap-notice">
-                Knowledge gap: test requirements derived. See Section 5.
-              </div>
-            {% endif %}
+            {% if item.knowledge_gap %}<div class="knowledge-gap-notice">Knowledge gap: its test requirements are listed in section 5.</div>{% endif %}
           </div>
         {% endfor %}
       {% else %}
@@ -146,33 +128,43 @@
     {% endfor %}
   </section>
 
-  <!-- Test Requirements -->
   <section class="section">
-    <h2>4. Article 9(6) to 9(8) Test Requirements</h2>
+    <h2>4. Residual risk summary</h2>
+    <table class="residual-table">
+      <thead><tr><th>Risk</th><th class="score">Inherent</th><th class="score">Residual</th><th class="count">Mitigations</th><th>Decision and rationale</th></tr></thead>
+      <tbody>
+        {% for item in items | sort(attribute='title') | sort(attribute='residual_risk_score', reverse=True) %}
+          <tr>
+            <td>{{ item.title }}</td>
+            <td class="score">{{ item.risk_score }} ({{ item.risk_band }})</td>
+            <td class="score">{{ item.residual_risk_score }} ({{ item.residual_risk_band }})</td>
+            <td class="count">{{ item.mitigations | length }}</td>
+            <td>{% if item.accepted %}Accepted: {{ item.acceptance_rationale }}{% elif item.residual_risk_score > register.risk_appetite_threshold %}Open{% else %}Within appetite{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <h2>5. Article 9(6) to 9(8) test requirements</h2>
     {% if rmf.test_requirements %}
       <table class="test-table">
-        <thead>
-          <tr><th>Risk Item</th><th>Metric</th><th>Threshold</th><th>Article</th></tr>
-        </thead>
+        <thead><tr><th>Risk item</th><th>Metric</th><th>Threshold</th><th>Article</th></tr></thead>
         <tbody>
           {% for t in rmf.test_requirements %}
-            <tr>
-              <td><code>{{ t.risk_item_id | string | truncate(8, True, '') }}</code></td>
-              <td>{{ t.metric_type }}</td>
-              <td><code>{{ t.threshold_range }}</code></td>
-              <td>{{ t.article_ref }}</td>
-            </tr>
+            <tr><td><code>{{ t.risk_item_id | string | truncate(8, True, '') }}</code></td>
+              <td>{{ t.metric_type }}</td><td><code>{{ t.threshold_range }}</code></td><td>{{ t.article_ref }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     {% else %}
-      <p>No test requirements derived. Run <code>riskforge tests generate</code> to derive requirements from risk items.</p>
+      <p>No test requirements saved. Run <code>riskforge tests generate</code> to derive them from the risk items.</p>
     {% endif %}
   </section>
 
-  <!-- Audit Trail -->
   <section class="section">
-    <h2>5. Audit Trail</h2>
+    <h2>6. Audit metadata</h2>
     <p>Every change to this register is recorded in a SHA-256 hash-chained audit trail
     stored in <code>.riskforge/audit.jsonl</code>. The JSON, PDF and Markdown exports of
     one register state show the same content digest. The <code>rmf.exported</code> entry
@@ -180,17 +172,31 @@
     SHA-256 of this file.</p>
     <table class="metadata-table">
       <tr><td>Content digest (SHA-256)</td><td><code>{{ rmf.sha256_hash }}</code></td></tr>
+      <tr><td>RMF schema version</td><td>{{ rmf.rmf_schema_version }}</td></tr>
+      <tr><td>Question bank version</td><td>{{ register.question_bank_version }}</td></tr>
+      <tr><td>Generated by</td><td>RiskForge {{ riskforge_version }}</td></tr>
+      <tr><td>Generated at</td><td>{{ rmf.generated_at.strftime('%d %B %Y %H:%M UTC') }}</td></tr>
       <tr><td>Chain proof</td><td>{% if rmf.chain_proof %}{{ rmf.chain_proof.entries | length }} entries of the {{ rmf.chain_proof.scope }} audit chain, seq {{ rmf.chain_proof.entries[0].seq }} to {{ rmf.chain_proof.entries[-1].seq }}{% else %}Not included{% endif %}</td></tr>
       <tr><td>Receipt</td><td>{% if rmf.receipt %}seq {{ rmf.receipt.seq }}, entry hash <code>{{ rmf.receipt.entry_hash }}</code>{% if rmf.receipt.key_id %}, signed by <code>{{ rmf.receipt.key_id }}</code>{% endif %}{% else %}Not included{% endif %}</td></tr>
       <tr><td>Signatures</td><td>{% if rmf.signatures %}{% for s in rmf.signatures %}<code>{{ s.key_id }}</code> ({{ s.algorithm }}){% if not loop.last %}, {% endif %}{% endfor %}{% else %}Unsigned{% endif %}</td></tr>
+      <tr><td>Sign-offs</td><td>{% if rmf.signoffs %}{% for s in rmf.signoffs %}{{ s.approver }}: {{ s.decision }} (version {{ s.version_number }}){% if not loop.last %}; {% endif %}{% endfor %}{% else %}None recorded{% endif %}</td></tr>
     </table>
-    <p>Verify integrity at any time: <code>riskforge verify</code></p>
-  </section>
-
-  <!-- Disclosure -->
-  <section class="section disclosure">
-    <h2>6. Disclosure</h2>
-    <p>{{ rmf.disclosure }}</p>
+    <h3>Change log</h3>
+    {% if change_log %}
+      <p>Entries of the chain proof for this system and for the project.</p>
+      <table class="changelog-table">
+        <thead><tr><th>Seq</th><th>Time (UTC)</th><th>Event</th><th>Actor</th></tr></thead>
+        <tbody>
+          {% for e in change_log %}
+            <tr><td>{{ e.seq }}</td><td>{{ e.timestamp.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ e.event }}</td><td>{{ e.actor.identity }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>This export carries no chain proof.</p>
+    {% endif %}
+    <p>Verify integrity at any time: <code>riskforge verify</code>. Check the JSON export of this
+    file with <code>riskforge verify --file</code>.</p>
   </section>
 
 </body>
