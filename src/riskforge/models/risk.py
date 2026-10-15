@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from enum import Enum, IntEnum
 from typing import Any, Literal
@@ -12,7 +13,6 @@ from pydantic import (
     Field,
     SerializerFunctionWrapHandler,
     computed_field,
-    field_validator,
     model_serializer,
 )
 
@@ -33,6 +33,26 @@ VAGUE_PHRASES = frozenset(
         "see comments",
     }
 )
+
+# A specific control can mention a listed phrase ("independent review board approves
+# each release"); this much extra text around the phrase marks it as specific.
+_SPECIFIC_MARGIN = 20
+
+
+def is_vague_description(description: str) -> bool:
+    """True when a mitigation description is a placeholder rather than a specific control.
+
+    It is vague when it is one of VAGUE_PHRASES, or contains one as a whole phrase and is
+    too short for anything specific to surround it. "monitoring" does not match "monitor".
+    """
+    text = " ".join(description.lower().split()).strip(" .!")
+    if text in VAGUE_PHRASES:
+        return True
+    return any(
+        len(text) < len(phrase) + _SPECIFIC_MARGIN
+        and re.search(rf"(?<![\w']){re.escape(phrase)}(?![\w'])", text) is not None
+        for phrase in VAGUE_PHRASES
+    )
 
 
 class Likelihood(IntEnum):
@@ -91,23 +111,10 @@ class Mitigation(BaseModel):
     def _omit_unset_recorded_by(self, handler: SerializerFunctionWrapHandler) -> Any:
         return _drop_when_none(handler(self), "recorded_by", self.recorded_by)
 
-    @field_validator("description")
-    @classmethod
-    def flag_vague_description(cls, v: str) -> str:
-        """Warn consumers when the description matches a known placeholder phrase."""
-        # Validation passes; is_vague is set separately as a computed flag.
-        return v
-
     @property
     def description_is_vague(self) -> bool:
         """True if the description is a known vague placeholder."""
-        lowered = self.description.strip().lower()
-        if lowered in VAGUE_PHRASES:
-            return True
-        for phrase in VAGUE_PHRASES:
-            if phrase in lowered and len(lowered) < len(phrase) + 20:
-                return True
-        return False
+        return is_vague_description(self.description)
 
 
 class RiskItem(BaseModel):

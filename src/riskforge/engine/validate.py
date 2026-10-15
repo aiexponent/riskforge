@@ -57,7 +57,8 @@ class ValidateEngine:
                 "All 8 risk dimensions have entries",
                 GateStatus.FAIL,
                 f"Missing: {', '.join(d.value for d in sorted(missing, key=lambda d: d.value))}. "
-                "Mark as not-applicable with a justification or add a risk item.",
+                f"Add a risk item for each: `riskforge assess {r.system.id} -a NAME -r ROLE "
+                "--dimension <dimension>`.",
             )
         return GateResult("G1", "All 8 risk dimensions have entries", GateStatus.PASS)
 
