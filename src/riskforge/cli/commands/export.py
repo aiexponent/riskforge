@@ -61,15 +61,13 @@ def cmd(
                 )
                 raise typer.Exit(EXIT_FAILED)
 
-        # Build the RMF artefact, deriving test requirements and cross-references from
-        # the register so they land in the exported file (both are deterministic).
+        # The RMF carries the test requirements `tests generate` saved on the register,
+        # and cross-references derived from the register (deterministic).
         import datetime
-
-        from riskforge.engine.tests import TestDerivationEngine
 
         rmf = RiskManagementFile(
             register=register,
-            test_requirements=TestDerivationEngine().derive(register.items),
+            test_requirements=list(register.test_requirements),
             cross_references=_build_cross_references(register.items),
             generated_at=datetime.datetime.now(datetime.UTC),
         )

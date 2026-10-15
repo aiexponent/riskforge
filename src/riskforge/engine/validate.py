@@ -86,14 +86,16 @@ class ValidateEngine:
         return GateResult("G3", "All high-scoring risks mitigated or accepted", GateStatus.PASS)
 
     def _gate_knowledge_gaps_have_tests(self, r: RiskRegister) -> GateResult:
-        gaps_without_tests = [i for i in r.knowledge_gaps() if not i.tags]
-        if gaps_without_tests:
+        covered = {requirement.risk_item_id for requirement in r.test_requirements}
+        missing = [item for item in r.knowledge_gaps() if item.id not in covered]
+        if missing:
             return GateResult(
                 "G4",
                 "Knowledge gaps have test requirements",
                 GateStatus.WARN,
-                f"{len(gaps_without_tests)} knowledge gap(s) without test requirements. "
-                "Run `riskforge tests generate` to derive tests.",
+                f"{len(missing)} knowledge gap(s) without a saved test requirement: "
+                + ", ".join(str(item.id)[:8] for item in missing)
+                + f". Run `riskforge tests generate {r.system.id}` to save them.",
             )
         return GateResult("G4", "Knowledge gaps have test requirements", GateStatus.PASS)
 

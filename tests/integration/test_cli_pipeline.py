@@ -442,7 +442,7 @@ def test_assess_noninteractive_missing_file_exits_3() -> None:
 
 
 def test_export_populates_test_requirements_and_cross_references() -> None:
-    """Exported RMF carries derived Article 9 test requirements and cross-references."""
+    """`tests generate` saves requirements once; export carries exactly the saved ones."""
     import riskforge._data as _data_pkg
     from riskforge.engine.assess import AssessEngine
     from riskforge.models.risk import RiskDimension
@@ -474,13 +474,44 @@ def test_export_populates_test_requirements_and_cross_references() -> None:
             == 0
         )
         out = d / "rmf.json"
+        empty = _run(
+            ["export", sid, "-f", "json", "-o", str(out), "--force", "--project-dir", str(d)]
+        )
+        assert empty.returncode == 0, f"export failed:\n{empty.output}"
+        assert json.loads(out.read_text())["test_requirements"] == []
+
+        log = d / ".riskforge" / "audit.jsonl"
+        generated = _run(["tests", "generate", sid, "--project-dir", str(d)])
+        assert generated.returncode == 0, generated.output
+        assert "Saved" in generated.output
+        entries = [json.loads(line) for line in log.read_text().splitlines()]
+        assert entries[-1]["event"] == "tests.generated"
+        assert entries[-1]["payload"]["count"] >= 1
+
+        log_before = log.read_bytes()
+        again = _run(["tests", "generate", sid, "--project-dir", str(d)])
+        assert again.returncode == 0, again.output
+        assert "Saved" not in again.output
+        assert "Unchanged" in again.output
+        assert log.read_bytes() == log_before
+
         exp = _run(
             ["export", sid, "-f", "json", "-o", str(out), "--force", "--project-dir", str(d)]
         )
         assert exp.returncode == 0, f"export failed:\n{exp.output}"
         rmf = json.loads(out.read_text())
-        assert len(rmf["test_requirements"]) >= 1, "test_requirements should be derived at export"
+        assert len(rmf["test_requirements"]) >= 1, "saved test_requirements should be exported"
+        assert rmf["test_requirements"] == rmf["register"]["test_requirements"]
         assert len(rmf["cross_references"]) >= 1, "cross_references should be derived at export"
+
+        second = d / "rmf-again.json"
+        exp2 = _run(
+            ["export", sid, "-f", "json", "-o", str(second), "--force", "--project-dir", str(d)]
+        )
+        assert exp2.returncode == 0, exp2.output
+        rmf2 = json.loads(second.read_text())
+        assert rmf2["id"] != rmf["id"]
+        assert rmf2["sha256_hash"] == rmf["sha256_hash"]
 
 
 def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
