@@ -3,13 +3,13 @@ dimension: robustness
 questions:
   - id: RO-001
     text: "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?"
-    guidance: "Article 9(7) and Article 15 require testing of AI systems against the intended purpose and reasonably foreseeable misuse."
+    guidance: "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples."
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services, biometric]
     default_likelihood_hint: 2
     default_severity_hint: 4
-    article_refs: ["Art.9(7)", "Art.15"]
+    article_refs: ["Art.9(6)", "Art.15"]
     nist_rmf_ref: "MEASURE 2.5"
-    iso42001_ref: "Clause A.9"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: RO-002
@@ -18,9 +18,9 @@ questions:
     annex_iii_categories: [employment, education, law_enforcement, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 4
-    article_refs: ["Art.9(7)", "Art.10(2)(f)"]
+    article_refs: ["Art.9(8)", "Art.10(2)(f)"]
     nist_rmf_ref: "MEASURE 2.5"
-    iso42001_ref: "Clause A.9"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: RO-003
@@ -29,7 +29,7 @@ questions:
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 4
-    article_refs: ["Art.9(7)", "Art.72"]
+    article_refs: ["Art.9(8)", "Art.72"]
     nist_rmf_ref: "MANAGE 1.3"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
@@ -41,7 +41,7 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 3
     article_refs: ["Art.72"]
-    nist_rmf_ref: "MEASURE 2.5"
+    nist_rmf_ref: "MEASURE 2.4"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
 
@@ -52,6 +52,6 @@ questions:
     default_likelihood_hint: 2
     default_severity_hint: 4
     article_refs: ["Art.15"]
-    nist_rmf_ref: "MEASURE 2.5"
-    iso42001_ref: "Clause A.9"
+    nist_rmf_ref: "MEASURE 2.7"
+    iso42001_ref: "Annex A.9"
     regulatory_status: pending_implementing_act

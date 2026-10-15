@@ -8,19 +8,19 @@ questions:
     default_likelihood_hint: null
     default_severity_hint: null
     article_refs: ["Art.14(4)(e)"]
-    nist_rmf_ref: "MANAGE 1.1"
-    iso42001_ref: "Clause A.9"
+    nist_rmf_ref: "MANAGE 2.4"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: HO-002
     text: "Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on its output?"
-    guidance: "Untrained human reviewers provide illusory oversight. Article 14(3) requires deployers to assign oversight to qualified persons."
+    guidance: "Untrained human reviewers provide illusory oversight. Article 26(2) requires deployers to assign human oversight to natural persons who have the necessary competence, training and authority."
     annex_iii_categories: [employment, law_enforcement, essential_services, education]
     default_likelihood_hint: 3
     default_severity_hint: 3
-    article_refs: ["Art.14(3)"]
-    nist_rmf_ref: "MANAGE 1.1"
-    iso42001_ref: "Clause A.9"
+    article_refs: ["Art.26(2)"]
+    nist_rmf_ref: "MAP 3.5"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: HO-003
@@ -30,8 +30,8 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 4
     article_refs: ["Art.14"]
-    nist_rmf_ref: "MANAGE 1.1"
-    iso42001_ref: "Clause A.9"
+    nist_rmf_ref: "MAP 3.5"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: HO-004
@@ -41,6 +41,6 @@ questions:
     default_likelihood_hint: 2
     default_severity_hint: 4
     article_refs: ["Art.14(4)(c)"]
-    nist_rmf_ref: "MEASURE 1.1"
-    iso42001_ref: "Clause A.6"
+    nist_rmf_ref: "MEASURE 2.9"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
