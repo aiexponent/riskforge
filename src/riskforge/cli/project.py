@@ -26,14 +26,19 @@ if TYPE_CHECKING:
     from riskforge.storage.filesystem import FileStore
 
 
+MANIFEST_MISSING_HINT = "Restore riskforge.yaml from a backup, or use another --project-dir."
+
+
 def open_project(project_dir: Path) -> FileStore:
     """The project's store, or exit 3 when the directory holds no project."""
-    from riskforge.storage.errors import ProjectNotFoundError
+    from riskforge.storage.errors import ManifestMissingError, ProjectNotFoundError
     from riskforge.storage.filesystem import FileStore
 
     store = FileStore(project_dir)
     try:
         store.ensure_project()
+    except ManifestMissingError as exc:
+        fail(f"{exc} {MANIFEST_MISSING_HINT}")
     except ProjectNotFoundError as exc:
         fail(f"{exc} Run `riskforge init` there first, or pass --project-dir.")
     return store
