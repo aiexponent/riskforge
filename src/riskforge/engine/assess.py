@@ -9,7 +9,13 @@ from typing import Any
 
 import yaml
 
-from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+from riskforge.models.risk import (
+    QUESTION_TITLE_MAX_LENGTH,
+    Likelihood,
+    RiskDimension,
+    RiskItem,
+    Severity,
+)
 
 PATTERN_SCHEMA_VERSION = "1.1.0"
 
@@ -104,7 +110,7 @@ class AssessEngine:
         sv = Severity(min(max(severity, 1), 5))
         return RiskItem(
             dimension=dimension,
-            title=question["text"][:120],
+            title=question["text"][:QUESTION_TITLE_MAX_LENGTH],
             description=question.get("guidance", question["text"]),
             source="question_bank",
             likelihood=lh,

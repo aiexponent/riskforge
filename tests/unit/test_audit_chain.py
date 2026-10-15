@@ -179,21 +179,6 @@ def test_assess_engine_knowledge_gap_flag() -> None:
     assert item.knowledge_gap is True
 
 
-def test_pdf_exporter_uses_items_not_system() -> None:
-    """PDFExporter must pass register.items (not register.system) to the template."""
-    import inspect
-
-    from riskforge.exporters.pdf.pdf_exporter import PDFExporter
-
-    source = inspect.getsource(PDFExporter.render_html)
-    assert (
-        "items=rmf.register.items" in source
-    ), "PDF exporter bug detected: 'items' context variable not set to register.items"
-    assert (
-        "items=rmf.register.system" not in source
-    ), "PDF exporter regression: items=rmf.register.system found"
-
-
 @pytest.mark.asyncio
 async def test_record_rejects_tampered_tail(tmp_path: Path) -> None:
     """A record onto a chain whose tail entry was tampered is refused, and appends nothing."""

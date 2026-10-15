@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from riskforge.models.audit import AuditEntry
@@ -340,6 +341,18 @@ class StorageBackend(ABC):
         StoredFileCorruptError
             If the backend's record of the unfinished change is not one it wrote.
         """
+        return None
+
+    def protected_paths(self) -> tuple[Path, ...]:
+        """The paths of the project's own files and directories, which no export may write.
+
+        An export refuses an output path that is one of these or lies inside one. A
+        backend that keeps nothing on the local file system returns none.
+        """
+        return ()
+
+    def read_project_id(self) -> str | None:
+        """The ``project_id`` of the project manifest, or None when it cannot be read."""
         return None
 
     async def view_after_recovery(self) -> StorageBackend:

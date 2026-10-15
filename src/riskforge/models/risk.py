@@ -16,6 +16,9 @@ from pydantic import (
     model_serializer,
 )
 
+# Question-bank risk titles are cut to this length when the item is created.
+QUESTION_TITLE_MAX_LENGTH = 120
+
 VAGUE_PHRASES = frozenset(
     {
         "we'll monitor it",

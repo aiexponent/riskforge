@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
+import stat
 import tempfile
 import time
 from collections import OrderedDict
@@ -45,10 +47,13 @@ if TYPE_CHECKING:
 
 CHECKPOINT_EVENT = "register.checkpoint"
 
-# Every temporary file an export writes starts with this, so the next export to the
-# directory can find and remove one an interrupted export left behind.
+# An export's temporary file is named TEMP_PREFIX + project token + "-" + random part +
+# TEMP_SUFFIX, so the next export of the same project to the directory can find and
+# remove one an interrupted export left behind, and leaves other projects' files alone.
 TEMP_PREFIX = ".riskforge-export-"
 TEMP_SUFFIX = ".tmp"
+
+_SAFE_TOKEN = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 _IS_WINDOWS = os.name == "nt"
 
@@ -138,23 +143,92 @@ def _reason(exc: OSError) -> str:
     return exc.strerror or str(exc)
 
 
-def _remove_stale_temporaries(directory: Path, older_than: float) -> None:
-    """Remove export temporary files in ``directory`` last written before ``older_than``."""
-    with os.scandir(directory) as entries:
-        for entry in entries:
-            if not (entry.name.startswith(TEMP_PREFIX) and entry.name.endswith(TEMP_SUFFIX)):
-                continue
+def _committed(checkpoint: AuditEntry | None) -> str:
+    """The sentence that says a checkpoint was committed, or nothing when there was none."""
+    if checkpoint is None:
+        return ""
+    return f"The register.checkpoint (seq {checkpoint.seq}) was committed; no value changed. "
+
+
+def _refuse_protected_target(target: Path, protected: Sequence[Path]) -> None:
+    """Refuse an output path that is a directory or part of the project's own files.
+
+    The target and each of its parents are compared, after following symlinks, with
+    every protected path, both by resolved path and by file identity (device and
+    inode), so another spelling of the same directory is caught too.
+
+    Raises
+    ------
+    ExportTargetError
+        If ``target`` is an existing directory, or is or lies inside a protected path.
+    """
+    resolved = Path(os.path.realpath(target))
+    if resolved.is_dir():
+        raise ExportTargetError(f"{target} is a directory; pass a file path with --output.")
+    by_path = {Path(os.path.realpath(path)): path for path in protected}
+    by_identity: dict[tuple[int, int], Path] = {}
+    for path in protected:
+        try:
+            info = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        by_identity[(info.st_dev, info.st_ino)] = path
+    for candidate in (resolved, *resolved.parents):
+        hit = by_path.get(candidate)
+        if hit is None:
             try:
-                if not entry.is_file(follow_symlinks=False):
-                    continue
-                if entry.stat(follow_symlinks=False).st_mtime >= older_than:
-                    continue
-                os.unlink(entry.path)
-            except FileNotFoundError:
-                continue  # removed meanwhile
+                info = os.stat(candidate)
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            hit = by_identity.get((info.st_dev, info.st_ino))
+        if hit is not None:
+            raise ExportTargetError(
+                f"{target} is part of the project's own files ({hit}); write the export "
+                "somewhere else. Nothing was written."
+            )
 
 
-def _write_temporary(target: Path, data: bytes, older_than: float) -> Path:
+def _project_token(project_id: str | None) -> str:
+    """The project's part of a temporary file name: its id, or a digest of an unusual one."""
+    if project_id is None:
+        return "project"
+    if _SAFE_TOKEN.fullmatch(project_id):
+        return project_id
+    return hashlib.sha256(project_id.encode("utf-8")).hexdigest()[:32]
+
+
+def _remove_stale_temporaries(directory: Path, token: str, older_than: float) -> None:
+    """Remove this project's export temporary files in ``directory`` older than ``older_than``.
+
+    Only regular files (never followed through a symlink) owned by the current user are
+    removed. An entry that cannot be checked or removed is left in place.
+    """
+    prefix = f"{TEMP_PREFIX}{token}-"
+    uid = os.getuid() if hasattr(os, "getuid") else None
+    try:
+        with os.scandir(directory) as entries:
+            names = [entry.name for entry in entries]
+    except PermissionError:
+        return  # a directory that can be written but not listed: nothing to clean
+    for name in names:
+        if not (name.startswith(prefix) and name.endswith(TEMP_SUFFIX)):
+            continue
+        # mkstemp's random part never contains "-", so this is exactly this project's name.
+        if "-" in name[len(prefix) : -len(TEMP_SUFFIX)]:
+            continue
+        path = directory / name
+        try:
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode) or info.st_mtime >= older_than:
+                continue
+            if uid is not None and info.st_uid != uid:
+                continue
+            os.unlink(path)
+        except (PermissionError, IsADirectoryError, FileNotFoundError):
+            continue
+
+
+def _write_temporary(target: Path, data: bytes, token: str, older_than: float) -> Path:
     """Write ``data`` to a new temporary file next to ``target``, flushed to disk.
 
     The file is created exclusively under a unique name with mode 600 (``mkstemp``).
@@ -170,8 +244,10 @@ def _write_temporary(target: Path, data: bytes, older_than: float) -> Path:
     if target.is_dir():
         raise ExportTargetError(f"{target} is a directory; pass a file path with --output.")
     try:
-        _remove_stale_temporaries(directory, older_than)
-        fd, name = tempfile.mkstemp(dir=directory, prefix=TEMP_PREFIX, suffix=TEMP_SUFFIX)
+        _remove_stale_temporaries(directory, token, older_than)
+        fd, name = tempfile.mkstemp(
+            dir=directory, prefix=f"{TEMP_PREFIX}{token}-", suffix=TEMP_SUFFIX
+        )
     except OSError as exc:
         raise ExportTargetError(f"Cannot write to {directory}: {_reason(exc)}") from exc
     temporary = Path(name)
@@ -254,6 +330,7 @@ class ExportEngine:
             As their docstrings say. Nothing is written or recorded.
         """
         exporter = self._registry.get_exporter(fmt)
+        _refuse_protected_target(output_path, self._storage.protected_paths())
         async with self._audit.unit_of_work():
             locked_at = time.time()
             register = await self._audit.read_register(system_id)
@@ -285,14 +362,31 @@ class ExportEngine:
             self._validate(rmf)
 
             data = exporter.render(rmf)
-            temporary = _write_temporary(output_path, data, locked_at)
+            token = _project_token(self._storage.read_project_id())
+            temporary = _write_temporary(output_path, data, token, locked_at)
             try:
                 checkpoint = await self._audit.commit(staged) if staged else None
-                os.replace(temporary, output_path)
             except BaseException:
                 temporary.unlink(missing_ok=True)
                 raise
-            _fsync_dir(output_path.parent)
+            try:
+                os.replace(temporary, output_path)
+            except OSError as exc:
+                temporary.unlink(missing_ok=True)
+                raise ExportTargetError(
+                    f"Cannot write {output_path}: {_reason(exc)}. "
+                    f"{_committed(checkpoint)}No file was written."
+                ) from exc
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+            try:
+                _fsync_dir(output_path.parent)
+            except OSError as exc:
+                raise ExportTargetError(
+                    f"{output_path} was written, but its directory could not be flushed to "
+                    f"disk: {_reason(exc)}. {_committed(checkpoint)}The export was not recorded."
+                ) from exc
 
             file_sha256 = hashlib.sha256(data).hexdigest()
             entry = await self._audit.record(
