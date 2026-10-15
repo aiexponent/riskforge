@@ -305,11 +305,22 @@ def test_schema_violation_leaves_no_file_and_no_checkpoint(
     assert _stored_files(root, sid) == before
 
 
+def _project_id(project: Path) -> str:
+    import yaml
+
+    return yaml.safe_load((project / "riskforge.yaml").read_text(encoding="utf-8"))["project_id"]
+
+
+def _hour_old(path: Path) -> None:
+    hour_ago = time.time() - 3600
+    os.utime(path, (hour_ago, hour_ago), follow_symlinks=False)
+
+
 def test_a_stale_temporary_file_is_removed_by_the_next_export(tmp_path: Path) -> None:
     project, sid = _project(tmp_path)
     target = tmp_path / "out"
     target.mkdir()
-    stale = target / f"{TEMP_PREFIX}interrupted.tmp"
+    stale = target / f"{TEMP_PREFIX}{_project_id(project)}-interrupted.tmp"
     stale.write_bytes(b'{"receipt": "for an entry never committed"}')
     hour_ago = time.time() - 3600
     os.utime(stale, (hour_ago, hour_ago))
@@ -436,3 +447,53 @@ def test_an_existing_directory_as_output_is_refused_before_anything_is_staged(
     assert result.returncode == 3, result.output
     assert len(_errors(result.output)) == 1, result.output
     assert _tree(root) == before
+
+
+def test_stale_cleanup_leaves_another_projects_temporary_file_alone(tmp_path: Path) -> None:
+    project, sid = _project(tmp_path)
+    target = tmp_path / "out"
+    target.mkdir()
+    other = target / f"{TEMP_PREFIX}8b1009b4-ffd2-40fb-adc1-4716c9da17b5-k3j2h1g0.tmp"
+    other.write_bytes(b"another project's export in progress")
+    _hour_old(other)
+    assert _export(project, sid, target / "rmf.json").returncode == 0
+    assert other.read_bytes() == b"another project's export in progress"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="needs symlinks")
+def test_stale_cleanup_leaves_a_symlinked_temporary_file_alone(tmp_path: Path) -> None:
+    project, sid = _project(tmp_path)
+    target = tmp_path / "out"
+    target.mkdir()
+    victim = tmp_path / "keep.txt"
+    victim.write_text("keep me")
+    _hour_old(victim)
+    link = target / f"{TEMP_PREFIX}{_project_id(project)}-linkedxx.tmp"
+    link.symlink_to(victim)
+    _hour_old(link)
+    assert _export(project, sid, target / "rmf.json").returncode == 0
+    assert link.is_symlink()
+    assert victim.read_text() == "keep me"
+
+
+def test_an_unremovable_stale_temporary_file_does_not_block_the_export(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, sid = _project(tmp_path)
+    target = tmp_path / "out"
+    target.mkdir()
+    stuck = target / f"{TEMP_PREFIX}{_project_id(project)}-stuckxxx.tmp"
+    stuck.write_bytes(b"cannot be removed")
+    _hour_old(stuck)
+    real_unlink = os.unlink
+
+    def unlink(path, *args, **kwargs):
+        if os.fspath(path) == str(stuck):
+            raise PermissionError(1, "Operation not permitted", str(path))
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", unlink)
+    out = target / "rmf.json"
+    result = asyncio.run(_engine(project).export(sid, "json", out, force=True))
+    assert result.path == out and out.exists()
+    assert stuck.exists()
