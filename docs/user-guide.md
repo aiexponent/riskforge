@@ -175,15 +175,52 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks and save them on the register. Run it before `export`: the export carries the saved requirements. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
-| `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
+| `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
-Risk ids accept the first 8 characters shown by `riskforge risk list`. The
-`--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
-path; signing produces a detached `.asc` next to the export.
+Risk ids accept the first 8 characters shown by `riskforge risk list`.
+
+### Exporting the RMF
+
+```bash
+riskforge export <id> -f json -o rmf.json            # the gates must pass, or add --force
+riskforge export <id> -f pdf -o rmf.pdf --sign k.pem  # signed with a key from riskforge keygen
+```
+
+An export holds the project lock from start to finish and runs in this order:
+
+1. The project is checked as `riskforge verify` checks it. A project that fails exits 2.
+2. The validation gates run, unless `--force` is given. A FAIL gate exits 1.
+3. If the register was last written by RiskForge 1.1.3 or by an older model, it is
+   rewritten in the current format and a `register.checkpoint` entry is prepared for it.
+   No value changes.
+4. The document is built: the content and its digest, the chain proof, the receipt and,
+   with `--sign`, the signature. It must validate against RMF schema 1.1.0.
+5. The whole file is rendered and written to a temporary file next to the output path,
+   readable only by its owner on Linux and macOS.
+6. The checkpoint, if any, is committed to the audit log, the temporary file is renamed
+   to the output path, and only then is `rmf.exported` recorded, with the content digest
+   (`sha256`) and the SHA-256 of the file (`file_sha256`).
+
+If anything fails before step 6, such as a missing output directory, no file is written
+and nothing is recorded, not even the checkpoint. A temporary file left by an
+interrupted export (its name starts with `.riskforge-export-`) is removed by the next
+export to the same directory.
+
+The JSON, PDF and Markdown exports of one register state show the same content digest,
+and two exports of an unchanged register share it, so a PDF can be matched to the JSON
+export you verified by comparing digests. To match any exported file to its audit entry,
+hash it and compare the result with `file_sha256`: `sha256sum rmf.pdf` (on macOS,
+`shasum -a 256 rmf.pdf`).
+
+`--sign KEYFILE` takes an Ed25519 private key file created by `riskforge keygen`. The
+export carries the signature in `signatures` and the public key in `public_keys`, and its
+receipt is signed with the same key. RiskForge no longer signs with GPG: a value that is
+not a key file, such as a GPG key id, exits 3 and nothing is written. On Linux and macOS
+a key file that its group or other users can read is refused (`chmod 600 FILE`).
 
 ### Who accepted a risk or recorded a mitigation
 
@@ -263,9 +300,9 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
+| 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
 | 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, a receipt the audit log no longer holds, or a receipt or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict`, `--receipt` or `--trusted-key` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict`, `--receipt` or `--trusted-key` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
@@ -305,17 +342,21 @@ system dependencies prior to running `riskforge`:
 
 The JSON RMF declares RMF schema 1.1.0 and has these top-level fields: `id`,
 `rmf_schema_version`, `register`, `test_requirements`, `cross_references`,
-`generated_at`, `sha256_hash`, `disclosure`, `signoffs`, `signatures` and
-`public_keys`. The `register` holds the system record, the risk items, the assessor,
+`generated_at`, `sha256_hash`, `disclosure`, `signoffs`, `signatures`,
+`public_keys`, `chain_proof` and `receipt`. The `register` holds the system record, the risk items, the assessor,
 dates, and the risk-appetite threshold. Each risk item carries its dimension,
 scoring, mitigations, residual scoring, acceptance, and Article/NIST/ISO references,
 with `accepted_by` and `recorded_by` when a name was recorded.
 
 `sha256_hash` is the content digest: the SHA-256 of the document without `id`,
 `generated_at`, `sha256_hash`, `signatures`, `public_keys`, `chain_proof` and
-`receipt`, so `riskforge verify --file` can recompute and confirm it. The free CLI
-writes `signoffs`,
-`signatures` and `public_keys` as empty lists for now.
+`receipt`, so `riskforge verify --file` can recompute and confirm it.
+
+`chain_proof` holds every entry of the project audit log up to the export (the export's
+own `rmf.exported` entry is recorded after the file is written, so it is never in the
+file), and `receipt` names the last of those entries. `signatures` and `public_keys` are
+filled when the export is signed with `--sign`. The free CLI writes `signoffs` as an
+empty list.
 
 A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
 --file` checks it by the rule those releases used: the whole document with
