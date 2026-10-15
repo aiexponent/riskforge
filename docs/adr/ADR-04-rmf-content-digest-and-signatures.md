@@ -133,7 +133,7 @@ A receipt records that the project chain held a given entry at a given `seq`:
 | `key_id`, `public_key`, `signature` | Present only when the receipt is signed |
 
 - `riskforge receipt SYSTEM_ID [--output FILE] [--sign KEYFILE]` runs the ADR-03 integrity check first and exits 2 if it fails. With `--output` it writes the receipt with mode 600 and never overwrites a file. Without it, it prints the receipt as JSON.
-- `riskforge verify --receipt FILE` (repeatable) takes a receipt file or an exported 1.1.0 RMF and reads its `receipt` block. The check fails with exit code 2 when the chain has no entry at the receipt's `seq` ("truncated or replaced") or holds a different `entry_hash` there ("rewritten").
+- `riskforge verify --receipt FILE` (repeatable) takes a receipt file or an exported 1.1.0 RMF and reads its `receipt` block. The check fails with exit code 2 when the chain has no entry at the receipt's `seq` ("truncated or replaced") or holds a different `entry_hash` there ("rewritten"). It also fails when the receipt's `register_fingerprint` is not the last fingerprint the chain records for the receipt's `system_id` at or before its `seq`, where both must be `null` if the chain records none.
 - A signed receipt fails when its key does not resolve (section 4) or its signature does not verify. With `--trusted-key PUBFILE` (repeatable) the key it was verified with must be one of the trusted keys, and an unsigned receipt fails.
 - Every export embeds a receipt whose `seq` and `entry_hash` are those of the last entry in its chain proof, signed when the export is signed.
 

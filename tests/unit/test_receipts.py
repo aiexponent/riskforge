@@ -34,15 +34,21 @@ def _signer() -> Ed25519Signer:
     return Ed25519Signer.from_pem(private_pem, Path("k.pem"))
 
 
-def _head(seq: int = 4, entry_hash: str = "a" * 64) -> AuditEntry:
+def _head(
+    seq: int = 4,
+    entry_hash: str = "a" * 64,
+    fingerprint: str | None = None,
+    system_id: str = "s",
+) -> AuditEntry:
     return AuditEntry(
         seq=seq,
         event="risk_item.added",
         actor=AuditActor(type="human", identity="t"),
-        system_id="s",
+        system_id=system_id,
         prev_hash="0" * 64,
         entry_hash=entry_hash,
         timestamp=datetime(2026, 10, 1, tzinfo=UTC),
+        register_fingerprint=fingerprint,
     )
 
 
@@ -95,7 +101,7 @@ def test_receipt_matches_the_chain_that_holds_its_entry() -> None:
 
 def test_signed_receipt_verifies_with_a_trusted_key() -> None:
     signer = _signer()
-    head = _head()
+    head = _head(fingerprint="f" * 64)
     receipt = build_receipt(head, "s", "f" * 64, signer)
     assert receipt.key_id == signer.key_id and receipt.public_key == signer.public_key_b64
     assert check_receipt(receipt, [head]) == []
@@ -110,6 +116,33 @@ def test_altered_signed_receipt_fails() -> None:
     for update in ({"seq": 3}, {"register_fingerprint": None}, {"system_id": "t"}):
         edited = receipt.model_copy(update=update)
         assert any("signature does not verify" in e for e in check_receipt(edited, [head]))
+
+
+def test_receipt_fingerprint_must_be_the_latest_the_chain_records_for_its_system() -> None:
+    entries = [
+        _head(seq=0, entry_hash="0" * 64, fingerprint="1" * 64),
+        _head(seq=1, entry_hash="b" * 64, fingerprint="2" * 64, system_id="t"),
+        _head(seq=2, entry_hash="c" * 64, fingerprint="3" * 64),
+        _head(seq=3, entry_hash="d" * 64, system_id="t"),
+        _head(seq=4, entry_hash="a" * 64, fingerprint="9" * 64),  # after the receipt's seq
+    ]
+    assert check_receipt(build_receipt(entries[3], "s", "3" * 64), entries) == []
+    assert check_receipt(build_receipt(entries[3], "t", "2" * 64), entries) == []
+    for system_id, fingerprint in (
+        ("s", "1" * 64),  # an earlier fingerprint of the system
+        ("s", "9" * 64),  # one recorded only after the receipt's seq
+        ("s", None),  # the chain records one, the receipt none
+        ("t", "3" * 64),  # another system's fingerprint
+        ("u", "3" * 64),  # a system the chain records nothing for
+    ):
+        errors = check_receipt(build_receipt(entries[3], system_id, fingerprint), entries)
+        assert len(errors) == 1, (system_id, fingerprint, errors)
+        assert "register fingerprint" in errors[0] and system_id in errors[0]
+
+
+def test_receipt_and_chain_without_fingerprints_match() -> None:
+    head = _head()
+    assert check_receipt(build_receipt(head, "u", None), [head]) == []
 
 
 def test_signed_receipt_from_an_untrusted_key_fails() -> None:
@@ -276,6 +309,22 @@ def test_receipt_file_with_a_duplicate_key_or_non_finite_number_is_invalid(
     path.write_text(text, encoding="utf-8")
     with pytest.raises(InvalidReceiptError):
         read_receipt_file(path)
+
+
+def test_receipt_file_with_a_seq_too_long_for_python_cannot_be_read(tmp_path: Path) -> None:
+    data = receipt_to_dict(build_receipt(_head(), "s", None))
+    text = json.dumps(data).replace('"seq": 4', '"seq": ' + "9" * 5000)
+    path = tmp_path / "r.json"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(ReceiptFileError, match="too long"):
+        read_receipt_file(path)
+
+
+@pytest.mark.parametrize("seq", [2**63, 10**100, -1])
+def test_receipt_seq_must_be_a_bounded_non_negative_integer(seq: int) -> None:
+    data = receipt_to_dict(build_receipt(_head(), "s", None))
+    with pytest.raises(InvalidReceiptError, match="seq"):
+        receipt_from_document({**data, "seq": seq})
 
 
 @pytest.mark.parametrize("content", [b"{not json", b"\xff\xfe binary", b"[1, 2]"])

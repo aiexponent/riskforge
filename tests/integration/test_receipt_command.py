@@ -354,3 +354,30 @@ def test_verify_checks_signed_audit_entries_with_trusted_keys(tmp_path: Path) ->
     untrusted = _rf(project, "verify", "--trusted-key", f"{other}.pub")
     assert untrusted.returncode == 2, untrusted.output
     assert "not a trusted key" in untrusted.output
+
+
+def test_receipt_fingerprint_that_differs_from_the_chain_exits_2(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    data = json.loads(path.read_text())
+    for edited in ({**data, "register_fingerprint": "0" * 64}, {**data, "system_id": "other"}):
+        changed = tmp_path / f"edited-{len(edited['system_id'])}.json"
+        changed.write_text(json.dumps(edited))
+        result = _rf(project, "verify", "--receipt", str(changed))
+        assert result.returncode == 2, result.output
+        assert "register fingerprint" in result.output
+
+
+def test_receipt_file_with_a_seq_too_long_for_python_exits_3(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    path.write_text(re.sub(r'"seq": \d+', '"seq": ' + "9" * 5000, path.read_text(), count=1))
+    result = _rf(project, "verify", "--receipt", str(path))
+    assert result.returncode == 3, result.output
+    assert "Traceback" not in result.output
+    assert "too long" in result.output
+
