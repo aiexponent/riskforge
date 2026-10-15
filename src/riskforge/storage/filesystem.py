@@ -811,14 +811,28 @@ class FileStore(StorageBackend):
 
         Call only once ``riskforge.yaml`` is known to be absent.
         """
+
+        # lstat, not exists(): a dangling symlink still counts, and a path that cannot be
+        # checked (permission denied) counts as holding data so the command refuses cleanly.
+        def present(path: Path) -> bool:
+            try:
+                path.lstat()
+            except (FileNotFoundError, NotADirectoryError):
+                return False
+            except OSError:
+                return True
+            return True
+
         holds_data = any(
-            path.exists() for path in (self._audit_path, self._head_path, self._journal_path)
+            present(path) for path in (self._audit_path, self._head_path, self._journal_path)
         )
         if not holds_data:
             try:
                 holds_data = any(self._systems_dir.iterdir())
             except (FileNotFoundError, NotADirectoryError):
                 holds_data = False
+            except OSError:
+                holds_data = True
         if holds_data:
             raise ManifestMissingError(
                 f"riskforge.yaml is missing from {self._root.parent.resolve()}, "

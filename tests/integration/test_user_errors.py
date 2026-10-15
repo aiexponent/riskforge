@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -153,6 +154,38 @@ def test_init_over_empty_riskforge_dir(tmp_path: Path) -> None:
     (tmp_path / ".riskforge" / "systems").mkdir(parents=True)
     _init(tmp_path)
     assert (tmp_path / "riskforge.yaml").exists()
+
+
+def test_init_refuses_when_a_dangling_audit_link_is_left(tmp_path: Path) -> None:
+    (tmp_path / ".riskforge" / "systems").mkdir(parents=True)
+    (tmp_path / ".riskforge" / "audit.jsonl").symlink_to(tmp_path / "gone.jsonl")
+
+    result = run_rf(
+        ["init", "-n", "Y", "-s", "1", "-p", "p", "--provider", "P"]
+        + ["--project-dir", str(tmp_path)]
+    )
+
+    _assert_clean(result, 3, "riskforge.yaml is missing")
+    assert not (tmp_path / "gone.jsonl").exists()
+
+
+@pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0, reason="root ignores directory permissions"
+)
+def test_init_refuses_cleanly_when_systems_cannot_be_read(tmp_path: Path) -> None:
+    systems = tmp_path / ".riskforge" / "systems"
+    systems.mkdir(parents=True)
+    systems.chmod(0o000)
+    try:
+        result = run_rf(
+            ["init", "-n", "Y", "-s", "1", "-p", "p", "--provider", "P"]
+            + ["--project-dir", str(tmp_path)]
+        )
+    finally:
+        systems.chmod(0o700)
+
+    _assert_clean(result, 3, "riskforge.yaml is missing")
+    assert not (tmp_path / "riskforge.yaml").exists()
 
 
 @pytest.mark.parametrize(
