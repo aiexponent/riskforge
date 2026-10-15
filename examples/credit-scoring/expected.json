@@ -1,5 +1,4 @@
 {
-  "audit_entry_hash": "<hash>",
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
@@ -121,6 +120,7 @@
   "disclosure": "This document was produced using RiskForge v1.1.3, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
   "generated_at": "<timestamp>",
   "id": "<uuid>",
+  "public_keys": [],
   "register": {
     "assessment_date": "<timestamp>",
     "assessor_name": "Example Assessor",
@@ -130,6 +130,7 @@
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
+        "accepted_by": "eval",
         "article_refs": [
           "Art.9(2)(a)",
           "Art.9(9)",
@@ -236,6 +237,7 @@
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
+        "accepted_by": "eval",
         "article_refs": [
           "Art.9(2)(a)"
         ],
@@ -270,6 +272,7 @@
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
+        "accepted_by": "eval",
         "article_refs": [
           "Art.10(2)(f)",
           "Art.9(2)(a)"
@@ -305,6 +308,7 @@
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
+        "accepted_by": "eval",
         "article_refs": [
           "Art.4a(1)"
         ],
@@ -408,6 +412,7 @@
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
+        "accepted_by": "eval",
         "article_refs": [
           "Art.9(6)",
           "Art.15"
@@ -497,9 +502,10 @@
       "version": "2.1.0"
     }
   },
-  "rmf_schema_version": "1.0.0",
+  "rmf_schema_version": "1.1.0",
   "sha256_hash": "<hash>",
-  "signed_by": "",
+  "signatures": [],
+  "signoffs": [],
   "test_requirements": [
     {
       "article_ref": "Art.9(8)",

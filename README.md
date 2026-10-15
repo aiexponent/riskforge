@@ -273,12 +273,10 @@ created_at: "2026-09-22T08:00:00Z"
 
 ```json
 {
-  "$schema": "https://schemas.aiexponent.com/riskforge/rmf/v1.0.0",
   "id": "e9b271d4-8521-4f1a-9694-81d3d6e5a401",
-  "rmf_schema_version": "1.0.0",
+  "rmf_schema_version": "1.1.0",
   "generated_at": "2026-09-22T09:00:00Z",
   "sha256_hash": "4e9a3b8d1f2c6e7a0b5d8f3e2a1c9b8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
-  "audit_entry_hash": "a7c8e9f0123456789abcdef0123456789abcdef0123456789abcdef012345678",
   "register": {
     "system": {
       "name": "Loan Scoring Model",
@@ -366,7 +364,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 |---|---|
 | **Offline-first** | Zero outbound calls after `pip install`, enforced by `pytest-socket` CI gate |
 | **Hash-chained audit** | Every mutation appended to `audit.jsonl` with atomic file locks; `riskforge verify` exits code 2 on tampering |
-| **Schema-validated exports** | Every JSON export validated against `rmf.schema.json` before writing |
+| **Schema-validated exports** | Every export validated against RMF schema 1.1.0 (`rmf-1.1.0.schema.json`) before writing |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
 | **Pattern matching** | 7 pre-built risk patterns: six Annex III points (biometric identification 1(a), education 3(b), hiring 4(a), credit 5(b), offending risk 6(d), migration 7(c)) and one Article 6(1)/Annex I product route (medical diagnosis) |
 | **Plugin extensible** | Add question banks, exporters, adapters via `pip install`, no config edit required |

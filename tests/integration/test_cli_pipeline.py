@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import pytest
 from rf_testkit import run_rf
 
 
@@ -297,6 +298,158 @@ def test_verify_file_detects_tampered_rmf() -> None:
         ), f"tampered RMF must exit 2, got {tampered.returncode}:\n{tampered.output}"
 
 
+def _export_json(d: Path, name: str) -> Path:
+    sid = _init_project(d, name)
+    _seed_register(d, sid)
+    out = d / "rmf.json"
+    exp = _run(["export", sid, "-f", "json", "-o", str(out), "--force", "--project-dir", str(d)])
+    assert exp.returncode == 0, f"export failed:\n{exp.output}"
+    return out
+
+
+def test_json_export_is_rmf_1_1_0_and_validates(tmp_path: Path) -> None:
+    """New exports declare 1.1.0, validate against its schema and carry the content digest."""
+    import jsonschema
+    from riskforge.integrity.rmf import content_digest, load_schema
+
+    rmf = json.loads(_export_json(tmp_path, "RMF 1.1 System").read_text())
+    assert rmf["rmf_schema_version"] == "1.1.0"
+    jsonschema.validate(rmf, load_schema("1.1.0"))
+    assert "signed_by" not in rmf
+    assert "audit_entry_hash" not in rmf
+    assert (rmf["signoffs"], rmf["signatures"], rmf["public_keys"]) == ([], [], [])
+    assert rmf["sha256_hash"] == content_digest(rmf)
+
+    entries = [
+        json.loads(line)
+        for line in (tmp_path / ".riskforge" / "audit.jsonl").read_text().splitlines()
+    ]
+    exported = [e for e in entries if e["event"] == "rmf.exported"]
+    assert exported[-1]["payload"]["sha256"] == rmf["sha256_hash"]
+
+
+def test_verify_file_ignores_id_and_generation_time_of_a_1_1_0_file(tmp_path: Path) -> None:
+    """id and generated_at sit outside the 1.1.0 content digest; the register does not."""
+    out = _export_json(tmp_path, "Digest Scope System")
+    data = json.loads(out.read_text())
+    data["id"] = "00000000-0000-4000-8000-000000000000"
+    data["generated_at"] = "2030-01-01T00:00:00Z"
+    out.write_text(json.dumps(data, indent=2))
+    assert _run(["verify", "--file", str(out)]).returncode == 0
+
+    data["register"]["assessor_name"] = "Someone else"
+    out.write_text(json.dumps(data, indent=2))
+    assert _run(["verify", "--file", str(out)]).returncode == 2
+
+
+def test_verify_file_refuses_a_retired_field_added_to_a_1_1_0_file(tmp_path: Path) -> None:
+    """Under 1.1.0 audit_entry_hash is content, so adding one changes the digest."""
+    out = _export_json(tmp_path, "Retired Field System")
+    data = json.loads(out.read_text())
+    data["audit_entry_hash"] = "0" * 64
+    out.write_text(json.dumps(data, indent=2))
+    assert _run(["verify", "--file", str(out)]).returncode == 2
+
+
+def test_verify_file_refuses_a_duplicate_key(tmp_path: Path) -> None:
+    """The file is read strictly: a duplicate key could show one value and hash another."""
+    out = _export_json(tmp_path, "Duplicate Key System")
+    text = out.read_text()
+    out.write_text(text.replace('"disclosure":', '"disclosure": "x",\n  "disclosure":', 1))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "duplicate key" in result.output
+
+
+def test_verify_file_refuses_an_unknown_schema_version(tmp_path: Path) -> None:
+    out = _export_json(tmp_path, "Unknown Version System")
+    data = json.loads(out.read_text())
+    data["rmf_schema_version"] = "9.9.9"
+    out.write_text(json.dumps(data, indent=2))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 3, result.output
+    assert "9.9.9" in result.output
+
+
+def _rewrite(out: Path, data: dict) -> None:
+    """Write ``data`` back with a recomputed content digest, as a forger would."""
+    from riskforge.integrity.rmf import content_digest
+
+    data["sha256_hash"] = content_digest(data)
+    out.write_text(json.dumps(data, indent=2))
+
+
+_FAKE_SIGNATURE = {
+    "key_id": "ed25519:0123456789abcdef",
+    "algorithm": "ed25519",
+    "signed_at": "2026-10-01T00:00:00Z",
+    "signature": "A" * 86 + "==",
+}
+
+
+def test_verify_file_validates_the_schema_before_it_reports_a_match(tmp_path: Path) -> None:
+    """ADR-04 section 6 step 1: a recomputed digest does not make a malformed 1.1.0 file valid."""
+    out = _export_json(tmp_path, "Schema Check System")
+    data = json.loads(out.read_text())
+    data["signed_by"] = "someone@example.com"
+    data["audit_entry_hash"] = "0" * 64
+    data["signatures"] = [{**_FAKE_SIGNATURE, "signature": "not base64"}]
+    _rewrite(out, data)
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "verified" not in result.output
+    assert "schema 1.1.0" in result.output
+    assert "signed_by" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("version", [["1.1.0"], {"v": "1.1.0"}, 110])
+def test_verify_file_refuses_a_schema_version_that_is_not_a_string(
+    tmp_path: Path, version: object
+) -> None:
+    out = _export_json(tmp_path, "Version Type System")
+    data = json.loads(out.read_text())
+    data["rmf_schema_version"] = version
+    out.write_text(json.dumps(data, indent=2))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 3, result.output
+    assert "Traceback" not in result.output
+    assert "rmf_schema_version" in result.output
+
+
+def test_verify_file_says_provenance_blocks_were_not_checked(tmp_path: Path) -> None:
+    """Until signatures are verified, a well-formed but bogus one must not pass silently."""
+    out = _export_json(tmp_path, "Not Checked System")
+    data = json.loads(out.read_text())
+    data["signatures"] = [_FAKE_SIGNATURE]
+    _rewrite(out, data)
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 0, result.output
+    assert "Not checked: signatures." in result.output
+
+
+def test_verify_file_refuses_an_integer_too_long_for_python(tmp_path: Path) -> None:
+    out = _export_json(tmp_path, "Long Integer System")
+    text = out.read_text()
+    out.write_text(text.replace('"disclosure":', '"n": ' + "9" * 5000 + ',\n  "disclosure":', 1))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "too long" in result.output
+
+
+def test_verify_file_prints_the_stored_digest_escaped(tmp_path: Path) -> None:
+    """The stored sha256_hash comes from the file: no markup or control character reaches the terminal."""
+    out = _export_json(tmp_path, "Escaped Digest System")
+    data = json.loads(out.read_text())
+    data["sha256_hash"] = "\x1b[31m[bold]x[/bold]"
+    out.write_text(json.dumps(data, indent=2))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "\x1b" not in result.output
+    assert "[bold]x[/bold]" in result.output
+
+
 def test_assess_noninteractive_from_answers_file() -> None:
     """`assess --answers` builds the register non-interactively from a YAML file."""
     import asyncio
@@ -408,30 +561,6 @@ def test_export_populates_test_requirements_and_cross_references() -> None:
         rmf = json.loads(out.read_text())
         assert len(rmf["test_requirements"]) >= 1, "test_requirements should be derived at export"
         assert len(rmf["cross_references"]) >= 1, "cross_references should be derived at export"
-
-
-def test_export_records_audit_entry_hash_in_file() -> None:
-    """The exported RMF carries the hash of its rmf.exported audit entry; verify --file still holds."""
-    with tempfile.TemporaryDirectory() as tmp:
-        d = Path(tmp)
-        sid = _init_project(d, "AEH System")
-        _seed_register(d, sid)
-        out = d / "rmf.json"
-        exp = _run(
-            ["export", sid, "-f", "json", "-o", str(out), "--force", "--project-dir", str(d)]
-        )
-        assert exp.returncode == 0, f"export failed:\n{exp.output}"
-
-        rmf = json.loads(out.read_text())
-        assert rmf["audit_entry_hash"], "audit_entry_hash must be populated in the exported file"
-
-        entries = [
-            json.loads(line) for line in (d / ".riskforge" / "audit.jsonl").read_text().splitlines()
-        ]
-        exported = [e for e in entries if e["event"] == "rmf.exported"]
-        assert exported and exported[-1]["entry_hash"] == rmf["audit_entry_hash"]
-
-        assert _run(["verify", "--file", str(out), "--project-dir", str(d)]).returncode == 0
 
 
 def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
@@ -573,9 +702,10 @@ def test_rmf_export_structure_is_locked() -> None:
             "cross_references",
             "generated_at",
             "sha256_hash",
-            "signed_by",
-            "audit_entry_hash",
             "disclosure",
+            "signoffs",
+            "signatures",
+            "public_keys",
         }
         mit = next(m for i in rmf["register"]["items"] for m in i["mitigations"])
         assert set(mit) == {

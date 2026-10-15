@@ -51,7 +51,7 @@ def cmd(
     register against the fingerprint the log recorded last, each system file, and that
     no system or log was deleted. It reads only and takes no lock, so a read-only copy
     can be checked. With --file, verifies that a standalone exported rmf.json still
-    matches its own self-verifying SHA-256 digest.
+    validates against the RMF schema it declares and matches its own content digest.
 
     With --strict, every warning the project check reports is a finding, so a project
     with a register last written before RiskForge 2.0, or with no audit.head.json, exits
@@ -162,49 +162,62 @@ def _read_receipts(paths: list[Path]) -> tuple[list[tuple[Path, Receipt]], list[
 
 
 def _verify_rmf_file(file: Path) -> None:
-    """Verify a standalone exported rmf.json against its own SHA-256 digest.
+    """Verify a standalone exported rmf.json: its schema and its content digest.
 
-    Recomputes the digest over the canonical JSON with the sha256_hash field
-    blanked (the construction the exporter uses) and compares it to the stored
-    value, so a tampered RMF is detectable by anyone holding only the file.
+    The file is read strictly (a duplicate key, a non-finite number or an integer too
+    long to read exits 2), validated against the schema its ``rmf_schema_version``
+    names, and its digest is recomputed by that version's rule (ADR-04 sections 2 and
+    6), so a tampered RMF is detectable by anyone holding only the file.
     """
-    import hashlib
-    import json
+    from rich.markup import escape
 
-    from riskforge.cli.errors import fail
+    from riskforge.cli.errors import EXIT_TAMPERED, fail, printable
+    from riskforge.integrity.rmf import (
+        RmfFileError,
+        UnsupportedRmfVersionError,
+        check_rmf_document,
+        read_rmf_file,
+    )
+    from riskforge.integrity.strict_json import NumberTooLongError, StrictJsonError
+
+    shown = escape(printable(str(file)))
+    try:
+        data = read_rmf_file(file)
+    except RmfFileError as exc:
+        fail(f"{file} is not a JSON RMF file: {exc}")
+    except (StrictJsonError, NumberTooLongError) as exc:
+        console.print(
+            f"[red]✗[/red] {shown} holds {escape(printable(str(exc)))}, which RiskForge "
+            "never writes.",
+            soft_wrap=True,
+        )
+        raise typer.Exit(EXIT_TAMPERED) from None
 
     try:
-        data = json.loads(file.read_text(encoding="utf-8"))
-    except UnicodeDecodeError:
-        fail(f"{file} is not a JSON RMF file (it is binary; verify the .json export).")
-    except json.JSONDecodeError as exc:
-        fail(f"{file} is not a JSON RMF file: {exc}")
-    if not isinstance(data, dict):
-        fail(f"{file} is not a JSON RMF file: the top level is not an object.")
+        result = check_rmf_document(data)
+    except UnsupportedRmfVersionError as exc:
+        fail(f"{file}: {exc}")
 
-    stored = data.get("sha256_hash", "")
-    if not stored:
-        console.print("[red]✗[/red] RMF has no sha256_hash field to verify.")
-        raise typer.Exit(2)
-
-    # Blank the integrity/provenance fields the exporter excludes from the digest
-    # (see ExportEngine.export): sha256_hash, audit_entry_hash, signed_by.
-    recompute_source = dict(data)
-    recompute_source["sha256_hash"] = ""
-    recompute_source["audit_entry_hash"] = ""
-    recompute_source["signed_by"] = ""
-    canonical = json.dumps(recompute_source, sort_keys=True, separators=(",", ":"))
-    computed = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    if computed == stored:
+    if result.ok:
+        stored = escape(printable(str(result.stored_digest)))
         console.print(
-            f"[green]✓[/green] RMF integrity verified. SHA-256 matches ({stored[:12]}...)."
+            f"[green]✓[/green] RMF integrity verified. It validates against RMF schema "
+            f"{result.version} and its SHA-256 matches ({stored[:12]}...).",
+            soft_wrap=True,
         )
-        raise typer.Exit(0)
-
-    console.print(
-        "[red]✗[/red] RMF INTEGRITY FAILURE. Content does not match its SHA-256 digest.\n"
-        f"  stored:     {stored}\n"
-        f"  recomputed: {computed}"
-    )
-    raise typer.Exit(2)
+        if result.version == "1.0.0":
+            console.print(
+                "  The file declares RMF schema 1.0.0, so only its content digest was checked."
+            )
+    else:
+        console.print(f"[red]✗[/red] RMF INTEGRITY FAILURE in {shown}:", soft_wrap=True)
+        for finding in result.findings:
+            console.print(f"  - {escape(printable(finding))}", soft_wrap=True, highlight=False)
+    if result.not_checked:
+        console.print(
+            f"  Not checked: {', '.join(result.not_checked)}. This RiskForge checks the "
+            "schema and content digest of an RMF file, not its signatures, sign-offs, "
+            "chain proof or receipt.",
+            soft_wrap=True,
+        )
+    raise typer.Exit(0 if result.ok else EXIT_TAMPERED)

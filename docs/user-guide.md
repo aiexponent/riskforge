@@ -197,12 +197,9 @@ joiners are refused with exit 3.
 The name is self-declared. RiskForge records it as given and does not check who
 ran the command. It becomes the audit entry's actor and is stored on the risk item
 as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
-exports show it as "Accepted by" and "Recorded by". The JSON export (RMF schema
-1.0.0) does not include these two fields yet. The SHA-256 that the Markdown and
-PDF exports show (the PDF labels it "Document SHA-256") is the hash of the JSON
-export, so it does not cover the "Accepted by" and "Recorded by" text until a later RMF
-schema (1.1.0). Acceptances recorded before 2.0.0 show "Accepted by: not
-recorded".
+exports show it as "Accepted by" and "Recorded by", and the JSON export (RMF schema
+1.1.0) holds both fields, so the content digest every format shows covers them.
+Acceptances recorded before 2.0.0 show "Accepted by: not recorded".
 
 ### Receipts: a record kept outside the project
 
@@ -311,17 +308,30 @@ system dependencies prior to running `riskforge`:
 
 ## Interpreting the RMF
 
-The JSON RMF has these top-level fields: `id`, `rmf_schema_version`, `register`,
-`test_requirements`, `cross_references`, `generated_at`, `sha256_hash`, `signed_by`,
-`audit_entry_hash`, and `disclosure`. The `register` holds the system record, the
-risk items, the assessor, dates, and the risk-appetite threshold. Each risk item
-carries its dimension, scoring, mitigations, residual scoring, acceptance, and
-Article/NIST/ISO references.
+The JSON RMF declares RMF schema 1.1.0 and has these top-level fields: `id`,
+`rmf_schema_version`, `register`, `test_requirements`, `cross_references`,
+`generated_at`, `sha256_hash`, `disclosure`, `signoffs`, `signatures` and
+`public_keys`. The `register` holds the system record, the risk items, the assessor,
+dates, and the risk-appetite threshold. Each risk item carries its dimension,
+scoring, mitigations, residual scoring, acceptance, and Article/NIST/ISO references,
+with `accepted_by` and `recorded_by` when a name was recorded.
 
-`sha256_hash` is computed over the document content with the integrity fields
-(`sha256_hash`, `audit_entry_hash`, `signed_by`) blanked, so `riskforge verify
---file` can recompute and confirm it. `audit_entry_hash` links the file to the
-`rmf.exported` entry in the audit chain.
+`sha256_hash` is the content digest: the SHA-256 of the document without `id`,
+`generated_at`, `sha256_hash`, `signatures`, `public_keys`, `chain_proof` and
+`receipt`, so `riskforge verify --file` can recompute and confirm it. The free CLI
+writes `signoffs`,
+`signatures` and `public_keys` as empty lists for now.
+
+A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
+--file` checks it by the rule those releases used: the whole document with
+`sha256_hash`, `audit_entry_hash` and `signed_by` blanked. It reads every RMF file
+strictly: a duplicate key, `NaN`, `Infinity` or an integer too long to read exits 2,
+and a schema version RiskForge does not read exits 3. It then validates the file
+against the schema its `rmf_schema_version` names and recomputes the digest; a file
+that fails either exits 2 and lists every error. `verify --file` does not check
+`signatures`, `signoffs`, `chain_proof` or `receipt` yet, and says so when the file
+carries any of them. The JSON Schemas are bundled as
+`rmf-1.0.0.schema.json` and `rmf-1.1.0.schema.json` in `riskforge/_data/schemas/`.
 
 The PDF renders the same data as a filing-ready document: cover, executive summary,
 risk register, test requirements, audit trail, and the mandatory disclosure.

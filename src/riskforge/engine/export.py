@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 
 from riskforge.engine.audit import AuditEngine
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.integrity.rmf import content_digest, load_schema
+from riskforge.models.rmf import RMF_SCHEMA_VERSION, RiskManagementFile, rmf_document
 from riskforge.plugins.registry import PluginRegistry
 
 
@@ -49,26 +48,15 @@ class ExportEngine:
             qb_version=rmf.register.question_bank_version,
         )
 
-        # 2. Self-verifying SHA-256 over the document CONTENT. The integrity and
-        # provenance fields are blanked first: sha256_hash cannot cover itself;
-        # audit_entry_hash is derived from this hash (its audit entry carries the
-        # sha256, so it would be circular); signed_by is provenance carried by the
-        # detached signature. `verify --file` blanks the same three before recomputing.
-        # by_alias=True ensures risk_register serialises as "register" per the schema.
-        rmf.sha256_hash = ""
-        rmf.audit_entry_hash = ""
-        rmf.signed_by = ""
-        canonical = json.dumps(
-            rmf.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":")
-        )
-        rmf.sha256_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        # 2. Content digest (ADR-04 section 2): it leaves out id, generated_at and the
+        # provenance blocks, so every format of one register state shares it.
+        rmf.sha256_hash = content_digest(rmf_document(rmf))
 
-        # 3. Validate against rmf.schema.json before recording anything.
+        # 3. Validate against RMF schema 1.1.0 before recording anything.
         self._validate_schema(rmf)
 
-        # 4. Link the export to the append-only audit chain, then carry the entry
-        # hash back on the RMF so the written artefact references its audit record.
-        entry = await self._audit.record(
+        # 4. Link the export to the append-only audit chain.
+        await self._audit.record(
             "rmf.exported",
             system_id=str(rmf.register.system.id),
             payload={
@@ -77,8 +65,6 @@ class ExportEngine:
                 "sha256": rmf.sha256_hash,
             },
         )
-        rmf.audit_entry_hash = entry.entry_hash
-        rmf.signed_by = sign_with or ""
 
         # 5. Render + write the fully-populated document (chmod 600)
         exporter = self._registry.get_exporter(fmt)
@@ -92,14 +78,10 @@ class ExportEngine:
         return output_path
 
     def _validate_schema(self, rmf: RiskManagementFile) -> None:
-        from importlib.resources import files
-
         import jsonschema
 
-        schema_text = files("riskforge._data.schemas").joinpath("rmf.schema.json").read_text()
-        schema = json.loads(schema_text)
         try:
-            jsonschema.validate(rmf.model_dump(mode="json", by_alias=True), schema)
+            jsonschema.validate(rmf_document(rmf), load_schema(RMF_SCHEMA_VERSION))
         except jsonschema.ValidationError as e:
             raise SchemaViolationError(f"RMF schema violation: {e.message}") from e
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.aiexponent.com/riskforge/rmf/v1.0.0",
+  "$id": "https://aiexponent.com/schemas/riskforge/rmf/1.0.0.json",
   "title": "RiskManagementFile",
   "description": "EU AI Act Article 9 Risk Management File produced by RiskForge.",
   "type": "object",
