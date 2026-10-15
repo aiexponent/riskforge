@@ -27,9 +27,9 @@
 
 ## The Problem
 
-Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers and deployers of **high-risk AI systems** (governed by Article 6 and Annex III) face mandatory statutory obligations to establish, document, and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
+Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers of **high-risk AI systems** (Article 6, Annexes I and III) must establish, implement, document and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
 
-* **Provisional Enforcement Deadline**: Stand-alone high-risk systems under Annex III must comply by **2 December 2027** (under the Digital Omnibus simplification package).
+* **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by Regulation (EU) 2026/1744, in force since 27 July 2026).
 * **Statutory Non-Compliance Penalties**: Fines up to **€15,000,000 or 3% of total worldwide annual turnover**.
 * **The Compliance Bottleneck**: Engineering and MLOps teams cannot afford multi-month, €100K+ Big 4 advisory engagements for every model iteration or system change.
 
@@ -210,26 +210,26 @@ All interactions occur via plain JSON artifacts on disk. RiskForge never calls e
 graph LR
     A9_1["Art. 9(1)<br/>Establish RMS"] --> REG["Register lifecycle<br/>Version history<br/>Audit log"]
     A9_2a["Art. 9(2)(a)<br/>Identify risks"] --> QB["Guided question bank<br/>8 dimensions · 37 questions"]
-    A9_2b["Art. 9(2)(b)<br/>Estimate misuse risks"] --> PAT["Risk patterns<br/>6 Annex III scenarios"]
-    A9_4["Art. 9(4)<br/>Risk measures"] --> MIT["Mitigation docs<br/>Vague-detection"]
+    A9_2b["Art. 9(2)(b)<br/>Estimate misuse risks"] --> PAT["Risk patterns<br/>6 Annex III points, 1 Annex I route"]
+    A9_2d_5["Art. 9(2)(d), 9(5)<br/>Risk measures"] --> MIT["Mitigation docs<br/>Vague-detection"]
     A9_6_8["Art. 9(6)–(8)<br/>Testing requirements"] --> TEST["riskforge tests generate<br/>Per-risk metric hints"]
     A9_9["Art. 9(9)<br/>Vulnerable groups"] --> VG["Dedicated questions<br/>Mandatory flag"]
-    A9_10["Art. 9(10)<br/>Documentation"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
+    A9_1D["Art. 9(1)<br/>Documented"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
 
     style A9_1 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_2a fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_2b fill:#E6F4F1,stroke:#0D5463,color:#0D5463
-    style A9_4 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_2d_5 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_6_8 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_9 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
-    style A9_10 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_1D fill:#E6F4F1,stroke:#0D5463,color:#0D5463
 ```
 
 Cross-maps to:
 * **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
-* **ISO/IEC 42001:2023**: Clauses 6.1, 8.4, and Annex Controls A.6–A.9
-* **Colorado AI Act**: SB 24-205 (reset by SB 26-189)
-* **Texas AI Framework**: Texas HB 149 (TRAIGA)
+* **ISO/IEC 42001:2023**: Clauses 6.1 and 9.1, and Annex A.6, A.7 and A.9
+* **Colorado AI Act**: SB 24-205 (repealed and reenacted by SB 26-189)
+* **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA)
 
 ---
 
@@ -294,8 +294,8 @@ created_at: "2026-09-22T08:00:00Z"
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11"
     }
   ]
 }
@@ -368,7 +368,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | **Hash-chained audit** | Every mutation appended to `audit.jsonl` with atomic file locks; `riskforge verify` exits code 2 on tampering |
 | **Schema-validated exports** | Every JSON export validated against `rmf.schema.json` before writing |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
-| **Pattern matching** | 6 pre-built risk patterns for common Annex III use cases (credit scoring, hiring, facial recognition, medical imaging, content moderation, criminal risk assessment) |
+| **Pattern matching** | 7 pre-built risk patterns: six Annex III points (biometric identification 1(a), education 3(b), hiring 4(a), credit 5(b), offending risk 6(d), migration 7(c)) and one Article 6(1)/Annex I product route (medical diagnosis) |
 | **Plugin extensible** | Add question banks, exporters, adapters via `pip install`, no config edit required |
 | **Git-friendly state** | YAML + JSONL files, human-readable, diff-able, merge-conflict-resolvable |
 
@@ -384,13 +384,13 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 # src/riskforge/_data/question_bank/privacy.yaml
 - id: PRIV-007
   text: "Does the system process special category data under GDPR Article 9?"
-  guidance: "Special category data includes health, biometric, racial, or political data."
+  guidance: "Special category data includes data revealing racial or ethnic origin or political opinions, health data, and biometric data processed to uniquely identify a person (GDPR Article 9(1))."
   annex_iii_categories: [essential_services, employment]
   default_likelihood_hint: 3
   default_severity_hint: 5
-  article_refs: ["Art.9(2)(a)", "Art.10(3)"]
-  nist_rmf_ref: "MAP 1.5"
-  iso42001_ref: "Clause A.7"
+  article_refs: ["Art.9(2)(a)", "Art.4a(1)"]
+  nist_rmf_ref: "MEASURE 2.10"
+  iso42001_ref: "Annex A.7"
   regulatory_status: settled
 ```
 
