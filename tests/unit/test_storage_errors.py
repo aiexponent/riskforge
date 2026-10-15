@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from riskforge.models.system import AISystem
 from riskforge.storage.errors import (
+    ManifestMissingError,
     ProjectExistsError,
     ProjectNotFoundError,
     RegisterNotFoundError,
@@ -20,6 +21,8 @@ def test_errors_keep_builtin_bases() -> None:
     assert issubclass(SystemNotFoundError, FileNotFoundError)
     assert issubclass(RegisterNotFoundError, FileNotFoundError)
     assert issubclass(ProjectExistsError, FileExistsError)
+    assert issubclass(ManifestMissingError, ProjectNotFoundError)
+    assert issubclass(ManifestMissingError, ProjectExistsError)
 
 
 def test_ensure_project_without_manifest(tmp_path: Path) -> None:
@@ -32,6 +35,18 @@ async def test_second_init_raises_project_exists(tmp_path: Path) -> None:
     await store.init_project("p", {})
     with pytest.raises(ProjectExistsError):
         await store.init_project("p", {})
+
+
+async def test_init_without_manifest_but_with_a_system(tmp_path: Path) -> None:
+    store = FileStore(tmp_path)
+    await store.init_project("p", {})
+    (tmp_path / ".riskforge" / "systems" / "s1").mkdir()
+    (tmp_path / "riskforge.yaml").unlink()
+    with pytest.raises(ManifestMissingError):
+        store.ensure_project()
+    with pytest.raises(ManifestMissingError):
+        await store.init_project("q", {})
+    assert not (tmp_path / "riskforge.yaml").exists()
 
 
 async def test_unknown_system_and_missing_register(tmp_path: Path) -> None:

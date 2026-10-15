@@ -11,6 +11,14 @@ class ProjectExistsError(FileExistsError):
     """A RiskForge project already exists in the given directory."""
 
 
+class ManifestMissingError(ProjectNotFoundError, ProjectExistsError):
+    """``.riskforge/`` holds a project's data but ``riskforge.yaml`` is gone.
+
+    Both kinds: commands that open the project cannot use it, and ``init`` must not
+    start a new project over it.
+    """
+
+
 class SystemNotFoundError(FileNotFoundError):
     """No AI system with the given id in this project."""
 
