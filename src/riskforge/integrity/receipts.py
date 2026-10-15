@@ -268,8 +268,8 @@ def read_receipt_file(path: Path) -> Receipt:
     ReceiptFileError
         If the file cannot be read, is not UTF-8 JSON, or is not a receipt or RMF file.
     InvalidReceiptError
-        If it holds a duplicate key, a non-finite number or an integer too long to read,
-        or its receipt is refused.
+        If it holds a duplicate key, a non-finite number, an integer too long to read or
+        nesting deeper than RiskForge writes, or its receipt is refused.
     """
     try:
         text = path.read_bytes().decode("utf-8")
@@ -279,13 +279,9 @@ def read_receipt_file(path: Path) -> Receipt:
         raise ReceiptFileError("it is not JSON (it is not UTF-8 text).") from exc
     try:
         data = loads_strict(text)
-    except StrictJsonError as exc:
+    except (StrictJsonError, NumberTooLongError) as exc:
+        # RiskForge never writes any of these, so the receipt is refused (exit 2).
         raise InvalidReceiptError(f"it holds {exc}, which RiskForge never writes.") from exc
-    except NumberTooLongError as exc:
-        # Like a duplicate key or NaN: RiskForge never writes one, so it is refused (exit 2).
-        raise InvalidReceiptError(
-            "it holds a number too long to read, which RiskForge never writes."
-        ) from exc
     except (json.JSONDecodeError, RecursionError) as exc:
         raise ReceiptFileError(f"it is not JSON ({exc}).") from exc
     return receipt_from_document(data)
