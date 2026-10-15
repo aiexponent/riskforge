@@ -417,16 +417,16 @@ def test_verify_file_refuses_a_schema_version_that_is_not_a_string(
     assert "rmf_schema_version" in result.output
 
 
-def test_verify_file_says_provenance_blocks_were_not_checked(tmp_path: Path) -> None:
-    """Until signatures are verified, a well-formed but bogus one must not pass silently."""
-    out = _export_json(tmp_path, "Not Checked System")
+def test_verify_file_refuses_a_signature_whose_key_it_cannot_find(tmp_path: Path) -> None:
+    """A well-formed but bogus signature fails: its key id has no public_keys record."""
+    out = _export_json(tmp_path, "Bogus Signature System")
     data = json.loads(out.read_text())
     data["signatures"] = [_FAKE_SIGNATURE]
     _rewrite(out, data)
     result = _run(["verify", "--file", str(out)])
-    assert result.returncode == 0, result.output
-    # Every export also carries a chain proof and a receipt (ADR-04 section 7).
-    assert "Not checked: signatures, chain_proof, receipt." in result.output
+    assert result.returncode == 2, result.output
+    assert "has no record in public_keys" in result.output
+    assert "Not checked" not in result.output
 
 
 def test_verify_file_refuses_an_integer_too_long_for_python(tmp_path: Path) -> None:

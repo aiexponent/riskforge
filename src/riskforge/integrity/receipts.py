@@ -122,6 +122,7 @@ def check_receipt(
     entries: Sequence[AuditEntry],
     trusted_keys: Sequence[str] = (),
     label: str = "Receipt",
+    chain_name: str = "the audit log",
 ) -> list[str]:
     """Every reason ``receipt`` fails against ``entries``; empty when it holds.
 
@@ -130,25 +131,26 @@ def check_receipt(
     compared as raw bytes. The chain must hold an entry at the receipt's ``seq`` with
     the receipt's ``entry_hash``, and the last register fingerprint it records for the
     receipt's system up to that ``seq`` must be the receipt's ``register_fingerprint``
-    (both ``None`` when it records none).
+    (both ``None`` when it records none). ``chain_name`` names ``entries`` in messages,
+    such as "the chain proof" for the entries embedded in an RMF file.
     """
     errors = _signature_errors(receipt, trusted_keys, label)
     at_seq = next((entry for entry in entries if entry.seq == receipt.seq), None)
     if at_seq is None:
         errors.append(
-            f"{label}: the audit log has no entry at seq {receipt.seq}, so it was truncated "
+            f"{label}: {chain_name} has no entry at seq {receipt.seq}, so it was truncated "
             "or replaced."
         )
     elif at_seq.entry_hash != receipt.entry_hash:
         errors.append(
-            f"{label}: the audit log entry at seq {receipt.seq} is not the one the receipt "
+            f"{label}: the entry {chain_name} holds at seq {receipt.seq} is not the one the receipt "
             "names, so it was rewritten."
         )
     recorded = _fingerprint_at(entries, receipt.system_id, receipt.seq)
     if recorded != receipt.register_fingerprint:
         errors.append(
             f"{label}: its register fingerprint for system {receipt.system_id} is "
-            f"{receipt.register_fingerprint or 'none'}, but the audit log records "
+            f"{receipt.register_fingerprint or 'none'}, but {chain_name} records "
             f"{recorded or 'none'} for that system up to seq {receipt.seq}."
         )
     return errors
@@ -266,8 +268,8 @@ def read_receipt_file(path: Path) -> Receipt:
     ReceiptFileError
         If the file cannot be read, is not UTF-8 JSON, or is not a receipt or RMF file.
     InvalidReceiptError
-        If it holds a duplicate key, a non-finite number or an integer too long to read,
-        or its receipt is refused.
+        If it holds a duplicate key, a non-finite number, an integer too long to read or
+        nesting deeper than RiskForge writes, or its receipt is refused.
     """
     try:
         text = path.read_bytes().decode("utf-8")
@@ -277,13 +279,9 @@ def read_receipt_file(path: Path) -> Receipt:
         raise ReceiptFileError("it is not JSON (it is not UTF-8 text).") from exc
     try:
         data = loads_strict(text)
-    except StrictJsonError as exc:
+    except (StrictJsonError, NumberTooLongError) as exc:
+        # RiskForge never writes any of these, so the receipt is refused (exit 2).
         raise InvalidReceiptError(f"it holds {exc}, which RiskForge never writes.") from exc
-    except NumberTooLongError as exc:
-        # Like a duplicate key or NaN: RiskForge never writes one, so it is refused (exit 2).
-        raise InvalidReceiptError(
-            "it holds a number too long to read, which RiskForge never writes."
-        ) from exc
     except (json.JSONDecodeError, RecursionError) as exc:
         raise ReceiptFileError(f"it is not JSON ({exc}).") from exc
     return receipt_from_document(data)
