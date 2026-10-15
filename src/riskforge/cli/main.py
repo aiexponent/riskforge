@@ -56,6 +56,7 @@ from riskforge.cli.commands import (  # noqa: E402
     import_cmd,
     init,
     keygen,
+    receipt,
     risk,
     system,
     tests_cmd,
@@ -75,6 +76,7 @@ app.command("verify")(verify.cmd)
 app.command("diff")(diff.cmd)
 app.command("import")(import_cmd.cmd)
 app.command("keygen")(keygen.cmd)
+app.command("receipt")(receipt.cmd)
 
 
 def _show_click_error(exc: click.ClickException) -> None:
@@ -91,7 +93,13 @@ def _show_click_error(exc: click.ClickException) -> None:
 def _one_line_error(message: str) -> None:
     from rich.markup import escape
 
-    err_console.print(f"[red]✗[/red] {escape(message)}", highlight=False, soft_wrap=True)
+    from riskforge.cli.errors import printable
+
+    err_console.print(
+        f"[red]✗[/red] {escape(printable(message, keep_newlines=True))}",
+        highlight=False,
+        soft_wrap=True,
+    )
 
 
 def run() -> None:

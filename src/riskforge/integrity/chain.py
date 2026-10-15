@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 from riskforge.integrity.canonical import canonical_json, sha256_hex
+from riskforge.integrity.signing import decode_public_key, key_id_for, verify_signature
 from riskforge.models.audit import AuditEntry
 
 GENESIS_PREV_HASH = "0000000000"
@@ -72,3 +73,61 @@ def verify_links(entries: Iterable[tuple[str, AuditEntry]]) -> list[str]:
         prev_hash = entry.entry_hash
         expected_seq = entry.seq + 1
     return errors
+
+
+def check_entry_signatures(
+    entries: Iterable[AuditEntry], trusted_keys: Sequence[str] | None = None
+) -> tuple[list[str], list[str]]:
+    """Errors and warnings for the signatures of audit entries (ADR-03 section 2, ADR-04 section 4).
+
+    An entry with ``key_id`` and no ``signature``, or the reverse, is an error. The log
+    holds no public keys, so a signature is verified only against ``trusted_keys``
+    (base64 raw public keys): an entry signed by a key outside that set, or whose
+    signature does not verify, is an error. Without trusted keys, signed entries are
+    reported as not checked, in one warning. With trusted keys, unsigned entries are
+    counted in one warning, since no trusted key covers them; ``--strict`` makes it a
+    finding.
+    """
+    trusted: dict[str, str] | None = None
+    if trusted_keys is not None:
+        # The key id only finds the key; the signature is verified with the trusted key itself.
+        trusted = {}
+        for key in trusted_keys:
+            decode_public_key(key)  # ValueError for a key that is not 32 base64 bytes
+            trusted[key_id_for(key)] = key
+    errors: list[str] = []
+    unchecked = 0
+    unsigned = 0
+    for entry in entries:
+        if entry.key_id is None and entry.signature is None:
+            unsigned += 1
+            continue
+        label = f"Audit entry seq {entry.seq}"
+        if entry.key_id is None or entry.signature is None:
+            if entry.signature is None:
+                errors.append(f"{label} has a key_id but no signature.")
+            else:
+                errors.append(f"{label} has a signature but no key_id.")
+            continue
+        if trusted is None:
+            unchecked += 1
+            continue
+        key = trusted.get(entry.key_id)
+        if key is None:
+            errors.append(f"{label} is signed by {entry.key_id}, which is not a trusted key.")
+        elif not verify_signature(key, entry_signing_message(entry.entry_hash), entry.signature):
+            errors.append(f"{label}: the signature by {entry.key_id} does not verify.")
+    warnings: list[str] = []
+    if unchecked:
+        noun = "entry is" if unchecked == 1 else "entries are"
+        warnings.append(
+            f"{unchecked} audit {noun} signed, and the signatures were not checked: "
+            "no trusted key was given (riskforge verify --trusted-key)."
+        )
+    if trusted is not None and unsigned:
+        noun = "entry is" if unsigned == 1 else "entries are"
+        warnings.append(
+            f"{unsigned} audit {noun} not signed, so no trusted key covers "
+            f"{'it' if unsigned == 1 else 'them'}."
+        )
+    return errors, warnings

@@ -414,8 +414,8 @@ real_check = integrity.check_integrity
 swapped = []
 
 
-async def check_then_swap(storage):
-    report = await real_check(storage)
+async def check_then_swap(storage, **kwargs):
+    report = await real_check(storage, **kwargs)
     if not swapped:
         shutil.copyfile(edited, target + ".swap")
         os.replace(target + ".swap", target)

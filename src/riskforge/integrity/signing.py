@@ -48,6 +48,26 @@ def _read_key_file(path: Path, kind: str) -> bytes:
         ) from exc
 
 
+PUBLIC_KEY_BYTES = 32
+
+
+def decode_public_key(public_key_b64: object) -> bytes:
+    """The 32 raw bytes of a base64 Ed25519 public key, decoded strictly.
+
+    Raises ``ValueError`` for a value that is not a string, not valid base64, or not
+    32 bytes long.
+    """
+    if not isinstance(public_key_b64, str):
+        raise ValueError("the public key is not a string")
+    try:
+        raw = base64.b64decode(public_key_b64, validate=True)
+    except binascii.Error as exc:
+        raise ValueError("the public key is not valid base64") from exc
+    if len(raw) != PUBLIC_KEY_BYTES:
+        raise ValueError(f"the public key is {len(raw)} bytes, not {PUBLIC_KEY_BYTES}")
+    return raw
+
+
 def key_id_for(public_key_b64: str) -> str:
     """The key id of a base64 raw public key."""
     raw = base64.b64decode(public_key_b64, validate=True)
