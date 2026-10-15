@@ -52,7 +52,8 @@ For the avoidance of doubt:
   points added to Article 5 by Regulation (EU) 2026/1744 (Article 5(1), first
   subparagraph, points (ba) and (bb), and Article 5(1a) and (1b)) apply from
   2 December 2026.
-- The Article 6+ high-risk obligations that Article 9 belongs to apply from
+- The high-risk requirements and obligations in Chapter III, Sections 1 to 3
+  (including Article 9) apply from
   2 December 2027 (Annex III) or 2 August 2028 (Annex I) under Article 113,
   third paragraph, point (c), as amended by Regulation (EU) 2026/1744.
 - Some general-purpose AI model obligations have a different timeline and are not
@@ -461,9 +462,9 @@ and warn on imbalance. Not currently shipped.
   which tests have been run: out-of-distribution testing, slice-level metrics,
   performance floors, drift response procedures, adversarial robustness
   (prompt injection, model inversion, membership inference). Note RO-005's
-  `regulatory_status: pending_implementing_act`: this question rides on
-  forthcoming Article 15 implementing acts and is flagged in the YAML so it
-  can be re-graded when the act lands.
+  `regulatory_status: pending_implementing_act`: this status is under review,
+  because Article 15 provides for no implementing act (Article 15(2) has the
+  Commission encourage benchmarks and measurement methodologies).
 - The relevant health/safety questions (HS-002, HS-004, HS-005) also force a
   test-existence answer.
 - Output references can attach to external test artefacts (e.g. a
@@ -691,11 +692,9 @@ GOVERN, MAP, MEASURE, MANAGE.
 | ISO/IEC 42001 reference | Subject | RiskForge mapping |
 | --- | --- | --- |
 | Clause 6.1 | Actions to address risks and opportunities | Direct: fundamental_rights, health_safety items |
-| Clause 7.4 | Communication | Surfaced via transparency dimension |
 | Clause 9.1 | Performance evaluation, monitoring | RO-003, RO-004, DI-004, HS-005 |
-| Annex A.6 | AI system documentation | transparency questions |
+| Annex A.6 | AI system life cycle | transparency questions (fit to be confirmed against the Annex A control text) |
 | Annex A.7 | Data for AI systems | discrimination + data_governance + privacy |
-| Annex A.8 | Information for interested parties | transparency |
 | Annex A.9 | Use of AI systems | human_oversight + privacy + robustness |
 
 Source: ISO/IEC 42001:2023 *Information technology - Artificial intelligence

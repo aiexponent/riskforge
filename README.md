@@ -29,7 +29,7 @@
 
 Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers of **high-risk AI systems** (Article 6, Annexes I and III) must establish, implement, document and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
 
-* **Application Dates**: The high-risk rules apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by Regulation (EU) 2026/1744, in force since 27 July 2026).
+* **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by Regulation (EU) 2026/1744, in force since 27 July 2026).
 * **Statutory Non-Compliance Penalties**: Fines up to **€15,000,000 or 3% of total worldwide annual turnover**.
 * **The Compliance Bottleneck**: Engineering and MLOps teams cannot afford multi-month, €100K+ Big 4 advisory engagements for every model iteration or system change.
 
@@ -227,7 +227,7 @@ graph LR
 
 Cross-maps to:
 * **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
-* **ISO/IEC 42001:2023**: Clauses 6.1, 7.4, and Annex Controls A.6–A.9
+* **ISO/IEC 42001:2023**: Clauses 6.1 and 9.1, and Annex A.6, A.7 and A.9
 * **Colorado AI Act**: SB 24-205 (repealed and reenacted by SB 26-189)
 * **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA)
 
