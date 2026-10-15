@@ -103,14 +103,14 @@ references:
   "Regulation (EU) 2017/746": {source: ivdr, status: verified}
   # GDPR
   "GDPR Art.5(1)(e)": {source: gdpr, status: verified}
-  "Art.5(1)(b)": {source: gdpr, status: verified, note: "GDPR; PR-003 guidance writes it after 'GDPR'"}
+  "GDPR Art.5(1)(b)": {source: gdpr, status: verified}
   "GDPR Art.9": {source: gdpr, status: verified}
   "GDPR Art.13(2)(f)": {source: gdpr, status: verified}
   "GDPR Art.14(2)(g)": {source: gdpr, status: verified}
   "GDPR Art.15(1)(h)": {source: gdpr, status: verified}
   "GDPR Art.22(1)": {source: gdpr, status: verified}
   "GDPR Art.22(2)(a)": {source: gdpr, status: verified}
-  "Art.22(3)": {source: gdpr, status: verified, note: "GDPR; follows 'GDPR Article 22(2)(a) or (c)' in the pattern text"}
+  "GDPR Art.22(3)": {source: gdpr, status: verified}
   "GDPR Art.35": {source: gdpr, status: verified}
   # Charter of Fundamental Rights
   "Charter Art.19(2)": {source: charter, status: verified}

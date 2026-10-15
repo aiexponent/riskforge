@@ -21,7 +21,7 @@ patterns:
         iso42001_ref: "Annex A.7"
       - dimension: transparency
         title: "Lack of explanation for credit decisions"
-        description: "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this."
+        description: "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this."
         likelihood_hint: 3
         severity_hint: 3
         article_refs: ["Art.13", "Art.86(1)"]
@@ -45,7 +45,7 @@ patterns:
         iso42001_ref: "Annex A.7"
       - dimension: transparency
         title: "Lack of explainability for rejection decisions"
-        description: "Where a solely automated screening decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) requires at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not be designed to provide this."
+        description: "Where a solely automated screening decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) requires at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not be designed to provide this."
         likelihood_hint: 3
         severity_hint: 3
         article_refs: ["Art.13", "Art.14", "Art.86(1)"]

@@ -170,7 +170,7 @@
           "Art.13",
           "Art.86(1)"
         ],
-        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
+        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
