@@ -139,6 +139,14 @@ def run() -> None:
             message += " Run `riskforge verify` for details."
         _one_line_error(message)
         sys.exit(EXIT_TAMPERED)
+    except PermissionError as exc:
+        # A command that changes data, run on a read-only copy of a project.
+        target = exc.filename or "a project file"
+        _one_line_error(
+            f"Cannot write {target}: permission denied. This command changes the project; "
+            "run it where the project is writable."
+        )
+        sys.exit(EXIT_FAILED)
     except Exception as exc:
         _exit_on_integrity_error(exc)
         raise

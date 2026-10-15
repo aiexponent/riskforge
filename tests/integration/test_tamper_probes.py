@@ -335,7 +335,7 @@ def test_untouched_v113_project_still_accepts_changes(tmp_path: Path, command: s
     assert "not covered by a fingerprint yet" not in verified.output
 
 
-READ_ONLY_COMMANDS = ("validate", "tests generate")
+READ_ONLY_COMMANDS = ("validate",)
 
 
 def _set_writable(root: Path, writable: bool) -> None:
@@ -454,7 +454,7 @@ def _run_with_swap(tmp_path: Path, edited: Path, target: Path, args: list[str]):
 @pytest.mark.parametrize(
     "command",
     ["risk accept", "risk mitigate", "system classify", "export", "export --force", "import"]
-    + ["assess"],
+    + ["assess", "tests generate"],
 )
 def test_register_swapped_after_the_check_is_refused(
     pristine, tmp_path: Path, command: str
@@ -552,5 +552,4 @@ def test_read_only_command_refuses_a_register_swapped_after_the_check(
     assert "Traceback" not in result.output
     assert "changed after" in result.output, result.output
     assert "All gates passed" not in result.output
-    assert "Derived" not in result.output
     assert _log(project).read_bytes() == log_before

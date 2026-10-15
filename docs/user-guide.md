@@ -144,7 +144,7 @@ answers:
 ```
 
 `applies: yes` adds a scored risk item (likelihood and severity required).
-`applies: unknown` flags a knowledge gap and derives a test requirement later.
+`applies: unknown` flags a knowledge gap; `riskforge tests generate` then saves a test requirement for it.
 Question ids come from the bundled question bank (see the files under
 `src/riskforge/_data/question_bank/`).
 
@@ -173,7 +173,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
-| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks. |
+| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks and save them on the register. Run it before `export`: the export carries the saved requirements. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
@@ -268,7 +268,7 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`; `verify`, `validate` or `tests generate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
+| 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
 | 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, a receipt the audit log no longer holds, or a receipt or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
 | 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict`, `--receipt` or `--trusted-key` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 

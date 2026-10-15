@@ -535,3 +535,23 @@ def test_journal_that_is_a_fifo_fails_without_hanging(tmp_path: Path) -> None:
     result = run_rf(["verify", "--project-dir", str(tmp_path)], timeout=60)
     assert result.returncode == 2, result.output
     assert "txn.json is not a regular file" in result.output
+
+
+@pytest.mark.skipif(
+    hasattr(__import__("os"), "geteuid") and __import__("os").geteuid() == 0,
+    reason="root ignores file permissions",
+)
+def test_changing_command_on_a_read_only_copy_exits_with_one_line(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    sid = _seed(project)
+    _set_writable(project, False)
+    try:
+        before = _listing(project)
+        result = run_rf(["tests", "generate", sid, "--project-dir", str(project)])
+        assert result.returncode == 1, result.output
+        _assert_one_line_findings(result.output)
+        assert "permission denied" in result.output
+        assert _listing(project) == before
+    finally:
+        _set_writable(project, True)

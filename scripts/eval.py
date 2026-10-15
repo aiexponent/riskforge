@@ -2,7 +2,8 @@
 """RiskForge example evaluation harness.
 
 For each directory under examples/ that has a config.yaml, run the full pipeline
-headless (init, classify, assess --answers, accept open items, export json),
+headless (init, classify, assess --answers, accept open items, tests generate,
+export json),
 normalise the volatile fields (uuids, timestamps, hashes), and compare against the
 committed golden `expected.json`.
 
@@ -147,6 +148,12 @@ def _run_example(example_dir: Path) -> dict:
             )
 
         asyncio.run(_accept_open_items(d, sid))
+
+        generate = _rf(["tests", "generate", sid, "--project-dir", str(d)])
+        if generate.returncode != 0:
+            raise RuntimeError(
+                f"tests generate failed for {example_dir.name}:\n{generate.stdout}{generate.stderr}"
+            )
 
         out = d / "rmf.json"
         export = _rf(["export", sid, "-f", "json", "-o", str(out), "--project-dir", str(d)])

@@ -500,7 +500,81 @@
       "purpose": "Automated credit scoring for retail loan and mortgage underwriting decisions.",
       "schema_version": "1.0.0",
       "version": "2.1.0"
-    }
+    },
+    "test_requirements": [
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
+        "id": "<uuid>",
+        "metric_type": "demographic_parity",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "<= 0.10"
+      },
+      {
+        "article_ref": "Art.13",
+        "description": "Validate 'Lack of explanation for credit decisions' via explanation_coverage measurement. Target: >= 0.90.",
+        "id": "<uuid>",
+        "metric_type": "explanation_coverage",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": ">= 0.90"
+      },
+      {
+        "article_ref": "Art.9(2)(a)",
+        "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
+        "id": "<uuid>",
+        "metric_type": "fundamental_rights_impact_score",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "= 0"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+        "id": "<uuid>",
+        "metric_type": "demographic_parity",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "<= 0.10"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+        "id": "<uuid>",
+        "metric_type": "pii_leakage_rate",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "= 0.00"
+      },
+      {
+        "article_ref": "Art.13",
+        "description": "Validate 'Are users notified that they are interacting with or being assessed by an AI system?' via explanation_coverage measurement. Target: >= 0.90.",
+        "id": "<uuid>",
+        "metric_type": "explanation_coverage",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": ">= 0.90"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+        "id": "<uuid>",
+        "metric_type": "faithfulness",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": ">= 0.85"
+      },
+      {
+        "article_ref": "Art.10",
+        "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+        "id": "<uuid>",
+        "metric_type": "data_quality_score",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": ">= 0.95"
+      }
+    ]
   },
   "rmf_schema_version": "1.1.0",
   "sha256_hash": "<hash>",
