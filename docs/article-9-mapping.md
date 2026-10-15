@@ -456,7 +456,8 @@ and warn on imbalance. Not currently shipped.
 **What RiskForge does.**
 
 - `riskforge tests generate` derives Article 9(6) to 9(8) test requirements
-  from risk items, including knowledge-gap risks (any risk item flagged as
+  and saves them on the register as an audited change; the export carries
+  the saved requirements. It derives them from risk items, including knowledge-gap risks (any risk item flagged as
   "evidence not yet collected").
 - Robustness questions RO-001 through RO-005 force the assessor to record
   which tests have been run: out-of-distribution testing, slice-level metrics,
@@ -488,7 +489,8 @@ and warn on imbalance. Not currently shipped.
 that test artefacts attach automatically to the matching risk item is a v1.x
 target.
 
-**Validation gate(s).** **G4** (knowledge gaps must have tests, WARN).
+**Validation gate(s).** **G4** (every knowledge-gap risk must have a saved test
+requirement from `riskforge tests generate`, WARN).
 
 ---
 

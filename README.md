@@ -91,7 +91,8 @@ riskforge risk mitigate <system-id> <risk-id> \
 riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
   --by "Dr. Lena Fischer, AI Governance Lead"
 
-# 5. (Optional) Derive Article 9(6)-(8) test requirements per open or knowledge-gap risk
+# 5. Derive Article 9(6)-(8) test requirements per open or knowledge-gap risk and save them
+#    on the register (the export carries them; gate G4 warns until every knowledge gap has one)
 riskforge tests generate <system-id>
 
 # 6. Check completeness before export (exit 1 if a FAIL gate is unmet)
@@ -334,7 +335,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | Exit Code | Meaning | CI Behavior |
 | :--- | :--- | :--- |
 | `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
-| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify`, `validate` or `tests generate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
+| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify` or `validate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
 | `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an RMF file does not match its digest. `verify` exits 2 (with `--strict`, also on any integrity warning), and every command that changes or exports data exits 2 on such a project without changing it. |
 | `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict` with `--file`, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
@@ -349,7 +350,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge assess <id>` | Run the interactive 8-dimension guided assessment (supports `--answers`). |
 | `riskforge risk mitigate <id> <risk-id> --by NAME` | Document preventive/corrective mitigation controls and re-score residual risk. `--by` (or `RISKFORGE_ACTOR`) names who recorded it; the name is self-declared and not verified. |
 | `riskforge risk accept <id> <risk-id> --by NAME` | Formally accept residual risk with documented business/technical rationale. `--by` (or `RISKFORGE_ACTOR`) names who accepted it; the name is self-declared and not verified. |
-| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks. |
+| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks and save them on the register (exported with the RMF). |
 | `riskforge validate <id>` | Execute the 8 completeness and quality gates before report generation. |
 | `riskforge export <id>` | Export Risk Management File to `pdf`, `json`, or `markdown`. |
 | `riskforge verify` | Verify cryptographic SHA-256 hash-chain integrity of audit log and exports. |
