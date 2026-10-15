@@ -57,7 +57,9 @@ def cmd(
     its chain proof (linked and hashed, ending at the register in the file) and its
     receipt (naming the last chain proof entry). A file that declares RMF schema 1.0.0
     gets the digest check only, and fails with --trusted-key or --receipt, since it
-    cannot carry a signature.
+    cannot carry a signature. Without --trusted-key, a pass shows only that the file is
+    consistent with itself, since anyone can rebuild its chain proof, receipt and
+    signatures, and the output says so.
 
     With --strict, every warning the project check reports is a finding, so a project
     with a register last written before RiskForge 2.0, or with no audit.head.json, exits
@@ -175,13 +177,15 @@ def _verify_rmf_file(
 ) -> NoReturn:
     """Verify a standalone exported rmf.json as ADR-04 section 6 orders it, then exit.
 
-    The file is read strictly (a duplicate key, a non-finite number or an integer too
-    long to read exits 2), and ``check_rmf_document`` checks it with the trusted keys
-    and receipts given. ``receipt_errors`` are receipt files already refused.
+    The file is read strictly (a duplicate key, a non-finite number, an integer too
+    long to read or nesting deeper than RiskForge writes exits 2), and
+    ``check_rmf_document`` checks it with the trusted keys and receipts given.
+    ``receipt_errors`` are receipt files already refused. Failures go to stderr, as in
+    the project check; a pass and its notes go to stdout.
     """
     from rich.markup import escape
 
-    from riskforge.cli.errors import EXIT_TAMPERED, fail, printable
+    from riskforge.cli.errors import EXIT_TAMPERED, err_console, fail, printable
     from riskforge.integrity.rmf import (
         RmfFileError,
         UnsupportedRmfVersionError,
@@ -196,10 +200,11 @@ def _verify_rmf_file(
     except RmfFileError as exc:
         fail(f"{file} is not a JSON RMF file: {exc}")
     except (StrictJsonError, NumberTooLongError) as exc:
-        console.print(
+        err_console.print(
             f"[red]✗[/red] {shown} holds {escape(printable(str(exc)))}, which RiskForge "
             "never writes.",
             soft_wrap=True,
+            highlight=False,
         )
         raise typer.Exit(EXIT_TAMPERED) from None
 
@@ -214,15 +219,21 @@ def _verify_rmf_file(
     findings = [*result.findings, *receipt_errors]
     if not findings:
         stored = escape(printable(str(result.stored_digest)))
+        # Without a trusted key every block can be rebuilt, so claim only consistency.
+        claim = (
+            "RMF integrity verified"
+            if result.trusted_key_checked
+            else "RMF file is internally consistent"
+        )
         console.print(
-            f"[green]✓[/green] RMF integrity verified. It validates against RMF schema "
+            f"[green]✓[/green] {claim}. It validates against RMF schema "
             f"{result.version} and its SHA-256 matches ({stored[:12]}...).",
             soft_wrap=True,
         )
         for note in result.notes:
             console.print(f"  {escape(printable(note))}", soft_wrap=True, highlight=False)
         raise typer.Exit(0)
-    console.print(f"[red]✗[/red] RMF INTEGRITY FAILURE in {shown}:", soft_wrap=True)
+    err_console.print(f"[red]✗[/red] RMF INTEGRITY FAILURE in {shown}:", soft_wrap=True)
     for finding in findings:
-        console.print(f"  - {escape(printable(finding))}", soft_wrap=True, highlight=False)
+        err_console.print(f"  - {escape(printable(finding))}", soft_wrap=True, highlight=False)
     raise typer.Exit(EXIT_TAMPERED)

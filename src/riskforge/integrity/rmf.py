@@ -48,6 +48,24 @@ RMF_1_0_0_CANNOT_BE_TRUSTED = (
     "cannot pass a check that requires a trusted key or a receipt."
 )
 
+# The last note of a pass without a trusted key: every block can be rebuilt (ADR-04
+# section 6, what each record catches).
+SELF_CONSISTENT_ONLY = (
+    "No trusted key was given, so this shows only that the file is consistent with "
+    "itself: anyone can rebuild its chain proof, receipt and signatures. To check who "
+    "made it, pass --trusted-key with the signer's public key"
+)
+_AND_A_RECEIPT = ", and --receipt with a receipt kept outside this file"
+SELF_CONSISTENT_ONLY_1_0_0 = (
+    "This shows only that the file is consistent with itself: anyone can recompute its "
+    "content digest, and RMF schema 1.0.0 cannot carry a signature that shows who made it."
+)
+
+_EMBEDDED_KEY_ONLY = (
+    "That shows only that whoever holds that key signed it; pass --trusted-key PUBFILE "
+    "to check who signed."
+)
+
 # A schema error message quotes the failing value, which can be a whole register.
 _MAX_SCHEMA_MESSAGE = 300
 
@@ -146,7 +164,9 @@ class RmfCheck:
     """What ``check_rmf_document`` found; ``findings`` empty means the file passed.
 
     ``notes`` say what was checked and what a pass proves, such as a signature verified
-    only with the key embedded in the file.
+    only with the key embedded in the file. ``trusted_key_checked`` is whether trusted
+    keys were given; a pass then means a trusted key signed the file. Without them a
+    pass shows only that the file is consistent with itself, and the last note says so.
     """
 
     version: str
@@ -155,6 +175,7 @@ class RmfCheck:
     schema_errors: list[str] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    trusted_key_checked: bool = False
 
     @property
     def ok(self) -> bool:
@@ -223,6 +244,11 @@ def check_rmf_document(
         )
     else:
         _Provenance(document, computed, trusted, findings, notes).check(receipts)
+    if not trusted and not findings:
+        if version == "1.0.0":
+            notes.append(SELF_CONSISTENT_ONLY_1_0_0)
+        else:
+            notes.append(f"{SELF_CONSISTENT_ONLY}{'' if receipts else _AND_A_RECEIPT}.")
     return RmfCheck(
         version=version,
         stored_digest=stored,
@@ -230,6 +256,7 @@ def check_rmf_document(
         schema_errors=invalid,
         findings=findings,
         notes=notes,
+        trusted_key_checked=bool(trusted),
     )
 
 
@@ -259,6 +286,8 @@ class _Provenance:
         self.register_fingerprint = document_fingerprint(document["register"])
         self.keys: dict[str, str] = {}  # key id -> base64 public key, for records that passed
         self.refused: set[str] = set()
+        # The seq of the chain proof entry that records the register in this file.
+        self.register_seq: int | None = None
 
     def check(self, receipts: Sequence[tuple[str, Receipt]]) -> None:
         self._public_keys()
@@ -344,8 +373,7 @@ class _Provenance:
             else:
                 self.notes.append(
                     f"{label} by {key_id} verifies with the public key embedded in the file. "
-                    "That shows only that whoever holds that key signed it; pass "
-                    "--trusted-key PUBFILE to check who signed."
+                    f"{_EMBEDDED_KEY_ONLY}"
                 )
         if not records:
             if self.trusted:
@@ -383,10 +411,16 @@ class _Provenance:
                     f"the register in this file ({self.register_fingerprint})."
                 )
             if len(self.findings) == before and key is not None:
-                self.notes.append(
+                said = (
                     f"{label}: {signoff.decision} by {signoff.approver} on version "
-                    f"{signoff.version_number}, signed by {signoff.key_id}{self._trust(key)}."
+                    f"{signoff.version_number}, signed by {signoff.key_id}"
                 )
+                if self.trusted:
+                    self.notes.append(f"{said} (a trusted key).")
+                else:
+                    self.notes.append(
+                        f"{said} with the public key embedded in the file. {_EMBEDDED_KEY_ONLY}"
+                    )
 
     def _chain_proof(self) -> list[AuditEntry] | None:
         """Step 5: links and hashes from seq 0, entry signatures, and the last fingerprint."""
@@ -400,7 +434,16 @@ class _Provenance:
             )
             return None
         before = len(self.findings)
-        self.findings.extend(verify_links(("Chain proof entry", entry) for entry in entries))
+        try:
+            self.findings.extend(verify_links(("Chain proof entry", entry) for entry in entries))
+        except (ValueError, RecursionError):
+            # A value nested too deeply for the serialiser; the strict reader refuses one
+            # in a file, but a document can reach this function another way.
+            self.findings.append(
+                "The chain proof holds an entry that cannot be hashed, so its links and "
+                "entry hashes were not checked."
+            )
+            return None
         for entry in entries:
             if entry.key_id is None or entry.signature is None:
                 continue
@@ -414,6 +457,7 @@ class _Provenance:
         for entry in entries:
             if entry.system_id == self.system_id and entry.register_fingerprint is not None:
                 recorded = entry.register_fingerprint
+                self.register_seq = entry.seq
         if recorded is None:
             self.findings.append(
                 f"The chain proof records no register fingerprint for system {self.system_id}."
@@ -508,6 +552,15 @@ class _Provenance:
             if self.trusted:
                 signer += " (a trusted key)"
         self.notes.append(f"{label}: the chain proof holds its entry at seq {receipt.seq}{signer}.")
+        if self.register_seq is not None and self.register_seq > receipt.seq:
+            after = sum(1 for entry in entries if entry.seq > receipt.seq)
+            entries_after = "entry comes" if after == 1 else "entries come"
+            self.notes.append(
+                f"{label} does not cover the register in this file: the chain proof records "
+                f"it at seq {self.register_seq}, after the receipt's seq {receipt.seq}, and "
+                f"{after} chain proof {entries_after} after it. A receipt covers only the "
+                "entries up to its seq."
+            )
 
 
 def rmf_signing_message(digest: str) -> bytes:

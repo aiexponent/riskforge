@@ -13,7 +13,12 @@ import yaml
 from rf_testkit import run_rf
 from riskforge.integrity.canonical import document_fingerprint
 from riskforge.integrity.chain import compute_entry_hash
-from riskforge.integrity.rmf import content_digest, rmf_signing_message, signoff_signing_message
+from riskforge.integrity.rmf import (
+    check_rmf_document,
+    content_digest,
+    rmf_signing_message,
+    signoff_signing_message,
+)
 from riskforge.integrity.signing import Ed25519Signer
 from riskforge.models.audit import AuditEntry
 from riskforge.models.rmf import SignOff
@@ -24,6 +29,9 @@ V113_RMF = REPO / "tests" / "fixtures" / "v1_1_3_project" / "rmf.json"
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 DIGEST_ONLY = "only its content digest was checked"
 REFUSED_1_0_0 = "RMF schema 1.0.0 cannot carry a signature"
+CONSISTENT = "RMF file is internally consistent"
+VERIFIED = "RMF integrity verified"
+SELF_ONLY = "anyone can rebuild its chain proof, receipt and signatures"
 
 Document = dict[str, Any]
 
@@ -112,7 +120,7 @@ def _system_id(document: Document) -> str:
 def test_signed_export_verifies_and_names_what_was_checked(exported) -> None:
     result = _verify(exported["second"])
     assert result.returncode == 0, result.output
-    assert "RMF integrity verified" in result.output
+    assert CONSISTENT in result.output
     assert "not a trusted key check" not in result.output
     assert "Not checked" not in result.output
     assert "--trusted-key" in result.output  # the signer was not checked against a trusted key
@@ -644,3 +652,183 @@ def test_help_has_no_em_dash() -> None:
     assert result.returncode == 0
     assert "—" not in result.stdout
     assert "cannot be combined with --file yet" not in result.stdout
+
+
+# --- what a pass claims without a trusted key ------------------------------------------------
+
+
+def _last_line(text: str) -> str:
+    return [line for line in text.splitlines() if line.strip()][-1]
+
+
+@pytest.mark.parametrize("name", ["second", "unsigned"])
+def test_without_a_trusted_key_a_pass_claims_only_consistency(exported, name: str) -> None:
+    result = _verify(exported[name])
+    assert result.returncode == 0, result.output
+    assert CONSISTENT in result.stdout
+    assert VERIFIED not in result.output
+    assert SELF_ONLY in _last_line(result.stdout)
+    assert "--trusted-key" in _last_line(result.stdout)
+    assert "--receipt" in _last_line(result.stdout)
+    assert result.stdout.count(SELF_ONLY) == 1
+    assert "—" not in result.output
+
+
+def test_a_rebuilt_unsigned_file_passes_only_as_consistent(exported, tmp_path: Path) -> None:
+    """Every block of an unsigned file can be rebuilt, so a pass must not say "verified"."""
+    document = _load(exported["unsigned"])
+    _edit_register(document)
+    entries = document["chain_proof"]["entries"]
+    sid = _system_id(document)
+    last_for_system = max(
+        i for i, e in enumerate(entries) if e["system_id"] == sid and e.get("register_fingerprint")
+    )
+    entries[last_for_system]["register_fingerprint"] = document_fingerprint(document["register"])
+    _relink(entries)
+    last = entries[-1]
+    document["receipt"].update(
+        seq=last["seq"],
+        entry_hash=last["entry_hash"],
+        register_fingerprint=document_fingerprint(document["register"]),
+    )
+    result = _verify(_write(_redigest(document), tmp_path))
+    assert result.returncode == 0, result.output
+    assert VERIFIED not in result.output
+    assert SELF_ONLY in _last_line(result.stdout)
+
+
+def test_a_signoff_signed_with_an_embedded_key_carries_the_caveat(exported, tmp_path: Path) -> None:
+    result = _verify(_with_signoff(exported, tmp_path, signoff_key="other"))
+    assert result.returncode == 0, result.output
+    line = next(line for line in result.stdout.splitlines() if "Sign-off 1" in line)
+    assert "public key embedded in the file" in line
+    assert "--trusted-key" in line
+
+
+def test_with_a_trusted_key_that_signed_the_pass_is_verified(exported, tmp_path: Path) -> None:
+    result = _verify(_with_signoff(exported, tmp_path), "--trusted-key", f"{exported['key']}.pub")
+    assert result.returncode == 0, result.output
+    assert VERIFIED in result.stdout
+    assert CONSISTENT not in result.output
+    assert SELF_ONLY not in result.output
+    line = next(line for line in result.stdout.splitlines() if "Sign-off 1" in line)
+    assert "(a trusted key)" in line
+    assert "embedded in the file" not in line
+
+
+def test_a_1_0_0_pass_claims_only_consistency() -> None:
+    result = _verify(V113_RMF)
+    assert result.returncode == 0, result.output
+    assert CONSISTENT in result.stdout
+    assert VERIFIED not in result.output
+    assert "anyone can recompute" in _last_line(result.stdout)
+
+
+# --- a receipt file that does not reach the register -----------------------------------------
+
+
+def test_a_receipt_that_ends_before_the_register_says_so(exported, tmp_path: Path) -> None:
+    """ADR-04 section 5: a receipt proves only the entries up to its seq."""
+    document = _load(exported["second"])
+    _edit_register(document)
+    fingerprint = document_fingerprint(document["register"])
+    entries = document["chain_proof"]["entries"]
+    sid = _system_id(document)
+    template = next(
+        e for e in reversed(entries) if e["system_id"] == sid and e.get("register_fingerprint")
+    )
+    forged = {k: v for k, v in template.items() if k not in ("key_id", "signature")}
+    forged.update(seq=entries[-1]["seq"] + 1, register_fingerprint=fingerprint)
+    entries.append(forged)
+    _relink(entries)
+    last = entries[-1]
+    for name in ("key_id", "public_key", "signature"):
+        document["receipt"].pop(name, None)
+    document["receipt"].update(
+        seq=last["seq"], entry_hash=last["entry_hash"], register_fingerprint=fingerprint
+    )
+    document["signatures"] = []
+    path = _write(_redigest(document), tmp_path)
+    receipt_seq = _load(exported["first"])["receipt"]["seq"]
+    after = sum(1 for e in entries if e["seq"] > receipt_seq)
+
+    result = _verify(path, "--receipt", str(exported["first"]))
+    assert result.returncode == 0, result.output
+    assert "does not cover the register in this file" in result.stdout
+    assert f"{after} chain proof entries come after it" in result.stdout
+    closing = _last_line(result.stdout)
+    assert SELF_ONLY in closing
+    assert "--receipt" not in closing  # one was given
+
+
+def test_a_receipt_that_reaches_the_register_has_no_such_note(exported) -> None:
+    result = _verify(exported["second"], "--receipt", str(exported["second"]))
+    assert result.returncode == 0, result.output
+    assert "does not cover the register" not in result.output
+
+
+# --- nesting deeper than RiskForge writes ----------------------------------------------------
+
+
+def _nested(depth: int) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for _ in range(depth):
+        payload = {"a": payload}
+    return payload
+
+
+def test_a_deeply_nested_payload_is_refused_without_a_traceback(exported, tmp_path: Path) -> None:
+    document = _load(exported["second"])
+    document["chain_proof"]["entries"][0]["payload"] = _nested(500)
+    result = _verify(_write(document, tmp_path))
+    assert result.returncode == 2, result.output
+    assert "nested more than 64 levels deep, which RiskForge never writes" in result.stderr
+    assert "Traceback" not in result.output
+
+
+def test_an_entry_that_cannot_be_hashed_is_a_finding(exported) -> None:
+    """A document read some other way still gets a finding, not an exception."""
+    document = _load(exported["second"])
+    document["chain_proof"]["entries"][0]["payload"] = _nested(300)
+    result = check_rmf_document(document)
+    assert not result.ok
+    assert any("cannot be hashed" in finding for finding in result.findings)
+
+
+# --- where each line goes --------------------------------------------------------------------
+
+
+def test_failures_go_to_stderr_and_a_pass_to_stdout(exported, tmp_path: Path) -> None:
+    document = _load(exported["second"])
+    _edit_register(document)
+    failed = _verify(_write(document, tmp_path))
+    assert failed.returncode == 2, failed.output
+    assert "RMF INTEGRITY FAILURE" in failed.stderr
+    assert "does not match its SHA-256 digest" in failed.stderr
+    assert failed.stdout == ""
+
+    passed = _verify(exported["second"])
+    assert passed.returncode == 0, passed.output
+    assert CONSISTENT in passed.stdout
+    assert passed.stderr == ""
+
+
+def test_a_strict_reading_refusal_goes_to_stderr_and_reads_correctly(
+    exported, tmp_path: Path
+) -> None:
+    out = tmp_path / "rmf.json"
+    out.write_text(
+        re.sub(r'"likelihood": \d', '"likelihood": NaN', exported["second"].read_text(), count=1)
+    )
+    result = _verify(out)
+    assert result.returncode == 2, result.output
+    assert "holds a NaN value, which RiskForge never writes." in result.stderr
+    assert result.stdout == ""
+
+
+def test_a_receipt_file_refusal_reads_correctly(exported, tmp_path: Path) -> None:
+    path = tmp_path / "receipt.json"
+    path.write_text(exported["first"].read_text().replace('"seq":', '"seq": NaN, "seq":', 1))
+    result = _verify(exported["second"], "--receipt", str(path))
+    assert result.returncode == 2, result.output
+    assert "it holds a NaN value, which RiskForge never writes." in result.stderr
