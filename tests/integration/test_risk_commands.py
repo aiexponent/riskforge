@@ -196,11 +196,11 @@ def test_markdown_export_shows_who_accepted_and_who_recorded(tmp_path: Path) -> 
     assert "Recorded by: Sam Lee, ML Lead" in text
 
 
-def test_json_export_still_validates_against_rmf_1_0_0(tmp_path: Path) -> None:
-    """RMF schema 1.0.0 has no field for the names, so the JSON export leaves them out.
+def test_json_export_carries_the_names_in_rmf_1_1_0(tmp_path: Path) -> None:
+    """RMF schema 1.1.0 holds accepted_by and recorded_by, so the JSON export keeps them."""
+    import jsonschema
+    from riskforge.integrity.rmf import load_schema
 
-    PRD-338 adds them in RMF schema 1.1.0.
-    """
     sid, rid = _init_and_assess(tmp_path)
     assert _mitigate(tmp_path, sid, rid, "--by", "Sam Lee, ML Lead").returncode == 0
     assert _accept(tmp_path, sid, rid, "--by", JANE).returncode == 0
@@ -210,10 +210,11 @@ def test_json_export_still_validates_against_rmf_1_0_0(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.output
     rmf = json.loads(out.read_text(encoding="utf-8"))
-    assert rmf["rmf_schema_version"] == "1.0.0"
+    assert rmf["rmf_schema_version"] == "1.1.0"
+    jsonschema.validate(rmf, load_schema("1.1.0"))
     item = rmf["register"]["items"][0]
-    assert "accepted_by" not in item
-    assert all("recorded_by" not in m for m in item["mitigations"])
+    assert item["accepted_by"] == JANE
+    assert [m["recorded_by"] for m in item["mitigations"]] == ["Sam Lee, ML Lead"]
     assert run_rf(["verify", "--file", str(out)]).returncode == 0
 
 

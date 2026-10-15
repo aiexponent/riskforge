@@ -1,7 +1,7 @@
 """Regression tests for the RMF model <-> JSON Schema contract.
 
 B1: the Mitigation model emits `article_ref` and `nist_rmf_ref`, but the bundled
-`rmf.schema.json` declared `$defs/Mitigation` with `additionalProperties: false`
+`rmf.schema.json` (now `rmf-1.0.0.schema.json`) declared `$defs/Mitigation` with `additionalProperties: false`
 and omitted those two fields. Any register containing a mitigation therefore
 failed schema validation at export time, blocking JSON/PDF/Markdown export of the
 Article 9(2)(d) risk-treatment content. The prior export tests only exercised
@@ -10,12 +10,11 @@ mitigation-free registers, so CI stayed green while the core deliverable was bro
 
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime, timedelta
-from importlib.resources import files
 
 import jsonschema
 import pytest
+from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import (
     Likelihood,
@@ -24,12 +23,12 @@ from riskforge.models.risk import (
     RiskItem,
     Severity,
 )
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.models.rmf import RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem
 
 
 def _schema() -> dict:
-    return json.loads(files("riskforge._data.schemas").joinpath("rmf.schema.json").read_text())
+    return load_schema("1.1.0")
 
 
 def _rmf_with_mitigation() -> RiskManagementFile:
@@ -69,13 +68,15 @@ def _rmf_with_mitigation() -> RiskManagementFile:
         question_bank_version="1.0.0",
         items=[item],
     )
-    return RiskManagementFile(register=register)
+    rmf = RiskManagementFile(register=register)
+    rmf.sha256_hash = content_digest(rmf_document(rmf))
+    return rmf
 
 
 def test_rmf_with_mitigation_validates_against_schema() -> None:
     """An RMF whose register contains a mitigation must pass schema validation."""
     rmf = _rmf_with_mitigation()
-    payload = rmf.model_dump(mode="json", by_alias=True)
+    payload = rmf_document(rmf)
     # Must not raise: the Mitigation's article_ref/nist_rmf_ref are valid fields.
     jsonschema.validate(payload, _schema())
 
@@ -104,7 +105,7 @@ def test_schema_requires_nonempty_disclosure() -> None:
     on RiskForge's own export code.
     """
     schema = _schema()
-    payload = _rmf_with_mitigation().model_dump(mode="json", by_alias=True)
+    payload = rmf_document(_rmf_with_mitigation())
 
     # Baseline: a fully-formed RMF carries a non-empty disclosure and validates.
     assert payload.get("disclosure")

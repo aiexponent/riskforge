@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from riskforge.models.requirements import TestRequirement
 from riskforge.models.risk import RiskDimension, RiskItem
-from riskforge.models.rmf import TestRequirement
 
 # Dimension → suggested metric types for Art.9(7) test requirements
 DIMENSION_METRIC_HINTS: dict[RiskDimension, list[dict[str, str]]] = {
