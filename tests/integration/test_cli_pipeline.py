@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import pytest
 from rf_testkit import run_rf
 
 
@@ -368,6 +369,85 @@ def test_verify_file_refuses_an_unknown_schema_version(tmp_path: Path) -> None:
     result = _run(["verify", "--file", str(out)])
     assert result.returncode == 3, result.output
     assert "9.9.9" in result.output
+
+
+def _rewrite(out: Path, data: dict) -> None:
+    """Write ``data`` back with a recomputed content digest, as a forger would."""
+    from riskforge.integrity.rmf import content_digest
+
+    data["sha256_hash"] = content_digest(data)
+    out.write_text(json.dumps(data, indent=2))
+
+
+_FAKE_SIGNATURE = {
+    "key_id": "ed25519:0123456789abcdef",
+    "algorithm": "ed25519",
+    "signed_at": "2026-10-01T00:00:00Z",
+    "signature": "A" * 86 + "==",
+}
+
+
+def test_verify_file_validates_the_schema_before_it_reports_a_match(tmp_path: Path) -> None:
+    """ADR-04 section 6 step 1: a recomputed digest does not make a malformed 1.1.0 file valid."""
+    out = _export_json(tmp_path, "Schema Check System")
+    data = json.loads(out.read_text())
+    data["signed_by"] = "someone@example.com"
+    data["audit_entry_hash"] = "0" * 64
+    data["signatures"] = [{**_FAKE_SIGNATURE, "signature": "not base64"}]
+    _rewrite(out, data)
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "verified" not in result.output
+    assert "schema 1.1.0" in result.output
+    assert "signed_by" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("version", [["1.1.0"], {"v": "1.1.0"}, 110])
+def test_verify_file_refuses_a_schema_version_that_is_not_a_string(
+    tmp_path: Path, version: object
+) -> None:
+    out = _export_json(tmp_path, "Version Type System")
+    data = json.loads(out.read_text())
+    data["rmf_schema_version"] = version
+    out.write_text(json.dumps(data, indent=2))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 3, result.output
+    assert "Traceback" not in result.output
+    assert "rmf_schema_version" in result.output
+
+
+def test_verify_file_says_provenance_blocks_were_not_checked(tmp_path: Path) -> None:
+    """Until signatures are verified, a well-formed but bogus one must not pass silently."""
+    out = _export_json(tmp_path, "Not Checked System")
+    data = json.loads(out.read_text())
+    data["signatures"] = [_FAKE_SIGNATURE]
+    _rewrite(out, data)
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 0, result.output
+    assert "Not checked: signatures." in result.output
+
+
+def test_verify_file_refuses_an_integer_too_long_for_python(tmp_path: Path) -> None:
+    out = _export_json(tmp_path, "Long Integer System")
+    text = out.read_text()
+    out.write_text(text.replace('"disclosure":', '"n": ' + "9" * 5000 + ',\n  "disclosure":', 1))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "too long" in result.output
+
+
+def test_verify_file_prints_the_stored_digest_escaped(tmp_path: Path) -> None:
+    """The stored sha256_hash comes from the file: no markup or control character reaches the terminal."""
+    out = _export_json(tmp_path, "Escaped Digest System")
+    data = json.loads(out.read_text())
+    data["sha256_hash"] = "\x1b[31m[bold]x[/bold]"
+    out.write_text(json.dumps(data, indent=2))
+    result = _run(["verify", "--file", str(out)])
+    assert result.returncode == 2, result.output
+    assert "\x1b" not in result.output
+    assert "[bold]x[/bold]" in result.output
 
 
 def test_assess_noninteractive_from_answers_file() -> None:

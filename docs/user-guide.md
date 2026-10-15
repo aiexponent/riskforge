@@ -325,8 +325,12 @@ writes `signoffs`,
 A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
 --file` checks it by the rule those releases used: the whole document with
 `sha256_hash`, `audit_entry_hash` and `signed_by` blanked. It reads every RMF file
-strictly: a duplicate key, `NaN` or `Infinity` exits 2, and a schema version
-RiskForge does not read exits 3. The JSON Schemas are bundled as
+strictly: a duplicate key, `NaN`, `Infinity` or an integer too long to read exits 2,
+and a schema version RiskForge does not read exits 3. It then validates the file
+against the schema its `rmf_schema_version` names and recomputes the digest; a file
+that fails either exits 2 and lists every error. `verify --file` does not check
+`signatures`, `signoffs`, `chain_proof` or `receipt` yet, and says so when the file
+carries any of them. The JSON Schemas are bundled as
 `rmf-1.0.0.schema.json` and `rmf-1.1.0.schema.json` in `riskforge/_data/schemas/`.
 
 The PDF renders the same data as a filing-ready document: cover, executive summary,
