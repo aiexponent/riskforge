@@ -7,9 +7,9 @@ questions:
     annex_iii_categories: [employment, education, law_enforcement, essential_services, biometric]
     default_likelihood_hint: 2
     default_severity_hint: 3
-    article_refs: ["Art.10(2)", "Art.10(3)"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.8"
+    article_refs: ["Art.10(2)", "Art.10(2)(b)"]
+    nist_rmf_ref: "MAP 2.3"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DG-002
@@ -18,20 +18,20 @@ questions:
     annex_iii_categories: [employment, education, law_enforcement]
     default_likelihood_hint: 3
     default_severity_hint: 3
-    article_refs: ["Art.10(2)", "Art.10(3)"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.8"
+    article_refs: ["Art.10(2)", "Art.10(2)(b)"]
+    nist_rmf_ref: "MAP 4.1"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DG-003
     text: "Are data quality checks (completeness, consistency, accuracy) applied and documented before training and fine-tuning?"
-    guidance: "Article 10(2)(e) requires data governance practices including data quality assessment."
+    guidance: "Article 10(3) requires training, validation and testing data sets to be, to the best extent possible, free of errors and complete in view of the intended purpose. Article 10(2)(c) covers data-preparation processing operations such as cleaning."
     annex_iii_categories: [employment, education, law_enforcement, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 3
-    article_refs: ["Art.10(2)(e)"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.8"
+    article_refs: ["Art.10(3)", "Art.10(2)(c)"]
+    nist_rmf_ref: "MAP 2.3"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DG-004
@@ -40,9 +40,9 @@ questions:
     annex_iii_categories: [law_enforcement, employment, biometric, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 2
-    article_refs: ["Art.10(3)"]
-    nist_rmf_ref: "GOVERN 1.6"
-    iso42001_ref: "Clause A.8"
+    article_refs: ["Art.19(1)", "Art.26(6)"]
+    nist_rmf_ref: "MEASURE 2.10"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DG-005
@@ -52,6 +52,6 @@ questions:
     default_likelihood_hint: 2
     default_severity_hint: 3
     article_refs: ["Art.10", "Art.11"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.8"
+    nist_rmf_ref: "MAP 2.3"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled

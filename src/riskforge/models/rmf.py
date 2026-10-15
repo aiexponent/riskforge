@@ -28,7 +28,7 @@ class TestRequirement(BaseModel):
     description: str
     metric_type: str  # e.g. "demographic_parity", "faithfulness", "adversarial_accuracy"
     threshold_range: str  # e.g. ">= 0.85", "<= 0.05", "[0.80, 1.00]"
-    article_ref: str = ""  # e.g. "Art.9(7)"
+    article_ref: str = ""  # e.g. "Art.9(8)"
     nist_rmf_ref: str = ""  # e.g. "MEASURE 2.5"
 
 

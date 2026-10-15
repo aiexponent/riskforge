@@ -3,8 +3,8 @@
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11",
       "risk_item_ids": [
         "<uuid>",
         "<uuid>",
@@ -14,16 +14,16 @@
     },
     {
       "article_ref": "Art.9(9)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
       "article_ref": "Art.10(2)(f)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11",
       "risk_item_ids": [
         "<uuid>",
         "<uuid>"
@@ -31,16 +31,16 @@
     },
     {
       "article_ref": "Art.13",
-      "iso42001_ref": "Clause A.6",
-      "nist_rmf_ref": "GOVERN 1.7",
+      "iso42001_ref": "Annex A.6",
+      "nist_rmf_ref": "MEASURE 2.8",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
       "article_ref": "Art.86(1)",
-      "iso42001_ref": "Clause A.6",
-      "nist_rmf_ref": "GOVERN 1.7",
+      "iso42001_ref": "Annex A.6",
+      "nist_rmf_ref": "MEASURE 2.8",
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -48,38 +48,46 @@
     {
       "article_ref": "Art.14(1)",
       "iso42001_ref": "Clause 6.1",
-      "nist_rmf_ref": "MAP 1.5",
+      "nist_rmf_ref": "MAP 3.5",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
-      "article_ref": "Art.10(5)",
-      "iso42001_ref": "Clause A.8",
-      "nist_rmf_ref": "GOVERN 1.6",
+      "article_ref": "Art.4a(1)",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.10",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
-      "article_ref": "Art.13(1)",
-      "iso42001_ref": "Clause A.6",
-      "nist_rmf_ref": "GOVERN 1.7",
+      "article_ref": "Art.26(11)",
+      "iso42001_ref": "Annex A.6",
+      "nist_rmf_ref": "MEASURE 2.8",
+      "risk_item_ids": [
+        "<uuid>"
+      ]
+    },
+    {
+      "article_ref": "Art.50(1)",
+      "iso42001_ref": "Annex A.6",
+      "nist_rmf_ref": "MEASURE 2.8",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
       "article_ref": "Art.14(4)(e)",
-      "iso42001_ref": "Clause A.9",
-      "nist_rmf_ref": "MANAGE 1.1",
+      "iso42001_ref": "Annex A.9",
+      "nist_rmf_ref": "MANAGE 2.4",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
-      "article_ref": "Art.9(7)",
-      "iso42001_ref": "Clause A.9",
+      "article_ref": "Art.9(6)",
+      "iso42001_ref": "Annex A.9",
       "nist_rmf_ref": "MEASURE 2.5",
       "risk_item_ids": [
         "<uuid>"
@@ -87,7 +95,7 @@
     },
     {
       "article_ref": "Art.15",
-      "iso42001_ref": "Clause A.9",
+      "iso42001_ref": "Annex A.9",
       "nist_rmf_ref": "MEASURE 2.5",
       "risk_item_ids": [
         "<uuid>"
@@ -95,16 +103,16 @@
     },
     {
       "article_ref": "Art.10(2)",
-      "iso42001_ref": "Clause A.8",
-      "nist_rmf_ref": "GOVERN 1.7",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MAP 2.3",
       "risk_item_ids": [
         "<uuid>"
       ]
     },
     {
-      "article_ref": "Art.10(3)",
-      "iso42001_ref": "Clause A.8",
-      "nist_rmf_ref": "GOVERN 1.7",
+      "article_ref": "Art.10(2)(b)",
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MAP 2.3",
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -131,13 +139,13 @@
         "dimension": "discrimination",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.7",
+        "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 3,
         "mitigations": [],
-        "nist_rmf_ref": "MEASURE 2.9",
+        "nist_rmf_ref": "MEASURE 2.11",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -162,17 +170,17 @@
           "Art.13",
           "Art.86(1)"
         ],
-        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
+        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.6",
+        "iso42001_ref": "Annex A.6",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 3,
         "mitigations": [],
-        "nist_rmf_ref": "GOVERN 1.7",
+        "nist_rmf_ref": "MEASURE 2.8",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -207,7 +215,7 @@
         "knowledge_gap_reason": "",
         "likelihood": 1,
         "mitigations": [],
-        "nist_rmf_ref": "MAP 1.5",
+        "nist_rmf_ref": "MAP 3.5",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -270,13 +278,13 @@
         "dimension": "discrimination",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.7",
+        "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 4,
         "mitigations": [],
-        "nist_rmf_ref": "MEASURE 2.9",
+        "nist_rmf_ref": "MEASURE 2.11",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -298,19 +306,19 @@
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
         "article_refs": [
-          "Art.10(5)"
+          "Art.4a(1)"
         ],
-        "description": "Processing of special category data triggers additional obligations under GDPR Article 9 and EU AI Act Article 10(5).",
+        "description": "Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
         "dimension": "privacy",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.8",
+        "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 3,
         "mitigations": [],
-        "nist_rmf_ref": "GOVERN 1.6",
+        "nist_rmf_ref": "MEASURE 2.10",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -332,19 +340,20 @@
         "acceptance_rationale": "",
         "accepted": false,
         "article_refs": [
-          "Art.13(1)"
+          "Art.26(11)",
+          "Art.50(1)"
         ],
-        "description": "Article 13 requires providers to ensure a sufficient level of transparency to enable users to interpret the system's output. Notification is a baseline.",
+        "description": "Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.6",
+        "iso42001_ref": "Annex A.6",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 3,
         "mitigations": [],
-        "nist_rmf_ref": "GOVERN 1.7",
+        "nist_rmf_ref": "MEASURE 2.8",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -372,13 +381,13 @@
         "dimension": "human_oversight",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.9",
+        "iso42001_ref": "Annex A.9",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
         "likelihood": 2,
         "mitigations": [],
-        "nist_rmf_ref": "MANAGE 1.1",
+        "nist_rmf_ref": "MANAGE 2.4",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -400,14 +409,14 @@
         "acceptance_rationale": "Residual accepted for the example fixture.",
         "accepted": true,
         "article_refs": [
-          "Art.9(7)",
+          "Art.9(6)",
           "Art.15"
         ],
-        "description": "Article 9(7) and Article 15 require testing of AI systems against the intended purpose and reasonably foreseeable misuse.",
+        "description": "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
         "dimension": "robustness",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.9",
+        "iso42001_ref": "Annex A.9",
         "iso42001_refs": [],
         "knowledge_gap": false,
         "knowledge_gap_reason": "",
@@ -436,19 +445,19 @@
         "accepted": false,
         "article_refs": [
           "Art.10(2)",
-          "Art.10(3)"
+          "Art.10(2)(b)"
         ],
         "description": "Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
         "dimension": "data_governance",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
-        "iso42001_ref": "Clause A.8",
+        "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": true,
         "knowledge_gap_reason": "",
         "likelihood": 2,
         "mitigations": [],
-        "nist_rmf_ref": "GOVERN 1.7",
+        "nist_rmf_ref": "MAP 2.3",
         "nist_rmf_refs": [],
         "notes": "",
         "regulatory_status": "settled",
@@ -493,7 +502,7 @@
   "signed_by": "",
   "test_requirements": [
     {
-      "article_ref": "Art.9(7)",
+      "article_ref": "Art.9(8)",
       "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
       "id": "<uuid>",
       "metric_type": "demographic_parity",
@@ -520,7 +529,7 @@
       "threshold_range": "= 0"
     },
     {
-      "article_ref": "Art.9(7)",
+      "article_ref": "Art.9(8)",
       "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
       "id": "<uuid>",
       "metric_type": "demographic_parity",
@@ -529,7 +538,7 @@
       "threshold_range": "<= 0.10"
     },
     {
-      "article_ref": "Art.9(7)",
+      "article_ref": "Art.9(8)",
       "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
       "id": "<uuid>",
       "metric_type": "pii_leakage_rate",
@@ -547,7 +556,7 @@
       "threshold_range": ">= 0.90"
     },
     {
-      "article_ref": "Art.9(7)",
+      "article_ref": "Art.9(8)",
       "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
       "id": "<uuid>",
       "metric_type": "faithfulness",

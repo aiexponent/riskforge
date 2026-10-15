@@ -106,9 +106,9 @@ class RAGBenchmarkingAdapter:
                     severity=severity,
                     residual_likelihood=likelihood,
                     residual_severity=severity,
-                    article_refs=["Art.9(2)(a)", "Art.9(7)", "Art.15"],
+                    article_refs=["Art.9(2)(a)", "Art.9(8)", "Art.15"],
                     nist_rmf_ref="MEASURE 2.5",
-                    iso42001_ref="Clause A.9",
+                    iso42001_ref="Annex A.9",
                 )
             )
         return items
