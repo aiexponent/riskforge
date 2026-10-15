@@ -55,6 +55,7 @@ from riskforge.cli.commands import (  # noqa: E402
     export,
     import_cmd,
     init,
+    keygen,
     risk,
     system,
     tests_cmd,
@@ -73,6 +74,7 @@ app.command("export")(export.cmd)
 app.command("verify")(verify.cmd)
 app.command("diff")(diff.cmd)
 app.command("import")(import_cmd.cmd)
+app.command("keygen")(keygen.cmd)
 
 
 def _show_click_error(exc: click.ClickException) -> None:
