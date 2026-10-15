@@ -107,10 +107,10 @@ async def test_one_check_per_outermost_unit_of_work(
     calls = 0
     real_check = integrity.check_integrity
 
-    async def counting_check(storage):  # noqa: ANN001, ANN202
+    async def counting_check(storage, **kwargs):  # noqa: ANN001, ANN003, ANN202
         nonlocal calls
         calls += 1
-        return await real_check(storage)
+        return await real_check(storage, **kwargs)
 
     monkeypatch.setattr(integrity, "check_integrity", counting_check)
     async with audit.unit_of_work() as report:
@@ -140,10 +140,10 @@ async def test_backend_without_state_still_checks_once_per_change(
     calls = 0
     real_check = integrity.check_integrity
 
-    async def counting_check(storage):  # noqa: ANN001, ANN202
+    async def counting_check(storage, **kwargs):  # noqa: ANN001, ANN003, ANN202
         nonlocal calls
         calls += 1
-        return await real_check(storage)
+        return await real_check(storage, **kwargs)
 
     monkeypatch.setattr(integrity, "check_integrity", counting_check)
     async with audit.unit_of_work():

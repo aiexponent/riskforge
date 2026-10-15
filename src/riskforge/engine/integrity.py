@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import contextvars
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -22,7 +22,7 @@ from riskforge.integrity.canonical import (
     document_fingerprint,
     sha256_hex,
 )
-from riskforge.integrity.chain import BASELINE_EVENT, written_since_2_0
+from riskforge.integrity.chain import BASELINE_EVENT, check_entry_signatures, written_since_2_0
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -284,12 +284,19 @@ def _register_findings(
     return errors, warnings
 
 
-async def check_integrity(storage: StorageBackend) -> IntegrityReport:
+async def check_integrity(
+    storage: StorageBackend, *, trusted_keys: Sequence[str] | None = None
+) -> IntegrityReport:
     """Check the chain, the head file, every register and system file, and the files on disk.
 
     Reads only. Reports every finding of ADR-03 section 5 rather than stopping at the
     first, and reports a file that cannot be read or parsed as a finding instead of
     raising.
+
+    Signed entries are checked as ``check_entry_signatures`` describes: an entry with a
+    ``key_id`` and no signature, or the reverse, always fails; signatures are verified
+    against ``trusted_keys`` (base64 raw public keys) when given, and otherwise reported
+    as not checked, in a warning.
     """
     _chain_ok, chain_errors = await storage.verify_chain()
     errors: list[str] = list(chain_errors)
@@ -297,6 +304,9 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     try:
         entries = [entry async for entry in storage.read_audit()]
         log_readable = True
+        signature_errors, signature_warnings = check_entry_signatures(entries, trusted_keys)
+        errors.extend(signature_errors)
+        warnings.extend(signature_warnings)
     except AuditLogCorruptError as exc:
         entries, log_readable = [], False
         errors.append(
@@ -385,9 +395,11 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     return IntegrityReport(errors=errors, warnings=warnings, entries=entries, **digests)
 
 
-async def require_intact(storage: StorageBackend) -> IntegrityReport:
+async def require_intact(
+    storage: StorageBackend, *, trusted_keys: Sequence[str] | None = None
+) -> IntegrityReport:
     """The report of an intact project, or ``IntegrityError`` holding every finding."""
-    report = await check_integrity(storage)
+    report = await check_integrity(storage, trusted_keys=trusted_keys)
     if not report.ok:
         raise IntegrityError(report)
     return report
@@ -583,7 +595,11 @@ _IN_PROGRESS = (
 
 
 async def check_integrity_settled(
-    storage: StorageBackend, *, repeats: int = 3, pause: float = 0.25
+    storage: StorageBackend,
+    *,
+    trusted_keys: Sequence[str] | None = None,
+    repeats: int = 3,
+    pause: float = 0.25,
 ) -> IntegrityReport:
     """Run ``check_integrity`` without the write lock, as ``riskforge verify`` does.
 
@@ -610,7 +626,7 @@ async def check_integrity_settled(
             continue
         before = await storage.read_commit_markers()
         try:
-            report = await check_integrity(storage)
+            report = await check_integrity(storage, trusted_keys=trusted_keys)
         except OSError:
             # A file a writer renamed or removed while it was read. Only a moved
             # marker excuses it; otherwise it is a real error and is raised.
@@ -626,7 +642,7 @@ async def check_integrity_settled(
         before = await storage.read_commit_markers()
         try:
             view = await storage.view_after_recovery()
-            report = await check_integrity(view)
+            report = await check_integrity(view, trusted_keys=trusted_keys)
         except (StoredFileCorruptError, OSError) as exc:
             if await storage.read_commit_markers() != before:
                 raise ChangeInProgressError(_IN_PROGRESS) from None

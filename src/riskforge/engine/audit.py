@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import AbstractAsyncContextManager
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from riskforge.engine.integrity import (
     ChangeGuard,
@@ -15,12 +16,20 @@ from riskforge.engine.integrity import (
     read_system_checked,
 )
 from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
-from riskforge.integrity.chain import BASELINE_EVENT, GENESIS_PREV_HASH, compute_entry_hash
+from riskforge.integrity.chain import (
+    BASELINE_EVENT,
+    GENESIS_PREV_HASH,
+    compute_entry_hash,
+    entry_signing_message,
+)
 from riskforge.models.audit import AuditActor, AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import RegisterNotFoundError, StoredFileCorruptError
+
+if TYPE_CHECKING:
+    from riskforge.integrity.signing import Ed25519Signer
 
 __all__ = ["BASELINE_EVENT", "AuditChainCorruptError", "AuditEngine"]
 
@@ -37,11 +46,18 @@ class AuditEngine:
     can tell when a register was changed outside RiskForge. Nothing is appended to a
     project that fails its integrity check. Exit code 2 is the contract for
     riskforge verify failures (CI-detectable).
+
+    With a ``signer``, every entry it writes names the signer's ``key_id``, which the
+    entry hash covers, and carries an Ed25519 signature over that hash, which it does not
+    (ADR-03 section 2). The free CLI does not sign entries.
     """
 
-    def __init__(self, storage: StorageBackend, actor: AuditActor) -> None:
+    def __init__(
+        self, storage: StorageBackend, actor: AuditActor, signer: Ed25519Signer | None = None
+    ) -> None:
         self._storage = storage
         self._actor = actor
+        self._signer = signer
 
     def unit_of_work(self) -> AbstractAsyncContextManager[IntegrityReport | None]:
         """The storage unit of work, entered only when the project passes its integrity check.
@@ -191,8 +207,11 @@ class AuditEngine:
             payload=payload,
             prev_hash=prev_hash,
             register_fingerprint=fingerprint,
+            key_id=self._signer.key_id if self._signer is not None else None,
         )
         entry.entry_hash = compute_entry_hash(entry)
+        if self._signer is not None:
+            entry.signature = self._signer.sign(entry_signing_message(entry.entry_hash))
         return entry
 
     async def _baseline_targets(
