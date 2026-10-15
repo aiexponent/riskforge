@@ -380,9 +380,9 @@ riskforge verify --file rmf-2027-q1.json --receipt rmf-2026-q4.json  # an older 
 ```
 
 `verify --file` needs only the JSON export, not the project. It reads the file
-strictly: a duplicate key, `NaN`, `Infinity`, a number such as `1e400` or an integer
-too long to read exits 2, and a file that is not JSON, or declares a schema version
-RiskForge does not read, exits 3. For an RMF schema 1.1.0 file it then checks, in
+strictly: a duplicate key, `NaN`, `Infinity`, a number such as `1e400`, an integer
+too long to read or arrays and objects nested more than 64 levels deep exits 2, and a
+file that is not JSON, or declares a schema version RiskForge does not read, exits 3. For an RMF schema 1.1.0 file it then checks, in
 this order, and lists every failure it finds:
 
 1. The file validates against the schema it declares, and `sha256_hash` equals the
@@ -411,11 +411,29 @@ What each check catches when the file is checked alone:
 | RMF signature without `--trusted-key` | Nothing about who signed: anyone can sign with a new key and embed it | |
 
 Without `--trusted-key`, a signature that verifies shows only that whoever holds the
-embedded key signed, and `verify` says so when the file passes. With `--trusted-key
-PUBFILE` (repeatable), the file must carry an RMF signature, and every RMF signature,
-sign-off and the embedded receipt must be signed by one of the trusted keys. A signed
-chain proof entry must verify, but its key need not be trusted: the trusted receipt
-covers the chain proof.
+embedded key signed. A sign-off is no different: "approved by Chief Risk Officer"
+signed with a key embedded in the file shows only that someone with that key wrote it.
+With `--trusted-key PUBFILE` (repeatable), the file must carry an RMF signature, and
+every RMF signature, sign-off and the embedded receipt must be signed by one of the
+trusted keys. A signed chain proof entry must verify, but its key need not be trusted:
+the trusted receipt covers the chain proof.
+
+What a pass prints says how much it proves:
+
+- With `--trusted-key`, and a trusted key signed the file, the first line is "RMF
+  integrity verified".
+- Without `--trusted-key`, the first line is "RMF file is internally consistent". Each
+  RMF signature and sign-off that verifies with an embedded key says so, and the last
+  line says that anyone can rebuild the chain proof, receipt and signatures, and to
+  pass `--trusted-key` (and `--receipt` with a receipt kept elsewhere) to check who
+  made the file.
+- With `--receipt`, when the chain proof records the file's register after the
+  receipt's `seq`, a note says the receipt does not cover the register in the file and
+  how many entries come after it. The check still passes: a receipt proves only the
+  entries up to its `seq`, and a later register is not a failure in itself.
+
+The pass and its notes go to stdout. A failure, including a file refused when it is
+read, goes to stderr, as it does for the project check.
 
 A file that declares RMF schema 1.0.0 cannot carry a signature, a chain proof or a
 receipt. Plain `verify --file` checks its schema and digest only and says so. With
