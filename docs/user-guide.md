@@ -176,7 +176,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks and save them on the register. Run it before `export`: the export carries the saved requirements. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
-| `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
+| `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone exported RMF with `--file` (see [Verifying an exported file](#verifying-an-exported-file)). `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
@@ -273,8 +273,9 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
   receipt, or one signed by another key, exits 2.
 - A receipt file is refused with exit 2 if it holds a field RiskForge does not
   write, the same key twice in one object, or a number such as `NaN`. A file that is
-  not JSON, or not a receipt, exits 3. `--receipt` and `--trusted-key` check a
-  project and cannot be combined with `--file` yet.
+  not JSON, or not a receipt, exits 3. With `--file`, `--receipt` and
+  `--trusted-key` check an exported file instead of the project, see
+  [Verifying an exported file](#verifying-an-exported-file).
 - `--trusted-key` also checks signed audit entries. The `riskforge` CLI does not sign
   audit entries, but a log written by other tools may hold signed ones. Without
   `--trusted-key`, `verify` warns that their signatures were not checked, and
@@ -306,8 +307,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 |---|---|
 | 0 | Success or valid |
 | 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
-| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, a receipt the audit log no longer holds, or a receipt or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict`, `--receipt` or `--trusted-key` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
@@ -333,8 +334,8 @@ A project last written by RiskForge 1.1.3 passes `riskforge verify` with a warni
 stderr until its next change, because its registers are not yet covered by a
 fingerprint and it has no `.riskforge/audit.head.json` yet. To fail the build on that, or on any other integrity warning, run
 `riskforge verify --strict`: it exits 2 and lists each warning as a finding on its own
-line. A change in progress still exits 1. `--strict` checks a project only, so with
-`--file` it exits 3.
+line. A change in progress still exits 1. A file check has no warnings, so `--strict`
+with `--file` exits 3.
 
 If your CI pipeline exports PDF reports (`riskforge export -f pdf`), install the
 system dependencies prior to running `riskforge`:
@@ -364,15 +365,68 @@ filled when the export is signed with `--sign`. The free CLI writes `signoffs` a
 empty list.
 
 A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
---file` checks it by the rule those releases used: the whole document with
-`sha256_hash`, `audit_entry_hash` and `signed_by` blanked. It reads every RMF file
-strictly: a duplicate key, `NaN`, `Infinity` or an integer too long to read exits 2,
-and a schema version RiskForge does not read exits 3. It then validates the file
-against the schema its `rmf_schema_version` names and recomputes the digest; a file
-that fails either exits 2 and lists every error. `verify --file` does not check
-`signatures`, `signoffs`, `chain_proof` or `receipt` yet, and says so when the file
-carries any of them. The JSON Schemas are bundled as
-`rmf-1.0.0.schema.json` and `rmf-1.1.0.schema.json` in `riskforge/_data/schemas/`.
+--file` checks its digest by the rule those releases used: the whole document with
+`sha256_hash`, `audit_entry_hash` and `signed_by` blanked. See
+[Verifying an exported file](#verifying-an-exported-file) for everything `verify
+--file` checks. The JSON Schemas are bundled as `rmf-1.0.0.schema.json` and
+`rmf-1.1.0.schema.json` in `riskforge/_data/schemas/`.
+
+### Verifying an exported file
+
+```bash
+riskforge verify --file rmf.json                                  # exit 2 if anything fails
+riskforge verify --file rmf.json --trusted-key k.pem.pub          # and the signer must be this key
+riskforge verify --file rmf-2027-q1.json --receipt rmf-2026-q4.json  # an older receipt still holds
+```
+
+`verify --file` needs only the JSON export, not the project. It reads the file
+strictly: a duplicate key, `NaN`, `Infinity`, a number such as `1e400` or an integer
+too long to read exits 2, and a file that is not JSON, or declares a schema version
+RiskForge does not read, exits 3. For an RMF schema 1.1.0 file it then checks, in
+this order, and lists every failure it finds:
+
+1. The file validates against the schema it declares, and `sha256_hash` equals the
+   content digest. A file that does not validate gets no further checks.
+2. Each `public_keys` record has its own key id, and that key id is the one derived
+   from its public key.
+3. Each RMF signature names a key in `public_keys` and verifies over the content digest.
+4. Each sign-off names a key in `public_keys`, its signature verifies, and it is for
+   the register in the file (its `register_fingerprint`).
+5. The chain proof links and hashes check from `seq` 0, every signed entry verifies,
+   and the last register fingerprint it records for the system is the register in the
+   file.
+6. The embedded receipt names the last chain proof entry, the file's system and the
+   register in the file, and verifies when it is signed.
+7. Each `--receipt FILE` (a receipt file, or an older export whose receipt is used)
+   holds against the file's chain proof, as `verify --receipt` checks the audit log.
+
+What each check catches when the file is checked alone:
+
+| Record | Catches | Does not catch |
+|---|---|---|
+| Content digest | A change to the content by someone who did not recompute the digest | Anyone can recompute it |
+| Chain proof | A register that is not the state the audit log recorded last, and edited, missing or reordered entries | A chain proof rebuilt to agree with an edited register |
+| Embedded receipt | A chain proof whose last entry is not the one the receipt names, including entries added after it | A receipt rebuilt along with the chain proof, unless a trusted key signed it |
+| RMF signature with `--trusted-key` | Any change to the content, since the trusted key signed the digest | Changes to the blocks the digest leaves out, which the chain proof and receipt checks tie to the content |
+| RMF signature without `--trusted-key` | Nothing about who signed: anyone can sign with a new key and embed it | |
+
+Without `--trusted-key`, a signature that verifies shows only that whoever holds the
+embedded key signed, and `verify` says so when the file passes. With `--trusted-key
+PUBFILE` (repeatable), the file must carry an RMF signature, and every RMF signature,
+sign-off and the embedded receipt must be signed by one of the trusted keys. A signed
+chain proof entry must verify, but its key need not be trusted: the trusted receipt
+covers the chain proof.
+
+A file that declares RMF schema 1.0.0 cannot carry a signature, a chain proof or a
+receipt. Plain `verify --file` checks its schema and digest only and says so. With
+`--trusted-key` or `--receipt` it exits 2 with "RMF schema 1.0.0 cannot carry a
+signature", because otherwise a 1.1.0 file could be rewritten as 1.0.0, with its
+signature, chain proof and receipt dropped and its digest recomputed, and pass. If you
+rely on a file, check it with `--trusted-key` or `--receipt`.
+
+Only the JSON export can be checked this way. To check a PDF or Markdown export,
+compare the digest it shows with a verified JSON export of the same register, or hash
+the file and compare with `file_sha256` in the audit log.
 
 The PDF renders the same data as a filing-ready document: cover, executive summary,
 risk register, test requirements, audit trail, and the mandatory disclosure.
