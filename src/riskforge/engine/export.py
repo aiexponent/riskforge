@@ -143,6 +143,13 @@ def _reason(exc: OSError) -> str:
     return exc.strerror or str(exc)
 
 
+def _committed(checkpoint: AuditEntry | None) -> str:
+    """The sentence that says a checkpoint was committed, or nothing when there was none."""
+    if checkpoint is None:
+        return ""
+    return f"The register.checkpoint (seq {checkpoint.seq}) was committed; no value changed. "
+
+
 def _refuse_protected_target(target: Path, protected: Sequence[Path]) -> None:
     """Refuse an output path that is a directory or part of the project's own files.
 
@@ -359,11 +366,27 @@ class ExportEngine:
             temporary = _write_temporary(output_path, data, token, locked_at)
             try:
                 checkpoint = await self._audit.commit(staged) if staged else None
-                os.replace(temporary, output_path)
             except BaseException:
                 temporary.unlink(missing_ok=True)
                 raise
-            _fsync_dir(output_path.parent)
+            try:
+                os.replace(temporary, output_path)
+            except OSError as exc:
+                temporary.unlink(missing_ok=True)
+                raise ExportTargetError(
+                    f"Cannot write {output_path}: {_reason(exc)}. "
+                    f"{_committed(checkpoint)}No file was written."
+                ) from exc
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+            try:
+                _fsync_dir(output_path.parent)
+            except OSError as exc:
+                raise ExportTargetError(
+                    f"{output_path} was written, but its directory could not be flushed to "
+                    f"disk: {_reason(exc)}. {_committed(checkpoint)}The export was not recorded."
+                ) from exc
 
             file_sha256 = hashlib.sha256(data).hexdigest()
             entry = await self._audit.record(

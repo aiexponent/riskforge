@@ -497,3 +497,54 @@ def test_an_unremovable_stale_temporary_file_does_not_block_the_export(
     result = asyncio.run(_engine(project).export(sid, "json", out, force=True))
     assert result.path == out and out.exists()
     assert stuck.exists()
+
+
+def test_a_failed_rename_after_the_checkpoint_is_an_export_target_error(
+    v113_project: tuple[Path, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import errno
+
+    from riskforge.engine.export import ExportTargetError
+
+    root, sid = v113_project
+    out = root / "never-written.json"
+    real_replace = os.replace
+
+    def replace(src, dst, *args, **kwargs):
+        if os.fspath(dst) == str(out):
+            raise OSError(errno.EXDEV, "Invalid cross-device link", str(dst))
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", replace)
+    exported_before = [e["event"] for e in _events(root)].count("rmf.exported")
+    with pytest.raises(
+        ExportTargetError, match=r"register.checkpoint \(seq \d+\) was committed"
+    ) as caught:
+        asyncio.run(_engine(root).export(sid, "json", out, force=True))
+    assert "No file was written" in str(caught.value)
+    assert not out.exists()
+    assert not [p for p in root.iterdir() if p.name.startswith(TEMP_PREFIX)]
+    events = [e["event"] for e in _events(root)]
+    assert events[-1] == "register.checkpoint"
+    assert events.count("rmf.exported") == exported_before
+
+
+def test_a_failed_directory_flush_after_the_rename_is_an_export_target_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import errno
+
+    import riskforge.engine.export as export_module
+    from riskforge.engine.export import ExportTargetError
+
+    project, sid = _project(tmp_path)
+    out = tmp_path / "rmf.json"
+
+    def fsync_dir(directory: Path) -> None:
+        raise OSError(errno.EINVAL, "Invalid argument")
+
+    monkeypatch.setattr(export_module, "_fsync_dir", fsync_dir)
+    before = _log(project)
+    with pytest.raises(ExportTargetError, match="could not be flushed"):
+        asyncio.run(_engine(project).export(sid, "json", out, force=True))
+    assert _log(project) == before
