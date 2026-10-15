@@ -178,7 +178,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
-| `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
+| `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
 Risk ids accept the first 8 characters shown by `riskforge risk list`. The
@@ -224,9 +224,11 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
   and macOS, and never overwrites a file (exit 3).
 - `verify --receipt FILE` can be given more than once. It exits 2 when the audit log
   has no entry at the receipt's `seq` (the log was truncated or replaced) or holds a
-  different entry there (it was rewritten). A receipt proves the entries up to its
-  `seq` only. `verify` does not compare its register fingerprint with today's
-  register, which may have changed since for good reasons.
+  different entry there (it was rewritten). It also exits 2 when the receipt's
+  register fingerprint is not the last one the log records for its system up to
+  that `seq`. A receipt proves the entries up to its `seq` only. `verify` does not
+  compare its register fingerprint with today's register, which may have changed
+  since for good reasons.
 - A signed receipt carries its key id, public key and signature, and must verify
   with that public key. That proves only that whoever held the key signed it. To
   check who signed it, pass the signer's public key with `--trusted-key PUBFILE`
@@ -240,6 +242,9 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
   audit entries, but a log written by other tools may hold signed ones. Without
   `--trusted-key`, `verify` warns that their signatures were not checked, and
   `--strict` fails on that warning.
+- With `--trusted-key`, `verify` warns how many audit entries are not signed, and
+  `verify --strict --trusted-key` fails on them, so it passes only on a log whose
+  entries are all signed.
 
 ### The 8 validation gates
 

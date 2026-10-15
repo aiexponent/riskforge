@@ -93,7 +93,13 @@ def _show_click_error(exc: click.ClickException) -> None:
 def _one_line_error(message: str) -> None:
     from rich.markup import escape
 
-    err_console.print(f"[red]✗[/red] {escape(message)}", highlight=False, soft_wrap=True)
+    from riskforge.cli.errors import printable
+
+    err_console.print(
+        f"[red]✗[/red] {escape(printable(message, keep_newlines=True))}",
+        highlight=False,
+        soft_wrap=True,
+    )
 
 
 def run() -> None:

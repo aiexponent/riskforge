@@ -7,6 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
+# The largest seq a receipt may name: a signed 64-bit integer, far beyond any audit log.
+MAX_SEQ = 2**63 - 1
+
 
 class Receipt(BaseModel):
     """The last entry of the project chain when the receipt was taken.
@@ -21,7 +24,7 @@ class Receipt(BaseModel):
 
     receipt_version: Literal["1"] = "1"
     system_id: StrictStr
-    seq: StrictInt = Field(..., ge=0)
+    seq: StrictInt = Field(..., ge=0, le=MAX_SEQ)
     entry_hash: StrictStr
     register_fingerprint: StrictStr | None = None
     issued_at: datetime
