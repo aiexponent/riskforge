@@ -111,6 +111,50 @@ def test_second_init(tmp_path: Path) -> None:
     _assert_clean(result, 3, "already exists")
 
 
+def _snapshot(directory: Path) -> dict[str, tuple[int, bytes]]:
+    return {
+        path.relative_to(directory).as_posix(): (
+            path.stat().st_mode,
+            path.read_bytes() if path.is_file() else b"",
+        )
+        for path in sorted(directory.rglob("*"))
+    }
+
+
+def test_init_refuses_project_whose_manifest_was_deleted(tmp_path: Path) -> None:
+    _assess(tmp_path, _init(tmp_path))
+    (tmp_path / "riskforge.yaml").unlink()
+    before = _snapshot(tmp_path / ".riskforge")
+
+    result = run_rf(
+        ["init", "-n", "Y", "-s", "1", "-p", "p", "--provider", "P"]
+        + ["--project-dir", str(tmp_path)]
+    )
+
+    _assert_clean(result, 3, "riskforge.yaml is missing")
+    assert "Restore riskforge.yaml" in result.output, result.output
+    assert not (tmp_path / "riskforge.yaml").exists()
+    assert _snapshot(tmp_path / ".riskforge") == before
+
+
+@pytest.mark.parametrize("command", [["verify"], ["export", "{sid}"]])
+def test_commands_on_project_whose_manifest_was_deleted(tmp_path: Path, command: list[str]) -> None:
+    sid = _init(tmp_path)
+    (tmp_path / "riskforge.yaml").unlink()
+    args = [part.replace("{sid}", sid) for part in command] + ["--project-dir", str(tmp_path)]
+
+    result = run_rf(args)
+
+    _assert_clean(result, 3, "riskforge.yaml is missing")
+    assert "riskforge init" not in result.output, result.output
+
+
+def test_init_over_empty_riskforge_dir(tmp_path: Path) -> None:
+    (tmp_path / ".riskforge" / "systems").mkdir(parents=True)
+    _init(tmp_path)
+    assert (tmp_path / "riskforge.yaml").exists()
+
+
 @pytest.mark.parametrize(
     "command",
     [

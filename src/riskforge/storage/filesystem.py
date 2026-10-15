@@ -90,6 +90,7 @@ from riskforge.storage.base import (
 from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
+    ManifestMissingError,
     PendingChangeError,
     ProjectExistsError,
     ProjectLockedError,
@@ -773,23 +774,30 @@ class FileStore(StorageBackend):
         ------
         ProjectExistsError
             If ``riskforge.yaml`` already exists (a ``FileExistsError``).
+        ManifestMissingError
+            If ``riskforge.yaml`` is gone but ``.riskforge/`` still holds a project.
+            Either way nothing is written.
         """
 
         self._require_writable()
+        manifest_path = self._root.parent / "riskforge.yaml"
+        exists_message = (
+            f"A RiskForge project already exists in {self._root.parent.resolve()} "
+            "(riskforge.yaml found)."
+        )
 
         def _sync() -> None:
+            if manifest_path.exists():
+                raise ProjectExistsError(exists_message)
+            self._raise_if_manifest_missing()
             self._ensure_dirs()
             self._gitignore_check()
-            manifest_path = self._root.parent / "riskforge.yaml"
             content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
             data = yaml.dump(content, sort_keys=False, allow_unicode=True).encode("utf-8")
             try:
                 fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_BINARY, 0o600)
             except FileExistsError as exc:
-                raise ProjectExistsError(
-                    f"A RiskForge project already exists in {self._root.parent.resolve()} "
-                    "(riskforge.yaml found)."
-                ) from exc
+                raise ProjectExistsError(exists_message) from exc
             with os.fdopen(fd, "wb") as fh:
                 fh.write(data)
                 fh.flush()
@@ -798,10 +806,33 @@ class FileStore(StorageBackend):
 
         await asyncio.to_thread(_sync)
 
+    def _raise_if_manifest_missing(self) -> None:
+        """Raise ManifestMissingError when ``.riskforge/`` holds an audit log or a system.
+
+        Call only once ``riskforge.yaml`` is known to be absent.
+        """
+        holds_data = any(
+            path.exists() for path in (self._audit_path, self._head_path, self._journal_path)
+        )
+        if not holds_data:
+            try:
+                holds_data = any(self._systems_dir.iterdir())
+            except (FileNotFoundError, NotADirectoryError):
+                holds_data = False
+        if holds_data:
+            raise ManifestMissingError(
+                f"riskforge.yaml is missing from {self._root.parent.resolve()}, "
+                "but .riskforge/ there holds an existing RiskForge project."
+            )
+
     def ensure_project(self) -> None:
-        """Raise ProjectNotFoundError unless ``riskforge.yaml`` exists."""
+        """Raise ProjectNotFoundError unless ``riskforge.yaml`` exists.
+
+        Raises the ManifestMissingError subclass when ``.riskforge/`` still holds a project.
+        """
         manifest = self._root.parent / "riskforge.yaml"
         if not manifest.exists():
+            self._raise_if_manifest_missing()
             raise ProjectNotFoundError(
                 f"No RiskForge project in {self._root.parent.resolve()} (riskforge.yaml not found)."
             )
