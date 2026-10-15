@@ -657,6 +657,8 @@ def test_rmf_export_structure_is_locked() -> None:
             "signoffs",
             "signatures",
             "public_keys",
+            "chain_proof",
+            "receipt",
         }
         mit = next(m for i in rmf["register"]["items"] for m in i["mitigations"])
         assert set(mit) == {

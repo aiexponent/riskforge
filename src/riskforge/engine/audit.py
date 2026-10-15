@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractAsyncContextManager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -31,11 +32,23 @@ from riskforge.storage.errors import RegisterNotFoundError, StoredFileCorruptErr
 if TYPE_CHECKING:
     from riskforge.integrity.signing import Ed25519Signer
 
-__all__ = ["BASELINE_EVENT", "AuditChainCorruptError", "AuditEngine"]
+__all__ = ["BASELINE_EVENT", "AuditChainCorruptError", "AuditEngine", "StagedEntries"]
 
 
 class AuditChainCorruptError(RuntimeError):
     """Raised when the audit chain fails pre-write validation."""
+
+
+@dataclass(frozen=True)
+class StagedEntries:
+    """Entries built by ``AuditEngine.stage`` and not appended yet.
+
+    ``system_digests`` holds a digest of each system file the change wrote, so the guard
+    can move on to what was committed.
+    """
+
+    entries: tuple[AuditEntry, ...]
+    system_digests: dict[str, str]
 
 
 class AuditEngine:
@@ -111,6 +124,11 @@ class AuditEngine:
             raise RuntimeError("Changes must run inside AuditEngine.unit_of_work().")
         return guard
 
+    @property
+    def signer(self) -> Ed25519Signer | None:
+        """The key that signs the entries this engine writes, or None."""
+        return self._signer
+
     async def record(self, event: str, system_id: str, payload: dict) -> AuditEntry:
         """Append a hash-chained entry and return it.
 
@@ -138,56 +156,97 @@ class AuditEngine:
             Nothing is appended.
         """
         async with self.unit_of_work():
-            guard = self._guard()
-            baseline: list[tuple[str, str, str | None]] = []
-            if await self._storage.read_audit_head() is None:
-                baseline = await self._baseline_targets(guard, exclude=system_id)
-            last = await self._storage.read_last_audit_entry()
-            if last is None:
-                prev_hash, seq = GENESIS_PREV_HASH, 0
-            else:
-                if compute_entry_hash(last) != last.entry_hash:
-                    raise AuditChainCorruptError(
-                        "Audit chain tail is corrupt (last entry hash mismatch). "
-                        "Run `riskforge verify` to diagnose."
-                    )
-                prev_hash, seq = last.entry_hash, last.seq + 1
-            entries = [
+            return await self.commit(await self.stage(event, system_id, payload))
+
+    async def stage(self, event: str, system_id: str, payload: dict) -> StagedEntries:
+        """Build, without appending, the entries ``record`` would append now.
+
+        For a change that must show its entries before it commits them, as an export
+        shows them in its chain proof (ADR-04 section 7). Must run inside
+        ``unit_of_work()``, which holds the lock, so no other entry can come first;
+        ``commit`` appends them exactly as built. If the unit of work ends without
+        ``commit``, nothing is appended and the writes staged with them are discarded.
+
+        Raises
+        ------
+        RuntimeError
+            If called outside ``unit_of_work()``.
+        IntegrityError
+            If a file the check saw changed since.
+        AuditChainCorruptError
+            If the last entry of the log does not match its own hash.
+        """
+        guard = self._guard()
+        baseline: list[tuple[str, str, str | None]] = []
+        if await self._storage.read_audit_head() is None:
+            baseline = await self._baseline_targets(guard, exclude=system_id)
+        last = await self._storage.read_last_audit_entry()
+        if last is None:
+            prev_hash, seq = GENESIS_PREV_HASH, 0
+        else:
+            if compute_entry_hash(last) != last.entry_hash:
+                raise AuditChainCorruptError(
+                    "Audit chain tail is corrupt (last entry hash mismatch). "
+                    "Run `riskforge verify` to diagnose."
+                )
+            prev_hash, seq = last.entry_hash, last.seq + 1
+        entries = [
+            self._entry(
+                seq,
+                prev_hash,
+                event,
+                system_id,
+                payload,
+                await self._register_fingerprint(guard, system_id),
+            )
+        ]
+        for other_id, name, fingerprint in baseline:
+            previous = entries[-1]
+            entries.append(
                 self._entry(
-                    seq,
-                    prev_hash,
-                    event,
-                    system_id,
-                    payload,
-                    await self._register_fingerprint(guard, system_id),
+                    previous.seq + 1,
+                    previous.entry_hash,
+                    BASELINE_EVENT,
+                    other_id,
+                    {"name": name},
+                    fingerprint,
                 )
-            ]
-            for other_id, name, fingerprint in baseline:
-                previous = entries[-1]
-                entries.append(
-                    self._entry(
-                        previous.seq + 1,
-                        previous.entry_hash,
-                        BASELINE_EVENT,
-                        other_id,
-                        {"name": name},
-                        fingerprint,
-                    )
-                )
-            written = {
-                sid for kind, sid in guard.written_in_storage() if kind == "system"
-            } | guard.written_systems
-            systems = {
-                sid: file_digest(await self._storage.read_system_document(sid)) for sid in written
-            }
-            # One append, so the change and its baseline entries commit together.
-            await self._storage.append_audit(entries)
-            for entry in entries:
-                guard.registers[entry.system_id] = entry.register_fingerprint
-            guard.systems.update(systems)
-            guard.written_registers.clear()
-            guard.written_systems.clear()
-            return entries[0]
+            )
+        written = {
+            sid for kind, sid in guard.written_in_storage() if kind == "system"
+        } | guard.written_systems
+        systems = {
+            sid: file_digest(await self._storage.read_system_document(sid)) for sid in written
+        }
+        return StagedEntries(entries=tuple(entries), system_digests=systems)
+
+    async def commit(self, staged: StagedEntries) -> AuditEntry:
+        """Append ``staged`` exactly as built, with the writes staged before; return its first entry.
+
+        Raises
+        ------
+        RuntimeError
+            If called outside ``unit_of_work()``.
+        AuditChainCorruptError
+            If the log no longer ends where it ended when the entries were staged.
+        """
+        guard = self._guard()
+        first = staged.entries[0]
+        last = await self._storage.read_last_audit_entry()
+        tail = (GENESIS_PREV_HASH, 0) if last is None else (last.entry_hash, last.seq + 1)
+        if tail != (first.prev_hash, first.seq):
+            raise AuditChainCorruptError(
+                "The audit log changed after these entries were staged, so they were not "
+                "appended. Run `riskforge verify` to diagnose."
+            )
+        # One append, so the change and its baseline entries commit together.
+        await self._storage.append_audit(list(staged.entries))
+        for entry in staged.entries:
+            guard.registers[entry.system_id] = entry.register_fingerprint
+        guard.systems.update(staged.system_digests)
+        guard.written_registers.clear()
+        guard.written_systems.clear()
+        return first
 
     def _entry(
         self,
