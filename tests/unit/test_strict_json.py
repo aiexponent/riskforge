@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from riskforge.integrity.strict_json import StrictJsonError, loads_strict
+from riskforge.integrity.strict_json import NumberTooLongError, StrictJsonError, loads_strict
 
 
 def test_plain_json_reads_as_json_loads_reads_it() -> None:
@@ -42,3 +42,13 @@ def test_numbers_that_overflow_a_float_are_refused(number: str) -> None:
 def test_text_that_is_not_json_raises_the_json_error() -> None:
     with pytest.raises(json.JSONDecodeError):
         loads_strict("{not json")
+
+
+@pytest.mark.parametrize("digits", ["9" * 5000, "-" + "9" * 5000])
+def test_an_integer_too_long_for_python_raises_its_own_error(digits: str) -> None:
+    with pytest.raises(NumberTooLongError, match="too long"):
+        loads_strict('{"n": ' + digits + "}")
+
+
+def test_long_integers_python_can_read_still_read() -> None:
+    assert loads_strict("[" + "9" * 4000 + "]") == [int("9" * 4000)]
