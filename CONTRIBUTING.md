@@ -57,7 +57,7 @@ Edit `src/riskforge/_data/question_bank/<dimension>.yaml` and add a question blo
   annex_iii_categories: [essential_services, critical_infrastructure]
   default_likelihood_hint: 2
   default_severity_hint: 5
-  article_refs: ["Art.9(2)(a)", "Art.9(9)"]
+  article_refs: ["Art.9(2)(a)"]
   nist_rmf_ref: "MAP 5.1"
   iso42001_ref: "Clause 6.1"
   regulatory_status: settled  # or pending_implementing_act
