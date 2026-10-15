@@ -1,6 +1,6 @@
 # ADR-03: Register Fingerprints in the Audit Chain and One Integrity Check
 
-**Status:** Proposed (accepted when the maintainer merges the 2.0.0 integrity change, PRD-320)
+**Status:** Accepted
 **Date:** October 2026
 **Deciders:** Maintainer
 
