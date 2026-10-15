@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import jsonschema
 import pytest
+from rf_testkit import with_provenance
 from riskforge.integrity.canonical import canonical_json, sha256_hex
 from riskforge.integrity.receipts import build_receipt
 from riskforge.integrity.rmf import (
@@ -204,10 +205,19 @@ def test_1_0_0_digest_is_the_1_1_3_rule_even_without_the_blanked_keys() -> None:
 
 
 def test_new_documents_are_1_1_0_and_validate() -> None:
-    document = rmf_document(_rmf())
+    document = rmf_document(with_provenance(_rmf()))
     assert RMF_SCHEMA_VERSION == "1.1.0"
     assert document["rmf_schema_version"] == "1.1.0"
     jsonschema.validate(document, load_schema("1.1.0"))
+
+
+@pytest.mark.parametrize("block", ["chain_proof", "receipt"])
+def test_a_1_1_0_document_without_its_chain_proof_or_receipt_fails(block: str) -> None:
+    # Every 2.0 export embeds both (ADR-04 section 1), so the schema requires them.
+    document = rmf_document(with_provenance(_rmf()))
+    del document[block]
+    with pytest.raises(jsonschema.ValidationError, match=block):
+        jsonschema.validate(document, load_schema("1.1.0"))
 
 
 def test_new_documents_carry_empty_provenance_arrays_and_no_retired_fields() -> None:

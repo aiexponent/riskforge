@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 
 import jsonschema
 import pytest
+from rf_testkit import with_provenance
 from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import (
@@ -70,7 +71,7 @@ def _rmf_with_mitigation() -> RiskManagementFile:
     )
     rmf = RiskManagementFile(register=register)
     rmf.sha256_hash = content_digest(rmf_document(rmf))
-    return rmf
+    return with_provenance(rmf)
 
 
 def test_rmf_with_mitigation_validates_against_schema() -> None:

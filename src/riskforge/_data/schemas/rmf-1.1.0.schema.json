@@ -10,7 +10,9 @@
     "register",
     "generated_at",
     "sha256_hash",
-    "disclosure"
+    "disclosure",
+    "chain_proof",
+    "receipt"
   ],
   "properties": {
     "id": {

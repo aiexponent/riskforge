@@ -17,4 +17,5 @@ class JSONExporter(Exporter):
 
     def render(self, rmf: RiskManagementFile) -> bytes:
         data = rmf_document(rmf)
-        return json.dumps(data, indent=2, sort_keys=False, ensure_ascii=False).encode("utf-8")
+        text = json.dumps(data, indent=2, sort_keys=False, ensure_ascii=False)
+        return (text + "\n").encode("utf-8")

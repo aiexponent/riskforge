@@ -6,6 +6,7 @@ import datetime
 
 import jsonschema
 import pytest
+from rf_testkit import with_provenance
 from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
@@ -48,7 +49,7 @@ def minimal_rmf() -> RiskManagementFile:
     )
     rmf = RiskManagementFile(register=register)
     rmf.sha256_hash = content_digest(rmf_document(rmf))
-    return rmf
+    return with_provenance(rmf)
 
 
 def test_minimal_rmf_passes_schema(schema: dict) -> None:

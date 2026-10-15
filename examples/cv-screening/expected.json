@@ -1,4 +1,399 @@
 {
+  "chain_proof": {
+    "entries": [
+      {
+        "actor": {
+          "identity": "cli",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "system.created",
+        "payload": {
+          "annex_iii_category": "employment",
+          "name": "TalentScreen CV Ranker",
+          "version": "3.2.0"
+        },
+        "prev_hash": "<hash>",
+        "seq": 0,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "cli",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "system.classified",
+        "payload": {
+          "annex_iii_category": "employment",
+          "annex_iii_self_classification_documented": true
+        },
+        "prev_hash": "<hash>",
+        "seq": 1,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "register.created",
+        "payload": {
+          "assessor_name": "Example Assessor",
+          "assessor_role": "AI Governance Lead",
+          "review_date": "<timestamp>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 2,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "discrimination",
+          "risk_item_id": "<uuid>",
+          "score": 16
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 3,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "transparency",
+          "risk_item_id": "<uuid>",
+          "score": 9
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 4,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "human_oversight",
+          "risk_item_id": "<uuid>",
+          "score": 12
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 5,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "health_safety",
+          "risk_item_id": "<uuid>",
+          "score": 6
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 6,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "fundamental_rights",
+          "risk_item_id": "<uuid>",
+          "score": 12
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 7,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "discrimination",
+          "risk_item_id": "<uuid>",
+          "score": 16
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 8,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "privacy",
+          "risk_item_id": "<uuid>",
+          "score": 20
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 9,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "transparency",
+          "risk_item_id": "<uuid>",
+          "score": 6
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 10,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "human_oversight",
+          "risk_item_id": "<uuid>",
+          "score": 12
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 11,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "robustness",
+          "risk_item_id": "<uuid>",
+          "score": 8
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 12,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "Example Assessor",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk_item.created",
+        "payload": {
+          "dimension": "data_governance",
+          "risk_item_id": "<uuid>",
+          "score": 9
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 13,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 14,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 15,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 16,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 17,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 18,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "eval",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "risk.accepted",
+        "payload": {
+          "actor": "eval",
+          "old_accepted": false,
+          "rationale_hash": "0f5cef66a77e0b68",
+          "risk_item_id": "<uuid>"
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 19,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      },
+      {
+        "actor": {
+          "identity": "cli",
+          "type": "human"
+        },
+        "entry_hash": "<hash>",
+        "event": "tests.generated",
+        "payload": {
+          "count": 9,
+          "risk_item_ids": [
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>",
+            "<uuid>"
+          ]
+        },
+        "prev_hash": "<hash>",
+        "register_fingerprint": "<hash>",
+        "seq": 20,
+        "system_id": "<uuid>",
+        "timestamp": "<timestamp>"
+      }
+    ],
+    "scope": "project"
+  },
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
@@ -129,6 +524,14 @@
   "generated_at": "<timestamp>",
   "id": "<uuid>",
   "public_keys": [],
+  "receipt": {
+    "entry_hash": "<hash>",
+    "issued_at": "<timestamp>",
+    "receipt_version": "1",
+    "register_fingerprint": "<hash>",
+    "seq": 20,
+    "system_id": "<uuid>"
+  },
   "register": {
     "assessment_date": "<timestamp>",
     "assessor_name": "Example Assessor",

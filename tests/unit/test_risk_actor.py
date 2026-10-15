@@ -9,6 +9,7 @@ from pathlib import Path
 import jsonschema
 import pytest
 import yaml
+from rf_testkit import with_provenance
 from riskforge.engine.actor import ActorNameError, normalise_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.engine.risk import RiskEngine
@@ -90,6 +91,7 @@ def test_v113_register_rewrites_to_the_same_bytes() -> None:
 
 def test_rmf_1_1_0_keeps_the_names_and_validates() -> None:
     rmf = _rmf(_item(accepted=True, accepted_by="Jane", mitigations=[_mitigation(recorded_by="S")]))
+    with_provenance(rmf)
     rmf.sha256_hash = content_digest(rmf_document(rmf))
     payload = rmf_document(rmf)
     item = payload["register"]["items"][0]

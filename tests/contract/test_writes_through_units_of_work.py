@@ -1,8 +1,9 @@
 """No code path writes a register or system record without its audit entry (PRD-331).
 
 Outside ``riskforge.storage``, every ``write_register`` and ``write_system`` call must sit
-inside an ``async with ....unit_of_work():`` block that also calls ``....record(...)``, so
-the write and the entry that describes it commit together or not at all.
+inside an ``async with ....unit_of_work():`` block that also calls ``....record(...)``, or
+``....commit(...)`` for entries built with ``AuditEngine.stage`` (the export's checkpoint),
+so the write and the entry that describes it commit together or not at all.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from pathlib import Path
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "riskforge"
 WRITES = {"write_register", "write_system"}
+RECORDS = {"record", "commit"}
 
 
 def _called_name(node: ast.AST) -> str | None:
@@ -45,7 +47,7 @@ def _violations() -> list[str]:
                 scope = parents.get(scope)
             if scope is None:
                 found.append(f"{where} writes outside a unit of work")
-            elif not any(_called_name(inner) == "record" for inner in ast.walk(scope)):
+            elif not any(_called_name(inner) in RECORDS for inner in ast.walk(scope)):
                 found.append(f"{where} writes in a unit of work that records no audit entry")
     return found
 

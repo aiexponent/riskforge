@@ -425,7 +425,8 @@ def test_verify_file_says_provenance_blocks_were_not_checked(tmp_path: Path) -> 
     _rewrite(out, data)
     result = _run(["verify", "--file", str(out)])
     assert result.returncode == 0, result.output
-    assert "Not checked: signatures." in result.output
+    # Every export also carries a chain proof and a receipt (ADR-04 section 7).
+    assert "Not checked: signatures, chain_proof, receipt." in result.output
 
 
 def test_verify_file_refuses_an_integer_too_long_for_python(tmp_path: Path) -> None:
@@ -737,6 +738,8 @@ def test_rmf_export_structure_is_locked() -> None:
             "signoffs",
             "signatures",
             "public_keys",
+            "chain_proof",
+            "receipt",
         }
         mit = next(m for i in rmf["register"]["items"] for m in i["mitigations"])
         assert set(mit) == {

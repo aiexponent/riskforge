@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 compat)
+from typing import Optional  # noqa: UP007 (Typer 0.12.3 compat)
 
 import typer
 from rich.console import Console
-
-if TYPE_CHECKING:
-    from riskforge.storage.filesystem import FileStore
 
 console = Console()
 
@@ -19,24 +16,56 @@ def cmd(
     fmt: str = typer.Option("json", "--format", "-f", help="Export format: json, pdf, markdown"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file path"),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
-    sign: Optional[str] = typer.Option(
-        None, "--sign", help="GPG key id, email, or fingerprint to sign with (detached .asc)"
+    sign: Optional[Path] = typer.Option(
+        None,
+        "--sign",
+        help="Ed25519 private key file to sign the export with (create one with riskforge keygen)",
     ),
-    force: bool = typer.Option(False, "--force", help="Skip validation gates"),
+    force: bool = typer.Option(False, "--force", help="Export even if a validation gate fails"),
 ) -> None:
-    """Export the Risk Management File to JSON, PDF, or Markdown.
+    """Export the Risk Management File to JSON, PDF or Markdown.
 
-    The export is SHA-256 signed, schema-validated, and linked to the
-    audit trail. The output file is written with chmod 600.
+    Every format of one register state shows the same content digest (SHA-256). The file
+    embeds a chain proof (the project audit log up to the export) and a receipt for its
+    last entry, and with --sign an Ed25519 signature and its public key. The file is
+    written in full, with mode 600 on Linux and macOS, before the export is recorded in
+    the audit log as rmf.exported. A register last written by an older RiskForge is first
+    rewritten in the current format, recorded as register.checkpoint; no value changes.
+
+    Exit codes:
+      0: exported
+      1: a validation gate failed (run `riskforge validate`, or use --force), or the
+         export could not be built; nothing was written
+      2: the project failed its integrity check; nothing was written
+      3: no project or no such system, unknown format, the output directory is missing
+         or cannot be written, the output path is a directory or lies inside .riskforge/
+         or is riskforge.yaml, or the --sign key file is refused
     """
+    import asyncio
+    import uuid
 
-    from riskforge.cli.errors import EXIT_FAILED, fail
-    from riskforge.cli.project import read_register_or_fail, run_checked
+    from rich.markup import escape
+
+    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
+    from riskforge.cli.project import (
+        load_signer,
+        open_project,
+        print_integrity_warnings,
+        print_refusal,
+        read_register_or_fail,
+    )
     from riskforge.engine.audit import AuditEngine
-    from riskforge.engine.export import ExportEngine, SigningError
-    from riskforge.engine.validate import ValidateEngine
+    from riskforge.engine.export import (
+        CheckpointError,
+        EntrySignatureError,
+        ExportEngine,
+        ExportTargetError,
+        MissingPublicKeyError,
+        SchemaViolationError,
+        ValidationGateError,
+    )
+    from riskforge.engine.integrity import IntegrityError
     from riskforge.models.audit import AuditActor
-    from riskforge.models.rmf import RiskManagementFile
     from riskforge.plugins.registry import PluginRegistry
 
     registry = PluginRegistry()
@@ -46,81 +75,52 @@ def cmd(
             f"unknown format '{fmt}'. Available: {', '.join(registry.list_exporters())}.",
             param_hint="'--format' / '-f'",
         )
+    signer = load_signer(sign) if sign is not None else None
+    store = open_project(project_dir)
+    export_id = uuid.uuid4()
+    if output is None:
+        ext = {"json": "json", "pdf": "pdf", "markdown": "md"}.get(fmt, fmt)
+        output = project_dir / f"rmf-{system_id[:8]}-{str(export_id)[:8]}.{ext}"
+    audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+    engine = ExportEngine(registry, audit, store)
 
-    async def _export(store: FileStore) -> tuple[Path, RiskManagementFile]:
-        register = await read_register_or_fail(store, system_id)
-
-        # Run validation gates unless --force
-        if not force:
-            val_engine = ValidateEngine()
-            results = val_engine.run(register)
-            if val_engine.has_failures(results):
-                console.print(
-                    "[red]✗[/red] Validation failed. Run `riskforge validate` for details "
-                    "or use --force to override."
-                )
-                raise typer.Exit(EXIT_FAILED)
-
-        # The RMF carries the test requirements `tests generate` saved on the register,
-        # and cross-references derived from the register (deterministic).
-        import datetime
-
-        rmf = RiskManagementFile(
-            register=register,
-            test_requirements=list(register.test_requirements),
-            cross_references=_build_cross_references(register.items),
-            generated_at=datetime.datetime.now(datetime.UTC),
-        )
-
-        # Determine output path
-        target = output
-        if target is None:
-            ext = {"json": "json", "pdf": "pdf", "markdown": "md"}.get(fmt, fmt)
-            export_id = str(rmf.id)[:8]
-            target = project_dir / f"rmf-{system_id[:8]}-{export_id}.{ext}"
-
-        audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
-        engine = ExportEngine(registry, audit)
-        return await engine.export(rmf, fmt, target, sign_with=sign), rmf
+    async def _export():
+        async with audit.unit_of_work() as report:
+            if report is not None:
+                print_integrity_warnings(report)
+            await read_register_or_fail(store, system_id)
+            return await engine.export(
+                system_id, fmt, output, force=force, signer=signer, export_id=export_id
+            )
 
     try:
-        result_path, rmf = run_checked(project_dir, _export)
-    except SigningError as exc:
-        fail(str(exc))
-
-    console.print(f"[green]✓[/green] Exported: [bold]{result_path}[/bold]")
-    console.print(f"  SHA-256: [dim]{rmf.sha256_hash}[/dim]")
-
-
-def _build_cross_references(items: list) -> list:
-    """Cluster risk items by Article 9 reference for the RMF cross_references block.
-
-    Each distinct article ref becomes one cluster listing the risk-item ids that
-    carry it, with the first associated NIST and ISO reference for the cluster.
-    """
-    from collections import OrderedDict
-
-    from riskforge.models.rmf import CrossReference
-
-    clusters: OrderedDict[str, dict] = OrderedDict()
-    for item in items:
-        for art in item.article_refs:
-            cluster = clusters.setdefault(art, {"ids": [], "nist": "", "iso": ""})
-            cluster["ids"].append(item.id)
-            if not cluster["nist"]:
-                cluster["nist"] = (
-                    item.nist_rmf_refs[0] if item.nist_rmf_refs else ""
-                ) or item.nist_rmf_ref
-            if not cluster["iso"]:
-                cluster["iso"] = (
-                    item.iso42001_refs[0] if item.iso42001_refs else ""
-                ) or item.iso42001_ref
-    return [
-        CrossReference(
-            article_ref=art,
-            risk_item_ids=cluster["ids"],
-            nist_rmf_ref=cluster["nist"],
-            iso42001_ref=cluster["iso"],
+        result = asyncio.run(_export())
+    except IntegrityError as exc:
+        print_refusal(exc)
+        raise typer.Exit(EXIT_TAMPERED) from None
+    except ValidationGateError:
+        fail(
+            "Validation failed, so nothing was exported. Run `riskforge validate` for "
+            "details, or use --force.",
+            EXIT_FAILED,
         )
-        for art, cluster in clusters.items()
-    ]
+    except EntrySignatureError as exc:
+        fail(str(exc), EXIT_TAMPERED)
+    except (ExportTargetError, MissingPublicKeyError) as exc:
+        fail(str(exc))
+    except (CheckpointError, SchemaViolationError) as exc:
+        fail(str(exc), EXIT_FAILED)
+
+    console.print(
+        f"[green]✓[/green] Exported: [bold]{escape(str(result.path))}[/bold]", soft_wrap=True
+    )
+    console.print(f"  Content digest (SHA-256): [dim]{result.content_digest}[/dim]", soft_wrap=True)
+    console.print(f"  File SHA-256: [dim]{result.file_sha256}[/dim]", soft_wrap=True)
+    if signer is not None:
+        console.print(f"  Signed by: [dim]{signer.key_id}[/dim]", soft_wrap=True)
+    if result.checkpoint is not None:
+        console.print(
+            "  The register was rewritten in the current format first (register.checkpoint, "
+            f"seq {result.checkpoint.seq}); no value changed.",
+            soft_wrap=True,
+        )
