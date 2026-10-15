@@ -381,3 +381,18 @@ def test_receipt_file_with_a_seq_too_long_for_python_exits_3(tmp_path: Path) -> 
     assert "Traceback" not in result.output
     assert "too long" in result.output
 
+
+def test_control_characters_from_a_receipt_file_never_reach_the_terminal(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    data = json.loads(path.read_text())
+    data["\x1b]0;owned\x07\x1b[2J‮x\x9b\x7f"] = "x"
+    path.write_text(json.dumps(data))  # json.dumps writes the characters as \u escapes
+    result = _rf(project, "verify", "--receipt", str(path))
+    assert result.returncode == 2, result.output
+    for char in ("\x1b", "\x07", "‮", "\x9b", "\x7f"):
+        assert char not in result.output, repr(char)
+    assert "\\x1b]0;owned" in result.output
+

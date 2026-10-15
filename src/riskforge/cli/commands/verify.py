@@ -78,7 +78,7 @@ def cmd(
          missing or not a receipt, a --trusted-key file is not an Ed25519 public key, or
          --strict, --receipt or --trusted-key was given with --file
     """
-    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
+    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail, printable
 
     if file is not None:
         if strict:
@@ -129,7 +129,8 @@ def cmd(
         signer = f", signed by {parsed.key_id}" if parsed.key_id else ", not signed"
         trust = " (a trusted key)" if parsed.key_id and trusted else ""
         console.print(
-            f"[green]✓[/green] Receipt {escape(str(path))}: the audit log holds its entry at "
+            f"[green]✓[/green] Receipt {escape(printable(str(path)))}: the audit log holds "
+            "its entry at "
             f"seq {parsed.seq}{signer}{trust}.",
             soft_wrap=True,
         )
