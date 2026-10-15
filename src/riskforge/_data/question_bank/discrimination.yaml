@@ -8,8 +8,8 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 4
     article_refs: ["Art.10(2)(f)", "Art.9(2)(a)"]
-    nist_rmf_ref: "MEASURE 2.9"
-    iso42001_ref: "Clause A.7"
+    nist_rmf_ref: "MEASURE 2.11"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DI-002
@@ -18,9 +18,9 @@ questions:
     annex_iii_categories: [employment, education, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 4
-    article_refs: ["Art.9(7)", "Art.10(2)(f)"]
-    nist_rmf_ref: "MEASURE 2.9"
-    iso42001_ref: "Clause A.7"
+    article_refs: ["Art.9(8)", "Art.10(2)(f)"]
+    nist_rmf_ref: "MEASURE 2.11"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DI-003
@@ -30,8 +30,8 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 4
     article_refs: ["Art.9(2)(a)", "Art.10(2)(f)"]
-    nist_rmf_ref: "MEASURE 2.9"
-    iso42001_ref: "Clause A.7"
+    nist_rmf_ref: "MEASURE 2.11"
+    iso42001_ref: "Annex A.7"
     regulatory_status: settled
 
   - id: DI-004
@@ -40,7 +40,7 @@ questions:
     annex_iii_categories: [employment, education, essential_services]
     default_likelihood_hint: 2
     default_severity_hint: 3
-    article_refs: ["Art.9(7)", "Art.72"]
-    nist_rmf_ref: "MEASURE 2.9"
+    article_refs: ["Art.9(8)", "Art.72"]
+    nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled

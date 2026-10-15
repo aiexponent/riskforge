@@ -3,24 +3,24 @@ dimension: transparency
 questions:
   - id: TR-001
     text: "Are users notified that they are interacting with or being assessed by an AI system?"
-    guidance: "Article 13 requires providers to ensure a sufficient level of transparency to enable users to interpret the system's output. Notification is a baseline."
+    guidance: "Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system."
     annex_iii_categories: [employment, education, essential_services, law_enforcement]
     default_likelihood_hint: null
     default_severity_hint: null
-    article_refs: ["Art.13(1)"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.6"
+    article_refs: ["Art.26(11)", "Art.50(1)"]
+    nist_rmf_ref: "MEASURE 2.8"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
 
   - id: TR-002
     text: "Is an explanation of the system's decision-making logic available to affected individuals upon request?"
-    guidance: "GDPR Article 22 provides a right not to be subject to solely automated decisions. An explanation capability is a key technical control."
+    guidance: "GDPR Article 22(1) gives a right not to be subject to a decision based solely on automated processing, including profiling, which produces legal effects or similarly significantly affects the person. GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. An explanation capability is a key technical control."
     annex_iii_categories: [employment, essential_services, law_enforcement, education]
     default_likelihood_hint: 2
     default_severity_hint: 4
-    article_refs: ["Art.13", "Art.14"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.6"
+    article_refs: ["Art.13(3)(b)(iv)", "Art.86(1)"]
+    nist_rmf_ref: "MEASURE 2.8"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
 
   - id: TR-003
@@ -30,8 +30,8 @@ questions:
     default_likelihood_hint: 2
     default_severity_hint: 3
     article_refs: ["Art.13(3)(b)"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.6"
+    nist_rmf_ref: "MEASURE 2.8"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
 
   - id: TR-004
@@ -41,6 +41,6 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 3
     article_refs: ["Art.13", "Art.14(4)"]
-    nist_rmf_ref: "MEASURE 1.1"
-    iso42001_ref: "Clause A.6"
+    nist_rmf_ref: "MEASURE 2.9"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
