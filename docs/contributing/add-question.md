@@ -27,7 +27,7 @@ Open the appropriate YAML file and add a block:
   default_likelihood_hint: 3    # 1-5, or null if not applicable
   default_severity_hint: 4      # 1-5, or null if not applicable
   article_refs: ["Art.9(2)(a)", "Art.14"]
-  nist_rmf_ref: "MAP 1.5"
+  nist_rmf_ref: "MAP 5.1"
   iso42001_ref: "Clause 6.1"
   regulatory_status: settled    # or "pending_implementing_act"
 ```

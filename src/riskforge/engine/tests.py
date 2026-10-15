@@ -5,37 +5,37 @@ from __future__ import annotations
 from riskforge.models.risk import RiskDimension, RiskItem
 from riskforge.models.rmf import TestRequirement
 
-# Dimension → suggested metric types for Art.9(7) test requirements
+# Dimension → suggested metric types for Art.9(8) test requirements
 DIMENSION_METRIC_HINTS: dict[RiskDimension, list[dict[str, str]]] = {
     RiskDimension.robustness: [
         {
             "metric_type": "faithfulness",
             "threshold_range": ">= 0.85",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
         {
             "metric_type": "answer_relevance",
             "threshold_range": ">= 0.80",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.discrimination: [
         {
             "metric_type": "demographic_parity",
             "threshold_range": "<= 0.10",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
         {
             "metric_type": "equalised_odds",
             "threshold_range": "<= 0.10",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.privacy: [
         {
             "metric_type": "pii_leakage_rate",
             "threshold_range": "= 0.00",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.transparency: [
@@ -77,7 +77,7 @@ DIMENSION_METRIC_HINTS: dict[RiskDimension, list[dict[str, str]]] = {
 
 
 class TestDerivationEngine:
-    """Derives Article 9(7) test requirements from risk items.
+    """Derives Article 9(6) to 9(8) test requirements from risk items.
 
     Knowledge-gap items (where the answer was 'unknown') generate
     mandatory test requirements that must be closed before export.
