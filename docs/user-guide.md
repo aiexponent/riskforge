@@ -176,7 +176,8 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
-| `riskforge verify [--file rmf.json] [--strict] [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. |
+| `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
+| `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
@@ -203,6 +204,46 @@ export, so it does not cover the "Accepted by" and "Recorded by" text until a la
 schema (1.1.0). Acceptances recorded before 2.0.0 show "Accepted by: not
 recorded".
 
+### Receipts: a record kept outside the project
+
+`riskforge verify` compares the audit log with `.riskforge/audit.head.json`, which
+records where the log ends. Someone who cuts entries off the end of the log, puts
+the files back as they were, and rewrites the head file to match, passes that check
+(ADR-03 records this limit). A receipt closes the gap. It names the `seq` and
+`entry_hash` of the last audit entry when it was taken, and the latest register
+fingerprint the log records for the system. Keep it somewhere the project's owner
+cannot change, for example with your auditor or client.
+
+```bash
+riskforge receipt <id> -o receipt-2026-q4.json              # unsigned
+riskforge receipt <id> -o receipt-2026-q4.json --sign k.pem # signed with a key from riskforge keygen
+riskforge verify --receipt receipt-2026-q4.json             # exit 2 once the log no longer holds that entry
+riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
+```
+
+- `receipt` runs the same integrity check as `verify` first and takes nothing from
+  a project that fails it (exit 2). It only reads the project. Without `-o` it
+  prints the receipt as JSON. With `-o` it creates the file with mode 600 on Linux
+  and macOS, and never overwrites a file (exit 3).
+- `verify --receipt FILE` can be given more than once. It exits 2 when the audit log
+  has no entry at the receipt's `seq` (the log was truncated or replaced) or holds a
+  different entry there (it was rewritten). A receipt proves the entries up to its
+  `seq` only. `verify` does not compare its register fingerprint with today's
+  register, which may have changed since for good reasons.
+- A signed receipt carries its key id, public key and signature, and must verify
+  with that public key. That proves only that whoever held the key signed it. To
+  check who signed it, pass the signer's public key with `--trusted-key PUBFILE`
+  (repeatable): the receipt must then be signed by one of those keys, so an unsigned
+  receipt, or one signed by another key, exits 2.
+- A receipt file is refused with exit 2 if it holds a field RiskForge does not
+  write, the same key twice in one object, or a number such as `NaN`. A file that is
+  not JSON, or not a receipt, exits 3. `--receipt` and `--trusted-key` check a
+  project and cannot be combined with `--file` yet.
+- `--trusted-key` also checks signed audit entries. The `riskforge` CLI does not sign
+  audit entries, but a log written by other tools may hold signed ones. Without
+  `--trusted-key`, `verify` warns that their signatures were not checked, and
+  `--strict` fails on that warning.
+
 ### The 8 validation gates
 
 | Gate | Check | On failure |
@@ -226,8 +267,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 |---|---|
 | 0 | Success or valid |
 | 1 | A validation FAIL gate without `--force`; `verify`, `validate` or `tests generate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
-| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict` with `--file`, or interactive `assess` without a terminal |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, a receipt the audit log no longer holds, or a receipt or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict`, `--receipt` or `--trusted-key` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
