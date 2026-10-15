@@ -200,6 +200,13 @@ def test_markdown_shows_accepted_by_and_recorded_by() -> None:
     assert text.count("Recorded by:") == 1
 
 
+def test_markdown_reads_not_set_without_a_review_date() -> None:
+    rmf = _rmf(_item())
+    rmf.register.review_date = None  # possible through the library API
+    text = MarkdownExporter().render(rmf).decode("utf-8")
+    assert "- **Review Date:** Not set" in text
+
+
 def test_markdown_escapes_user_text() -> None:
     item = _item(
         title="Title **bold**",
