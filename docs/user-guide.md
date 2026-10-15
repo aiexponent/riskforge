@@ -251,7 +251,7 @@ followed by `riskforge validate <id>`.
 
 A project last written by RiskForge 1.1.3 passes `riskforge verify` with a warning on
 stderr until its next change, because its registers are not yet covered by a
-fingerprint. To fail the build on that, or on any other integrity warning, run
+fingerprint and it has no `.riskforge/audit.head.json` yet. To fail the build on that, or on any other integrity warning, run
 `riskforge verify --strict`: it exits 2 and lists each warning as a finding on its own
 line. A change in progress still exits 1. `--strict` checks a project only, so with
 `--file` it exits 3.

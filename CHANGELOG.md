@@ -20,7 +20,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ### Added
 
-- `riskforge verify --strict` exits 2 on any integrity warning, such as a register last written by RiskForge 1.1.3 and not yet covered by a fingerprint, and lists each one as a finding on stderr, so a CI job can require a project fully written by 2.0. Without `--strict` nothing changes. It cannot be combined with `--file` (exit 3) (PRD-369).
+- `riskforge verify --strict` exits 2 on any integrity warning, such as a register last written by RiskForge 1.1.3 and not yet covered by a fingerprint, and lists each one as a finding on stderr, so a CI job can require a project fully written by 2.0. `verify` also warns now when `.riskforge/audit.head.json` is missing (a project 2.0 has not written yet, or one whose `.riskforge/` files were deleted), which `--strict` also fails; without `--strict` the exit codes do not change. It cannot be combined with `--file` (exit 3) (PRD-369).
 
 ### Changed
 

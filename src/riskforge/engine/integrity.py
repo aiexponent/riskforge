@@ -45,6 +45,13 @@ REGISTER_EVENT_PREFIXES = ("register.", "risk_item.", "mitigation.")
 REGISTER_EVENTS = frozenset({"risk.accepted"})
 
 
+NO_HEAD_WARNING = (
+    "There is no .riskforge/audit.head.json, so nothing records where the audit log ends: "
+    "RiskForge 2.0 has not written this project yet, or its files were deleted. The next "
+    "change records it."
+)
+
+
 UNENCODABLE = (
     "it holds a value canonical JSON cannot encode (an unquoted date or timestamp, "
     "!!binary, !!set or mixed key types)"
@@ -331,7 +338,12 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     if not log_readable:
         return IntegrityReport(errors=errors, warnings=warnings, entries=[], **digests)
 
-    errors.extend(_head_findings(head, head_present, entries))
+    head_errors = _head_findings(head, head_present, entries)
+    errors.extend(head_errors)
+    if not head_present and not head_errors:
+        # Without a head file nothing marks where the log ends, so a truncated log, a
+        # deleted .riskforge/ or a system added by hand can pass every other check.
+        warnings.append(NO_HEAD_WARNING)
 
     if directories and not entries:
         with_items = [sid for sid in directories if registers[sid].holds_items]

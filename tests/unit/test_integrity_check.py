@@ -32,6 +32,12 @@ from riskforge.storage.filesystem import FileStore
 
 ACTOR = AuditActor(type="human", identity="t")
 
+NO_HEAD = (
+    "There is no .riskforge/audit.head.json, so nothing records where the audit log ends: "
+    "RiskForge 2.0 has not written this project yet, or its files were deleted. The next "
+    "change records it."
+)
+
 
 def _item(n: int) -> RiskItem:
     return RiskItem(
@@ -430,8 +436,9 @@ async def test_v113_project_passes_with_a_warning(v113_project: tuple[Path, str]
     report = await check_integrity(FileStore(root))
     assert report.ok, report.errors
     assert report.warnings == [
+        NO_HEAD,
         f"System {sid}: register.yaml is not covered by a fingerprint yet (last written before "
-        "RiskForge 2.0). The next change records one."
+        "RiskForge 2.0). The next change records one.",
     ]
 
 
@@ -456,8 +463,9 @@ async def test_strict_report_turns_missing_coverage_into_findings(
     assert not report.ok
     assert report.warnings == []
     assert report.errors == [
+        NO_HEAD,
         f"System {sid}: register.yaml is not covered by a fingerprint yet (last written before "
-        "RiskForge 2.0). The next change records one."
+        "RiskForge 2.0). The next change records one.",
     ]
 
 
@@ -467,6 +475,72 @@ async def test_strict_report_fails_a_v113_project_without_entries(tmp_path: Path
     report = (await check_integrity(FileStore(tmp_path))).strict()
     assert not report.ok
     assert any("holds no entries" in error for error in report.errors)
+
+
+def _v113_classified_only(project: Path, sid: str) -> None:
+    """The 1.1.3 fixture as a system classified but never assessed: one entry, no register."""
+    first = _log(project).read_text().splitlines()[0]
+    _log(project).write_text(first + "\n")
+    for name in ("register.yaml", "mitigations.yaml"):
+        (_system_dir(project, sid) / name).unlink()
+
+
+async def test_project_with_everything_under_riskforge_deleted_warns(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    shutil.rmtree(_root(tmp_path))
+    report = await check_integrity(FileStore(tmp_path))
+    assert report.ok, report.errors
+    assert report.warnings == [NO_HEAD]
+    assert report.strict().errors == [NO_HEAD]
+
+
+async def test_v113_system_classified_but_never_assessed_warns(
+    v113_project: tuple[Path, str],
+) -> None:
+    root, sid = v113_project
+    _v113_classified_only(root, sid)
+    report = await check_integrity(FileStore(root))
+    assert report.ok, report.errors
+    assert report.warnings == [NO_HEAD]
+    assert not report.strict().ok
+
+
+async def test_hand_made_system_in_a_project_without_head_warns(
+    v113_project: tuple[Path, str],
+) -> None:
+    root, sid = v113_project
+    _v113_classified_only(root, sid)
+    _v113_system_files(root, items=0, register=False)
+    report = await check_integrity(FileStore(root))
+    assert report.ok, report.errors
+    assert report.warnings == [NO_HEAD]
+    assert not report.strict().ok
+
+
+async def test_missing_head_with_2_0_entries_is_one_finding_not_also_a_warning(
+    tmp_path: Path,
+) -> None:
+    store, _sid = await _seeded(tmp_path)
+    (_root(tmp_path) / "audit.head.json").unlink()
+    report = await check_integrity(store)
+    assert "The head file .riskforge/audit.head.json is missing" in _errors(report)
+    assert report.warnings == []
+
+
+async def test_strict_report_of_a_v113_project_keeps_its_errors_and_warnings(
+    v113_project: tuple[Path, str],
+) -> None:
+    root, sid = v113_project
+    _edit_system_yaml(root, sid, "differs-from-register")
+    report = await check_integrity(FileStore(root))
+    assert len(report.errors) == 1 and "differs from the copy" in report.errors[0]
+    assert len(report.warnings) == 2
+    strict = report.strict()
+    assert strict.errors == [*report.errors, *report.warnings]
+    assert strict.warnings == []
+    assert strict.entries == report.entries
+    assert strict.register_digests == report.register_digests
+    assert strict.system_digests == report.system_digests
 
 
 async def test_strict_report_of_an_intact_project_is_unchanged(tmp_path: Path) -> None:

@@ -35,7 +35,8 @@ def cmd(
     matches its own self-verifying SHA-256 digest.
 
     With --strict, every warning the project check reports is a finding, so a project
-    with a register last written before RiskForge 2.0 exits 2 until its next change.
+    with a register last written before RiskForge 2.0, or with no audit.head.json, exits
+    2 until its next change.
 
     Exit codes:
       0: valid, no tampering detected (warnings may be printed, never with --strict)
