@@ -1,6 +1,6 @@
 # ADR-04: RMF Content Digest, Ed25519 Signatures, Receipts and the Chain Proof
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** October 2026
 **Deciders:** Maintainer
 

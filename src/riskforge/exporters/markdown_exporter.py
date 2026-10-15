@@ -51,7 +51,8 @@ class MarkdownExporter(Exporter):
         lines.append(f"- **Name:** {_md(reg.assessor_name)}")
         lines.append(f"- **Role:** {_md(reg.assessor_role)}")
         lines.append(f"- **Assessment Date:** {reg.assessment_date.date().isoformat()}")
-        lines.append(f"- **Review Date:** {reg.review_date.date().isoformat()}")
+        review = reg.review_date.date().isoformat() if reg.review_date else "Not set"
+        lines.append(f"- **Review Date:** {review}")
         lines.append("")
         lines.append("---")
         lines.append("")

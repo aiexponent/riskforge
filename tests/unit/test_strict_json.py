@@ -85,6 +85,11 @@ def test_brackets_inside_strings_do_not_count_as_nesting() -> None:
     assert loads_strict(text) == json.loads(text)
 
 
+def test_many_shallow_brackets_read() -> None:
+    text = json.dumps([[1]] * 100 + [{"a": [2]}] * 100)
+    assert loads_strict(text) == json.loads(text)
+
+
 def test_the_depth_limit_is_well_above_what_riskforge_writes() -> None:
     assert MAX_DEPTH >= 64
 
