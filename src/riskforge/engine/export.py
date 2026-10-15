@@ -138,6 +138,44 @@ def _reason(exc: OSError) -> str:
     return exc.strerror or str(exc)
 
 
+def _refuse_protected_target(target: Path, protected: Sequence[Path]) -> None:
+    """Refuse an output path that is a directory or part of the project's own files.
+
+    The target and each of its parents are compared, after following symlinks, with
+    every protected path, both by resolved path and by file identity (device and
+    inode), so another spelling of the same directory is caught too.
+
+    Raises
+    ------
+    ExportTargetError
+        If ``target`` is an existing directory, or is or lies inside a protected path.
+    """
+    resolved = Path(os.path.realpath(target))
+    if resolved.is_dir():
+        raise ExportTargetError(f"{target} is a directory; pass a file path with --output.")
+    by_path = {Path(os.path.realpath(path)): path for path in protected}
+    by_identity: dict[tuple[int, int], Path] = {}
+    for path in protected:
+        try:
+            info = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        by_identity[(info.st_dev, info.st_ino)] = path
+    for candidate in (resolved, *resolved.parents):
+        hit = by_path.get(candidate)
+        if hit is None:
+            try:
+                info = os.stat(candidate)
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            hit = by_identity.get((info.st_dev, info.st_ino))
+        if hit is not None:
+            raise ExportTargetError(
+                f"{target} is part of the project's own files ({hit}); write the export "
+                "somewhere else. Nothing was written."
+            )
+
+
 def _remove_stale_temporaries(directory: Path, older_than: float) -> None:
     """Remove export temporary files in ``directory`` last written before ``older_than``."""
     with os.scandir(directory) as entries:
@@ -254,6 +292,7 @@ class ExportEngine:
             As their docstrings say. Nothing is written or recorded.
         """
         exporter = self._registry.get_exporter(fmt)
+        _refuse_protected_target(output_path, self._storage.protected_paths())
         async with self._audit.unit_of_work():
             locked_at = time.time()
             register = await self._audit.read_register(system_id)

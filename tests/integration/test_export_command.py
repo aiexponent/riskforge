@@ -382,3 +382,57 @@ def test_a_tampered_project_exits_2_and_writes_nothing(tmp_path: Path) -> None:
     result = _export(project, sid, out)
     assert result.returncode == 2, result.output
     assert not out.exists()
+
+
+def _tree(project: Path) -> dict[str, bytes]:
+    """Every file under the project, as bytes, except the two opening the project creates."""
+    return {
+        str(p.relative_to(project)): p.read_bytes()
+        for p in sorted(project.rglob("*"))
+        if p.is_file() and not p.is_symlink() and p.name not in {"audit.lock", ".nodelete"}
+    }
+
+
+@pytest.mark.parametrize(
+    "inside",
+    [
+        ".riskforge/audit.jsonl",
+        ".riskforge/audit.head.json",
+        ".riskforge/systems/{sid}/register.yaml",
+        "riskforge.yaml",
+    ],
+)
+def test_an_output_path_inside_the_project_data_is_refused(
+    v113_project: tuple[Path, str], inside: str
+) -> None:
+    root, sid = v113_project
+    before = _tree(root)
+    result = _export(root, sid, root / inside.format(sid=sid))
+    assert result.returncode == 3, result.output
+    assert len(_errors(result.output)) == 1, result.output
+    assert _tree(root) == before
+
+
+@pytest.mark.skipif(os.name != "posix", reason="needs symlinks")
+def test_an_output_path_through_a_symlink_into_the_project_data_is_refused(
+    v113_project: tuple[Path, str], tmp_path: Path
+) -> None:
+    root, sid = v113_project
+    link = tmp_path / "elsewhere"
+    link.symlink_to(root / ".riskforge", target_is_directory=True)
+    before = _tree(root)
+    result = _export(root, sid, link / "audit.jsonl")
+    assert result.returncode == 3, result.output
+    assert len(_errors(result.output)) == 1, result.output
+    assert _tree(root) == before
+
+
+def test_an_existing_directory_as_output_is_refused_before_anything_is_staged(
+    v113_project: tuple[Path, str], tmp_path: Path
+) -> None:
+    root, sid = v113_project
+    before = _tree(root)
+    result = _export(root, sid, tmp_path)
+    assert result.returncode == 3, result.output
+    assert len(_errors(result.output)) == 1, result.output
+    assert _tree(root) == before

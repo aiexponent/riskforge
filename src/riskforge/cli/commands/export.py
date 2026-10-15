@@ -38,7 +38,8 @@ def cmd(
          export could not be built; nothing was written
       2: the project failed its integrity check; nothing was written
       3: no project or no such system, unknown format, the output directory is missing
-         or cannot be written, or the --sign key file is refused
+         or cannot be written, the output path is a directory or lies inside .riskforge/
+         or is riskforge.yaml, or the --sign key file is refused
     """
     import asyncio
     import uuid

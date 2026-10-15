@@ -851,6 +851,20 @@ class FileStore(StorageBackend):
                 f"No RiskForge project in {self._root.parent.resolve()} (riskforge.yaml not found)."
             )
 
+    def protected_paths(self) -> tuple[Path, ...]:
+        """``.riskforge/`` and the ``riskforge.yaml`` manifest."""
+        return (self._root, self._root.parent / "riskforge.yaml")
+
+    def read_project_id(self) -> str | None:
+        """The manifest's ``project_id``, or None when the manifest cannot be read."""
+        try:
+            data = _read_stored(self._root.parent / "riskforge.yaml", "riskforge.yaml")
+            manifest = _load_yaml(data, "riskforge.yaml")
+        except (FileNotFoundError, StoredFileCorruptError):
+            return None
+        project_id = manifest.get("project_id") if isinstance(manifest, dict) else None
+        return project_id if isinstance(project_id, str) else None
+
     # ------------------------------------------------------------------ #
     # AI system CRUD                                                       #
     # ------------------------------------------------------------------ #
