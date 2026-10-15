@@ -308,19 +308,6 @@ def test_receipt_file_that_is_not_json_exits_3(tmp_path: Path) -> None:
     assert result.returncode == 3, result.output
 
 
-def test_receipt_and_trusted_key_cannot_be_combined_with_file(tmp_path: Path) -> None:
-    project = tmp_path / "p"
-    sid = _seed(project)
-    path = tmp_path / "receipt.json"
-    _receipt(project, sid, path)
-    key = _keygen(tmp_path / "k.pem")
-    rmf = tmp_path / "rmf.json"
-    rmf.write_text('{"sha256_hash": "x"}')
-    for extra in (["--receipt", str(path)], ["--trusted-key", f"{key}.pub"]):
-        result = _rf(project, "verify", "--file", str(rmf), *extra)
-        assert result.returncode == 3, result.output
-
-
 def test_verify_checks_signed_audit_entries_with_trusted_keys(tmp_path: Path) -> None:
     """The free CLI does not sign entries, so the project is written through the engine."""
     from riskforge.engine.audit import AuditEngine

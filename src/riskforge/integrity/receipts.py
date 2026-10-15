@@ -122,6 +122,7 @@ def check_receipt(
     entries: Sequence[AuditEntry],
     trusted_keys: Sequence[str] = (),
     label: str = "Receipt",
+    chain_name: str = "the audit log",
 ) -> list[str]:
     """Every reason ``receipt`` fails against ``entries``; empty when it holds.
 
@@ -130,25 +131,26 @@ def check_receipt(
     compared as raw bytes. The chain must hold an entry at the receipt's ``seq`` with
     the receipt's ``entry_hash``, and the last register fingerprint it records for the
     receipt's system up to that ``seq`` must be the receipt's ``register_fingerprint``
-    (both ``None`` when it records none).
+    (both ``None`` when it records none). ``chain_name`` names ``entries`` in messages,
+    such as "the chain proof" for the entries embedded in an RMF file.
     """
     errors = _signature_errors(receipt, trusted_keys, label)
     at_seq = next((entry for entry in entries if entry.seq == receipt.seq), None)
     if at_seq is None:
         errors.append(
-            f"{label}: the audit log has no entry at seq {receipt.seq}, so it was truncated "
+            f"{label}: {chain_name} has no entry at seq {receipt.seq}, so it was truncated "
             "or replaced."
         )
     elif at_seq.entry_hash != receipt.entry_hash:
         errors.append(
-            f"{label}: the audit log entry at seq {receipt.seq} is not the one the receipt "
+            f"{label}: the entry {chain_name} holds at seq {receipt.seq} is not the one the receipt "
             "names, so it was rewritten."
         )
     recorded = _fingerprint_at(entries, receipt.system_id, receipt.seq)
     if recorded != receipt.register_fingerprint:
         errors.append(
             f"{label}: its register fingerprint for system {receipt.system_id} is "
-            f"{receipt.register_fingerprint or 'none'}, but the audit log records "
+            f"{receipt.register_fingerprint or 'none'}, but {chain_name} records "
             f"{recorded or 'none'} for that system up to seq {receipt.seq}."
         )
     return errors
