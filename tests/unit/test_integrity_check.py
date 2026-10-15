@@ -448,6 +448,33 @@ async def test_v113_project_is_covered_after_one_change(v113_project: tuple[Path
     assert [entry.event for entry in report.entries[-1:]] == ["risk.accepted"]
 
 
+async def test_strict_report_turns_missing_coverage_into_findings(
+    v113_project: tuple[Path, str],
+) -> None:
+    root, sid = v113_project
+    report = (await check_integrity(FileStore(root))).strict()
+    assert not report.ok
+    assert report.warnings == []
+    assert report.errors == [
+        f"System {sid}: register.yaml is not covered by a fingerprint yet (last written before "
+        "RiskForge 2.0). The next change records one."
+    ]
+
+
+async def test_strict_report_fails_a_v113_project_without_entries(tmp_path: Path) -> None:
+    (tmp_path / "riskforge.yaml").write_text("project_id: p\n")
+    _v113_system_files(tmp_path, items=0)
+    report = (await check_integrity(FileStore(tmp_path))).strict()
+    assert not report.ok
+    assert any("holds no entries" in error for error in report.errors)
+
+
+async def test_strict_report_of_an_intact_project_is_unchanged(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    report = await check_integrity(store)
+    assert report.strict() == report
+
+
 async def test_first_change_baselines_every_other_system(v113_project: tuple[Path, str]) -> None:
     root, sid = v113_project
     with_register = _v113_system_files(root, items=0)
@@ -718,6 +745,18 @@ async def test_settled_check_reports_tampering_outside_an_unfinished_change(
     report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
     assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
     assert any("checked as finishing or discarding" in w for w in report.warnings)
+
+
+async def test_strict_report_keeps_the_recovery_note_as_a_warning(tmp_path: Path) -> None:
+    _store, sid = await _seeded(tmp_path)
+    _plant_journal(tmp_path, [])
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    strict = report.strict()
+    assert strict.errors == report.errors
+    assert strict.warnings == report.warnings
+    assert any("checked as finishing or discarding" in w for w in strict.warnings)
 
 
 async def test_settled_check_checks_the_files_a_planted_journal_names(tmp_path: Path) -> None:
