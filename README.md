@@ -227,9 +227,9 @@ graph LR
 
 Cross-maps to:
 * **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
-* **ISO/IEC 42001:2023**: Clauses 6.1, 8.4, and Annex Controls A.6–A.9
-* **Colorado AI Act**: SB 24-205 (reset by SB 26-189)
-* **Texas AI Framework**: Texas HB 149 (TRAIGA)
+* **ISO/IEC 42001:2023**: Clauses 6.1, 7.4, and Annex Controls A.6–A.9
+* **Colorado AI Act**: SB 24-205 (repealed and reenacted by SB 26-189)
+* **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA)
 
 ---
 
@@ -294,8 +294,8 @@ created_at: "2026-09-22T08:00:00Z"
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11"
     }
   ]
 }
@@ -384,13 +384,13 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 # src/riskforge/_data/question_bank/privacy.yaml
 - id: PRIV-007
   text: "Does the system process special category data under GDPR Article 9?"
-  guidance: "Special category data includes health, biometric, racial, or political data."
+  guidance: "Special category data includes data revealing racial or ethnic origin or political opinions, health data, and biometric data processed to uniquely identify a person (GDPR Article 9(1))."
   annex_iii_categories: [essential_services, employment]
   default_likelihood_hint: 3
   default_severity_hint: 5
   article_refs: ["Art.9(2)(a)", "Art.10(3)"]
-  nist_rmf_ref: "MAP 1.5"
-  iso42001_ref: "Clause A.7"
+  nist_rmf_ref: "MEASURE 2.10"
+  iso42001_ref: "Annex A.7"
   regulatory_status: settled
 ```
 

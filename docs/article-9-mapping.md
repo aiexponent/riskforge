@@ -673,33 +673,33 @@ US-state-law touchpoints. For per-question references, read the YAML directly.
 
 | RiskForge dimension | NIST AI RMF function | Representative subcategory |
 | --- | --- | --- |
-| data_governance | GOVERN | GOVERN 1.6, 1.7 |
-| discrimination | MEASURE | MEASURE 2.9 |
-| fundamental_rights | GOVERN / MAP | GOVERN 1.1, MAP 1.5 |
-| health_safety | MAP / MEASURE | MAP 1.5, MAP 5.1, MAP 5.2, MEASURE 2.5 |
-| human_oversight | MANAGE | MANAGE 1.1 |
-| privacy | GOVERN / MEASURE | GOVERN 1.6, MEASURE 2.5 |
+| data_governance | MAP / MEASURE | MAP 2.3, MAP 4.1, MEASURE 2.10 |
+| discrimination | MEASURE | MEASURE 2.11 |
+| fundamental_rights | GOVERN / MAP | GOVERN 1.1, MAP 5.1 |
+| health_safety | MAP / MEASURE | MAP 3.5, MAP 5.1, MEASURE 2.4, MEASURE 2.6 |
+| human_oversight | MANAGE / MAP | MANAGE 2.4, MAP 3.5 |
+| privacy | MEASURE | MEASURE 2.10 |
 | robustness | MEASURE / MANAGE | MEASURE 2.5, MANAGE 1.3 |
-| transparency | GOVERN / MEASURE | GOVERN 1.7, MEASURE 1.1 |
+| transparency | MEASURE | MEASURE 2.8, MEASURE 2.9 |
 
-Source: NIST AI Risk Management Framework 1.0
-(<https://www.nist.gov/itl/ai-risk-management-framework>). Functions cited:
+Source: NIST AI Risk Management Framework 1.0, NIST AI 100-1
+(<https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf>). Functions cited:
 GOVERN, MAP, MEASURE, MANAGE.
 
 ### EU AI Act Article 9 ↔ ISO/IEC 42001:2023 (AI management system)
 
 | ISO/IEC 42001 reference | Subject | RiskForge mapping |
 | --- | --- | --- |
-| Clause 6.1 | Actions to address risks and opportunities | Direct — fundamental_rights, health_safety items |
-| Clause 8.4 | Communication on AI system | Surfaced via transparency dimension |
+| Clause 6.1 | Actions to address risks and opportunities | Direct: fundamental_rights, health_safety items |
+| Clause 7.4 | Communication | Surfaced via transparency dimension |
 | Clause 9.1 | Performance evaluation, monitoring | RO-003, RO-004, DI-004, HS-005 |
 | Annex A.6 | AI system documentation | transparency questions |
-| Annex A.7 | Data for AI systems | discrimination + data_governance |
-| Annex A.8 | Information for interested parties | data_governance + privacy |
+| Annex A.7 | Data for AI systems | discrimination + data_governance + privacy |
+| Annex A.8 | Information for interested parties | transparency |
 | Annex A.9 | Use of AI systems | human_oversight + privacy + robustness |
 
-Source: ISO/IEC 42001:2023 *Information technology — Artificial intelligence
-— Management system*. Clause numbers per the published standard.
+Source: ISO/IEC 42001:2023 *Information technology - Artificial intelligence
+- Management system*. Clause numbers per the published standard.
 
 ### US state-law touchpoints
 
@@ -710,19 +710,20 @@ needs are similar.
 | --- | --- | --- |
 | Colorado AI Act (SB 24-205, repealed and reenacted by SB 26-189, effective 1 January 2027) | SB 26-189 replaced the high-risk risk-management and impact-assessment duties with a narrower automated-decision-making disclosure framework; the earlier structure still informs evidence needs | data_governance, discrimination, fundamental_rights, transparency |
 | Texas HB 149 ("TRAIGA", signed 22 June 2025, effective 1 January 2026) | Intent-based prohibitions on harmful AI uses plus transparency and disclosure duties, enforced by the Attorney General | discrimination, transparency, privacy |
-| New York City Local Law 144 (in force) | Bias audits for automated employment decision tools | discrimination |
+| New York City Local Law 144 of 2021 (in force) | Bias audits for automated employment decision tools | discrimination |
 | Illinois 820 ILCS 42 (AI Video Interview Act) | Notice + consent for AI-assisted interview analysis | transparency, privacy |
 
-The Colorado and Texas statutes were enacted after the EU AI Act. Colorado's
+Texas HB 149 and Colorado SB 26-189 were enacted after the EU AI Act; Colorado
+SB 24-205 was approved shortly before it. Colorado's
 original risk-management structure has since been narrowed by SB 26-189, and
 neither statute is a one-for-one substitute for Article 9. Always confirm against
 the current text of the statute.
 
 Sources:
 
-- Colorado AI Act (SB 24-205, reset by SB 26-189): <https://leg.colorado.gov/bills/sb24-205>
-- Texas HB 149 (TRAIGA): Texas Legislature Online
-- NYC LL 144: DCWP rules
+- Colorado AI Act (SB 24-205, repealed and reenacted by SB 26-189): <https://leg.colorado.gov/bills/sb24-205>, <https://leg.colorado.gov/bills/sb26-189>
+- Texas HB 149 (TRAIGA): <https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=HB149>
+- NYC Local Law 144 of 2021: <https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page>
 
 If your organisation operates in additional US states, contribute the
 mapping back to `docs/contributing/add-jurisdiction.md` (planned).

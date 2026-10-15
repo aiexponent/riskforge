@@ -58,7 +58,7 @@ Edit `src/riskforge/_data/question_bank/<dimension>.yaml` and add a question blo
   default_likelihood_hint: 2
   default_severity_hint: 5
   article_refs: ["Art.9(2)(a)", "Art.9(9)"]
-  nist_rmf_ref: "MAP 1.5"
+  nist_rmf_ref: "MAP 5.1"
   iso42001_ref: "Clause 6.1"
   regulatory_status: settled  # or pending_implementing_act
 ```
@@ -85,8 +85,8 @@ Add a YAML block to `src/riskforge/_data/patterns/patterns.yaml`:
       likelihood_hint: 3
       severity_hint: 4
       article_refs: ["Art.9(2)(a)"]
-      nist_rmf_ref: "MEASURE 2.9"
-      iso42001_ref: "Clause A.7"
+      nist_rmf_ref: "MEASURE 2.11"
+      iso42001_ref: "Annex A.7"
 ```
 
 See full guide: [`docs/contributing/add-pattern.md`](docs/contributing/add-pattern.md).
