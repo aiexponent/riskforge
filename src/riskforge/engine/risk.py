@@ -9,20 +9,16 @@ from typing import Literal, NamedTuple
 from riskforge.engine.actor import require_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.register import RiskRegister
-from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
+from riskforge.models.risk import (
+    Likelihood,
+    Mitigation,
+    RiskDimension,
+    RiskItem,
+    Severity,
+    is_vague_description,
+)
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import RegisterNotFoundError
-
-VAGUE_PHRASES = {
-    "we'll monitor it",
-    "to be determined",
-    "tbd",
-    "n/a",
-    "will address later",
-    "monitor",
-    "ongoing",
-    "review",
-}
 
 
 class RiskNotFoundError(KeyError):
@@ -337,9 +333,7 @@ class RiskEngine:
 
     @staticmethod
     def _flag_vague(mitigation: Mitigation) -> Mitigation:
-        mitigation.is_vague = any(
-            phrase in mitigation.description.lower() for phrase in VAGUE_PHRASES
-        )
+        mitigation.is_vague = is_vague_description(mitigation.description)
         return mitigation
 
     @staticmethod
