@@ -70,6 +70,8 @@ def refuse_deep_nesting(text: str) -> None:
     Audit log lines are checked with this too, so no entry reaches the entry hash
     nested deeper than the hashing can follow.
     """
+    if text.count("[") + text.count("{") <= MAX_DEPTH:
+        return  # too few brackets to go that deep; skips the scan for a typical line
     depth = 0
     for match in _STRING_OR_BRACKET.finditer(text):
         token = match.group()
