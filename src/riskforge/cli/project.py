@@ -134,6 +134,13 @@ def run_read_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]
     per finding and exits 2, as ``riskforge verify`` does. A register or system file
     that ``body`` reads and that changed after the check also exits 2.
     """
+    return run_read_checked_with_report(project_dir, lambda store, _report: body(store))
+
+
+def run_read_checked_with_report(
+    project_dir: Path, body: Callable[[FileStore, IntegrityReport], Awaitable[T]]
+) -> T:
+    """``run_read_checked``, with the report of the passed check also given to ``body``."""
     from riskforge.cli.errors import EXIT_FAILED
     from riskforge.engine.integrity import (
         ChangeInProgressError,
@@ -159,7 +166,7 @@ def run_read_checked(project_dir: Path, body: Callable[[FileStore], Awaitable[T]
             raise typer.Exit(EXIT_TAMPERED)
         try:
             with reads_checked_against(store, report):
-                return await body(store)
+                return await body(store, report)
         except IntegrityError as exc:
             print_refusal(exc)
             raise typer.Exit(EXIT_TAMPERED) from None

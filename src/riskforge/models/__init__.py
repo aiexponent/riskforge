@@ -1,6 +1,7 @@
 """Pydantic v2 data models for RiskForge."""
 
 from riskforge.models.audit import AuditActor, AuditEntry
+from riskforge.models.receipt import Receipt
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
 from riskforge.models.rmf import CrossReference, RiskManagementFile, TestRequirement
@@ -20,4 +21,5 @@ __all__ = [
     "CrossReference",
     "AuditEntry",
     "AuditActor",
+    "Receipt",
 ]
