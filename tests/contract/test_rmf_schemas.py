@@ -296,6 +296,44 @@ def test_each_provenance_object_refuses_an_extra_property(target: str) -> None:
         jsonschema.validate(document, load_schema("1.1.0"))
 
 
+_FIXED_LENGTH_FIELDS = [
+    ("document", "sha256_hash"),
+    ("signoff", "register_fingerprint"),
+    ("signoff", "key_id"),
+    ("signoff", "signature"),
+    ("signature", "key_id"),
+    ("signature", "signature"),
+    ("public_key", "key_id"),
+    ("public_key", "public_key"),
+    ("chain_proof_entry", "prev_hash"),
+    ("chain_proof_entry", "entry_hash"),
+    ("chain_proof_entry", "register_fingerprint"),
+    ("receipt", "entry_hash"),
+    ("receipt", "register_fingerprint"),
+    ("receipt", "key_id"),
+    ("receipt", "public_key"),
+    ("receipt", "signature"),
+]
+
+
+@pytest.mark.parametrize(("target", "field"), _FIXED_LENGTH_FIELDS)
+def test_a_trailing_newline_on_a_key_digest_or_signature_fails(target: str, field: str) -> None:
+    """In Python ``re`` a ``$`` matches before a trailing newline, so lengths are bounded too."""
+    document = copy.deepcopy(rmf_document(_full_rmf()))
+    jsonschema.validate(document, load_schema("1.1.0"))
+    objects = {"document": document, **_provenance_objects(document)}
+    objects[target][field] += "\n"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(document, load_schema("1.1.0"))
+
+
+def test_the_first_entry_prev_hash_with_a_trailing_newline_fails() -> None:
+    document = copy.deepcopy(rmf_document(_full_rmf()))
+    document["chain_proof"]["entries"][0]["prev_hash"] = "0000000000\n"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(document, load_schema("1.1.0"))
+
+
 @pytest.mark.parametrize("where", ["register", "item", "mitigation", "test_requirement"])
 def test_register_objects_refuse_an_extra_property(where: str) -> None:
     document = copy.deepcopy(rmf_document(_rmf()))

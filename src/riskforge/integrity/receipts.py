@@ -18,7 +18,7 @@ from pydantic import ValidationError
 
 from riskforge.integrity.canonical import canonical_json
 from riskforge.integrity.signing import decode_public_key, key_id_for, verify_signature
-from riskforge.integrity.strict_json import StrictJsonError, loads_strict
+from riskforge.integrity.strict_json import NumberTooLongError, StrictJsonError, loads_strict
 from riskforge.models.audit import AuditEntry
 from riskforge.models.receipt import Receipt
 
@@ -128,7 +128,9 @@ def check_receipt(
     A signed receipt must verify with its own key. With ``trusted_keys`` (base64 raw
     public keys) it must be signed, and the key it verified with must be one of them,
     compared as raw bytes. The chain must hold an entry at the receipt's ``seq`` with
-    the receipt's ``entry_hash``.
+    the receipt's ``entry_hash``, and the last register fingerprint it records for the
+    receipt's system up to that ``seq`` must be the receipt's ``register_fingerprint``
+    (both ``None`` when it records none).
     """
     errors = _signature_errors(receipt, trusted_keys, label)
     at_seq = next((entry for entry in entries if entry.seq == receipt.seq), None)
@@ -142,7 +144,27 @@ def check_receipt(
             f"{label}: the audit log entry at seq {receipt.seq} is not the one the receipt "
             "names, so it was rewritten."
         )
+    recorded = _fingerprint_at(entries, receipt.system_id, receipt.seq)
+    if recorded != receipt.register_fingerprint:
+        errors.append(
+            f"{label}: its register fingerprint for system {receipt.system_id} is "
+            f"{receipt.register_fingerprint or 'none'}, but the audit log records "
+            f"{recorded or 'none'} for that system up to seq {receipt.seq}."
+        )
     return errors
+
+
+def _fingerprint_at(entries: Sequence[AuditEntry], system_id: str, seq: int) -> str | None:
+    """The last register fingerprint ``entries`` record for ``system_id`` up to ``seq``."""
+    recorded: str | None = None
+    for entry in entries:
+        if (
+            entry.seq <= seq
+            and entry.system_id == system_id
+            and entry.register_fingerprint is not None
+        ):
+            recorded = entry.register_fingerprint
+    return recorded
 
 
 def _validate(source: dict[str, Any]) -> Receipt:
@@ -244,7 +266,8 @@ def read_receipt_file(path: Path) -> Receipt:
     ReceiptFileError
         If the file cannot be read, is not UTF-8 JSON, or is not a receipt or RMF file.
     InvalidReceiptError
-        If it holds a duplicate key or a non-finite number, or its receipt is refused.
+        If it holds a duplicate key, a non-finite number or an integer too long to read,
+        or its receipt is refused.
     """
     try:
         text = path.read_bytes().decode("utf-8")
@@ -256,6 +279,11 @@ def read_receipt_file(path: Path) -> Receipt:
         data = loads_strict(text)
     except StrictJsonError as exc:
         raise InvalidReceiptError(f"it holds {exc}, which RiskForge never writes.") from exc
+    except NumberTooLongError as exc:
+        # Like a duplicate key or NaN: RiskForge never writes one, so it is refused (exit 2).
+        raise InvalidReceiptError(
+            "it holds a number too long to read, which RiskForge never writes."
+        ) from exc
     except (json.JSONDecodeError, RecursionError) as exc:
         raise ReceiptFileError(f"it is not JSON ({exc}).") from exc
     return receipt_from_document(data)

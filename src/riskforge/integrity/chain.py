@@ -84,7 +84,9 @@ def check_entry_signatures(
     holds no public keys, so a signature is verified only against ``trusted_keys``
     (base64 raw public keys): an entry signed by a key outside that set, or whose
     signature does not verify, is an error. Without trusted keys, signed entries are
-    reported as not checked, in one warning.
+    reported as not checked, in one warning. With trusted keys, unsigned entries are
+    counted in one warning, since no trusted key covers them; ``--strict`` makes it a
+    finding.
     """
     trusted: dict[str, str] | None = None
     if trusted_keys is not None:
@@ -95,8 +97,10 @@ def check_entry_signatures(
             trusted[key_id_for(key)] = key
     errors: list[str] = []
     unchecked = 0
+    unsigned = 0
     for entry in entries:
         if entry.key_id is None and entry.signature is None:
+            unsigned += 1
             continue
         label = f"Audit entry seq {entry.seq}"
         if entry.key_id is None or entry.signature is None:
@@ -119,5 +123,11 @@ def check_entry_signatures(
         warnings.append(
             f"{unchecked} audit {noun} signed, and the signatures were not checked: "
             "no trusted key was given (riskforge verify --trusted-key)."
+        )
+    if trusted is not None and unsigned:
+        noun = "entry is" if unsigned == 1 else "entries are"
+        warnings.append(
+            f"{unsigned} audit {noun} not signed, so no trusted key covers "
+            f"{'it' if unsigned == 1 else 'them'}."
         )
     return errors, warnings

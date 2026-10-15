@@ -113,3 +113,19 @@ async def test_saving_twice_records_once(tmp_path: Path) -> None:
     assert len(generated) == 1
     assert generated[0].payload == {"count": 1, "risk_item_ids": [str(item.id)]}
     assert (await store.read_register(sid)).test_requirements == requirements
+
+
+def test_g4_warns_when_saved_requirements_are_out_of_date() -> None:
+    gap = _gap()
+    register = _register([gap])
+    register.test_requirements = TestDerivationEngine().derive(register.items)
+    assert _g4(register).status == GateStatus.PASS
+
+    high = _gap("High score, no gap")
+    high.knowledge_gap = False
+    high.likelihood = high.residual_likelihood = Likelihood(4)
+    high.severity = high.residual_severity = Severity(4)
+    register.items.append(high)
+    g4 = _g4(register)
+    assert g4.status == GateStatus.WARN
+    assert "out of date" in g4.details

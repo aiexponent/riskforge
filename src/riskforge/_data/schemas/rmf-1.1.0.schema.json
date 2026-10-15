@@ -48,6 +48,8 @@
     "sha256_hash": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$",
+      "minLength": 64,
+      "maxLength": 64,
       "description": "Content digest: SHA-256 of the canonical JSON of this document without id, generated_at, sha256_hash, signatures, public_keys, chain_proof and receipt, with signoffs read as [] when absent (ADR-04 section 2)."
     },
     "disclosure": {
@@ -587,7 +589,9 @@
         },
         "register_fingerprint": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "totp_verified_at": {
           "type": "string",
@@ -599,11 +603,15 @@
         },
         "key_id": {
           "type": "string",
-          "pattern": "^ed25519:[0-9a-f]{16}$"
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "signature": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{86}==$"
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
         }
       },
       "additionalProperties": false
@@ -620,7 +628,9 @@
       "properties": {
         "key_id": {
           "type": "string",
-          "pattern": "^ed25519:[0-9a-f]{16}$"
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "algorithm": {
           "const": "ed25519"
@@ -631,7 +641,9 @@
         },
         "signature": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{86}==$"
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
         }
       },
       "additionalProperties": false
@@ -647,14 +659,18 @@
       "properties": {
         "key_id": {
           "type": "string",
-          "pattern": "^ed25519:[0-9a-f]{16}$"
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "algorithm": {
           "const": "ed25519"
         },
         "public_key": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{43}=$"
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
+          "minLength": 44,
+          "maxLength": 44
         }
       },
       "additionalProperties": false
@@ -712,24 +728,41 @@
           "type": "object"
         },
         "prev_hash": {
-          "type": "string",
-          "pattern": "^([0-9a-f]{64}|0000000000)$"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            {
+              "const": "0000000000"
+            }
+          ]
         },
         "entry_hash": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "register_fingerprint": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "key_id": {
           "type": "string",
-          "pattern": "^ed25519:[0-9a-f]{16}$"
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "signature": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{86}==$"
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
         }
       },
       "dependentRequired": {
@@ -790,7 +823,9 @@
         },
         "entry_hash": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "register_fingerprint": {
           "oneOf": [
@@ -799,7 +834,9 @@
             },
             {
               "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
             }
           ]
         },
@@ -809,15 +846,21 @@
         },
         "key_id": {
           "type": "string",
-          "pattern": "^ed25519:[0-9a-f]{16}$"
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "public_key": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{43}=$"
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
+          "minLength": 44,
+          "maxLength": 44
         },
         "signature": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9+/]{86}==$"
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
         }
       },
       "dependentRequired": {

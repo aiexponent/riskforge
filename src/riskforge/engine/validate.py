@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from riskforge.engine.tests import TestDerivationEngine
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import RiskDimension
 
@@ -96,6 +97,14 @@ class ValidateEngine:
                 f"{len(missing)} knowledge gap(s) without a saved test requirement: "
                 + ", ".join(str(item.id)[:8] for item in missing)
                 + f". Run `riskforge tests generate {r.system.id}` to save them.",
+            )
+        if r.test_requirements != TestDerivationEngine().derive(r.items):
+            return GateResult(
+                "G4",
+                "Knowledge gaps have test requirements",
+                GateStatus.WARN,
+                "The saved test requirements are out of date with the register. "
+                f"Run `riskforge tests generate {r.system.id}` to update them.",
             )
         return GateResult("G4", "Knowledge gaps have test requirements", GateStatus.PASS)
 

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, TypeVar
 
 import typer
 
-from riskforge.cli.errors import EXIT_TAMPERED, err_console, fail
+from riskforge.cli.errors import EXIT_TAMPERED, err_console, fail, printable
 
 T = TypeVar("T")
 
@@ -58,7 +58,10 @@ def open_project_for_reading(project_dir: Path) -> FileStore:
 
 
 def print_integrity_failure(report: IntegrityReport) -> None:
-    """Print each finding of a failed integrity check on its own line, to stderr."""
+    """Print each finding of a failed integrity check on its own line, to stderr.
+
+    Control characters in a finding are shown as escapes (``printable``).
+    """
     from rich.markup import escape
 
     count = len(report.errors)
@@ -67,7 +70,9 @@ def print_integrity_failure(report: IntegrityReport) -> None:
         highlight=False,
     )
     for error in report.errors:
-        err_console.print(f"  [red]•[/red] {escape(error)}", highlight=False, soft_wrap=True)
+        err_console.print(
+            f"  [red]•[/red] {escape(printable(error))}", highlight=False, soft_wrap=True
+        )
 
 
 def print_refusal(exc: IntegrityError) -> None:
@@ -89,7 +94,9 @@ def print_integrity_warnings(report: IntegrityReport) -> None:
     from rich.markup import escape
 
     for warning in report.warnings:
-        err_console.print(f"[yellow]![/yellow] {escape(warning)}", highlight=False, soft_wrap=True)
+        err_console.print(
+            f"[yellow]![/yellow] {escape(printable(warning))}", highlight=False, soft_wrap=True
+        )
 
 
 @contextlib.asynccontextmanager

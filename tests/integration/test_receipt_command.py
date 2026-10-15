@@ -354,3 +354,60 @@ def test_verify_checks_signed_audit_entries_with_trusted_keys(tmp_path: Path) ->
     untrusted = _rf(project, "verify", "--trusted-key", f"{other}.pub")
     assert untrusted.returncode == 2, untrusted.output
     assert "not a trusted key" in untrusted.output
+
+
+def test_receipt_fingerprint_that_differs_from_the_chain_exits_2(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    data = json.loads(path.read_text())
+    for edited in ({**data, "register_fingerprint": "0" * 64}, {**data, "system_id": "other"}):
+        changed = tmp_path / f"edited-{len(edited['system_id'])}.json"
+        changed.write_text(json.dumps(edited))
+        result = _rf(project, "verify", "--receipt", str(changed))
+        assert result.returncode == 2, result.output
+        assert "register fingerprint" in result.output
+
+
+def test_receipt_file_with_a_seq_too_long_for_python_exits_2(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    path.write_text(re.sub(r'"seq": \d+', '"seq": ' + "9" * 5000, path.read_text(), count=1))
+    result = _rf(project, "verify", "--receipt", str(path))
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    assert "too long" in result.output
+
+
+def test_control_characters_from_a_receipt_file_never_reach_the_terminal(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    sid = _seed(project)
+    path = tmp_path / "receipt.json"
+    _receipt(project, sid, path)
+    data = json.loads(path.read_text())
+    data["\x1b]0;owned\x07\x1b[2J‮x\x9b\x7f"] = "x"
+    path.write_text(json.dumps(data))  # json.dumps writes the characters as \u escapes
+    result = _rf(project, "verify", "--receipt", str(path))
+    assert result.returncode == 2, result.output
+    for char in ("\x1b", "\x07", "‮", "\x9b", "\x7f"):
+        assert char not in result.output, repr(char)
+    assert "\\x1b]0;owned" in result.output
+
+
+def test_trusted_key_names_the_unsigned_entries_and_strict_fails_on_them(tmp_path: Path) -> None:
+    project = tmp_path / "p"
+    _seed(project)
+    key = _keygen(tmp_path / "k.pem")
+    count = len(_log_lines(project))
+    assert _rf(project, "verify", "--strict").returncode == 0
+    plain = _rf(project, "verify")
+    assert plain.returncode == 0 and "not signed" not in plain.output, plain.output
+    trusted = _rf(project, "verify", "--trusted-key", f"{key}.pub")
+    assert trusted.returncode == 0, trusted.output
+    assert f"{count} audit entries are not signed" in trusted.output
+    strict = _rf(project, "verify", "--strict", "--trusted-key", f"{key}.pub")
+    assert strict.returncode == 2, strict.output
+    assert f"{count} audit entries are not signed" in strict.output

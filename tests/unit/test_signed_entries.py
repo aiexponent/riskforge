@@ -134,3 +134,22 @@ async def test_unsigned_entries_pass_with_trusted_keys(tmp_path: Path) -> None:
     store = await _project(tmp_path, None)
     report = await check_integrity(store, trusted_keys=[_signer().public_key_b64])
     assert report.ok, report.errors
+
+
+async def test_unsigned_entries_are_named_in_a_warning_with_trusted_keys(tmp_path: Path) -> None:
+    store = await _project(tmp_path, None)
+    count = len(_lines(tmp_path))
+    plain = await check_integrity(store)
+    assert not any("not signed" in w for w in plain.warnings)
+    report = await check_integrity(store, trusted_keys=[_signer().public_key_b64])
+    unsigned = [w for w in report.warnings if "not signed" in w]
+    assert len(unsigned) == 1 and f"{count} audit entries are not signed" in unsigned[0]
+    assert not report.strict().ok  # --strict makes the warning a finding
+
+
+async def test_signed_entries_give_no_unsigned_warning(tmp_path: Path) -> None:
+    signer = _signer()
+    store = await _project(tmp_path, signer)
+    report = await check_integrity(store, trusted_keys=[signer.public_key_b64])
+    assert report.ok, report.errors
+    assert not any("not signed" in w for w in report.warnings)
