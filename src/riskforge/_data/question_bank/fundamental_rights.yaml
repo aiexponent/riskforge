@@ -19,7 +19,7 @@ questions:
     default_likelihood_hint: 2
     default_severity_hint: 5
     article_refs: ["Art.9(2)(a)"]
-    nist_rmf_ref: "MAP 1.5"
+    nist_rmf_ref: "MAP 5.1"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
 
@@ -29,9 +29,9 @@ questions:
     annex_iii_categories: [essential_services, law_enforcement, employment, education]
     default_likelihood_hint: 2
     default_severity_hint: 3
-    article_refs: ["Art.13", "Art.14"]
-    nist_rmf_ref: "GOVERN 1.7"
-    iso42001_ref: "Clause A.6"
+    article_refs: ["Art.26(11)"]
+    nist_rmf_ref: "MEASURE 2.8"
+    iso42001_ref: "Annex A.6"
     regulatory_status: settled
 
   - id: FR-004
@@ -41,6 +41,6 @@ questions:
     default_likelihood_hint: null
     default_severity_hint: null
     article_refs: ["Art.14"]
-    nist_rmf_ref: "MANAGE 1.1"
-    iso42001_ref: "Clause A.9"
+    nist_rmf_ref: "MAP 3.5"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled

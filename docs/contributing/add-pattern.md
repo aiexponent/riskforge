@@ -31,8 +31,8 @@ An Annex III pattern:
       likelihood_hint: 3
       severity_hint: 4
       article_refs: ["Art.9(2)(a)"]
-      nist_rmf_ref: "MEASURE 2.9"
-      iso42001_ref: "Clause A.7"
+      nist_rmf_ref: "MEASURE 2.11"
+      iso42001_ref: "Annex A.7"
 ```
 
 A product-route pattern (Article 6(1)) replaces `annex_iii_point` with:

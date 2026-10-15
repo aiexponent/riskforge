@@ -17,6 +17,14 @@ def cmd(
     file: Optional[Path] = typer.Option(
         None, "--file", "-f", exists=True, dir_okay=False, help="Exported rmf.json to verify"
     ),
+    strict: bool = typer.Option(
+        False,
+        "--strict",
+        help=(
+            "Fail with exit 2 on any integrity warning, such as a register not yet covered "
+            "by a fingerprint. Checks a project only, so it cannot be combined with --file."
+        ),
+    ),
 ) -> None:
     """Verify integrity. Exits 2 if tampered or corrupt.
 
@@ -26,19 +34,28 @@ def cmd(
     can be checked. With --file, verifies that a standalone exported rmf.json still
     matches its own self-verifying SHA-256 digest.
 
+    With --strict, every warning the project check reports is a finding, so a project
+    with a register last written before RiskForge 2.0, or with no audit.head.json, exits
+    2 until its next change.
+
     Exit codes:
-      0: valid, no tampering detected (warnings may be printed)
+      0: valid, no tampering detected (warnings may be printed, never with --strict)
       1: a change is in progress or unfinished (.riskforge/txn.json), so nothing was
          checked; or an unexpected error
       2: integrity failure: the chain, head file, a register or system file, or the RMF
-         file does not match what was recorded (CI-detectable)
-      3: no project here, or the file is missing or not a JSON RMF file
+         file does not match what was recorded (CI-detectable); with --strict, also any
+         integrity warning
+      3: no project here, the file is missing or not a JSON RMF file, or --strict was
+         given with --file
     """
+    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
+
     if file is not None:
+        if strict:
+            fail("--strict cannot be combined with --file: it applies to a project check.")
         _verify_rmf_file(file)
         return
 
-    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
     from riskforge.cli.project import (
         open_project_for_reading,
         print_integrity_failure,
@@ -52,6 +69,8 @@ def cmd(
     except ChangeInProgressError as exc:
         fail(str(exc), EXIT_FAILED)
 
+    if strict:
+        report = report.strict()
     print_integrity_warnings(report)
     if not report.ok:
         print_integrity_failure(report)

@@ -13,6 +13,7 @@ brotlicffi==1.2.0.2 ; platform_python_implementation != 'CPython'
 cffi==2.1.1
     # via
     #   brotlicffi
+    #   cryptography
     #   weasyprint
 click==8.1.8
     # via
@@ -20,6 +21,8 @@ click==8.1.8
     #   typer
 colorama==0.4.6 ; sys_platform == 'win32'
     # via click
+cryptography==50.0.1
+    # via riskforge
 cssselect2==0.10.1
     # via weasyprint
 filelock==3.32.7

@@ -43,7 +43,8 @@ class TraceForgeAdapter:
                     description=(
                         f"TraceForge detected PII in training data for lineage {lineage_id}. "
                         f"Fields: {', '.join(pii_fields) or 'unspecified'}. "
-                        "Article 10(5) permits PII in training data only under specific conditions."
+                        "Article 10(2)(b) requires data governance to cover the origin of data and, "
+                        "for personal data, the original purpose of the data collection."
                     ),
                     source="traceforge",
                     source_ref=f"traceforge:{lineage_id}",
@@ -51,9 +52,9 @@ class TraceForgeAdapter:
                     severity=Severity.major,
                     residual_likelihood=Likelihood.likely,
                     residual_severity=Severity.major,
-                    article_refs=["Art.10(5)", "Art.9(2)(a)"],
-                    nist_rmf_ref="GOVERN 1.6",
-                    iso42001_ref="Clause A.8",
+                    article_refs=["Art.10(2)(b)", "Art.9(2)(a)"],
+                    nist_rmf_ref="MEASURE 2.10",
+                    iso42001_ref="Annex A.7",
                 )
             )
 
@@ -74,9 +75,9 @@ class TraceForgeAdapter:
                     severity=Severity.major,
                     residual_likelihood=Likelihood.possible,
                     residual_severity=Severity.major,
-                    article_refs=["Art.10(2)", "Art.10(3)"],
-                    nist_rmf_ref="GOVERN 1.7",
-                    iso42001_ref="Clause A.8",
+                    article_refs=["Art.10(2)", "Art.10(2)(b)"],
+                    nist_rmf_ref="MAP 4.1",
+                    iso42001_ref="Annex A.7",
                 )
             )
 

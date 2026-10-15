@@ -12,7 +12,7 @@ import asyncio
 import contextlib
 import contextvars
 from collections.abc import AsyncIterator, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic import ValidationError
@@ -45,6 +45,13 @@ REGISTER_EVENT_PREFIXES = ("register.", "risk_item.", "mitigation.")
 REGISTER_EVENTS = frozenset({"risk.accepted"})
 
 
+NO_HEAD_WARNING = (
+    "There is no .riskforge/audit.head.json, so nothing records where the audit log ends: "
+    "RiskForge 2.0 has not written this project yet, or its files were deleted. The next "
+    "change records it."
+)
+
+
 UNENCODABLE = (
     "it holds a value canonical JSON cannot encode (an unquoted date or timestamp, "
     "!!binary, !!set or mixed key types)"
@@ -70,6 +77,19 @@ class IntegrityReport:
     @property
     def head(self) -> AuditEntry | None:
         return self.entries[-1] if self.entries else None
+
+    def strict(self) -> IntegrityReport:
+        """This report with every warning about missing coverage made an error.
+
+        For ``riskforge verify --strict``. The note that a change in progress was
+        checked as recovery would leave it stays a warning: it says how the project was
+        checked, not what is wrong with it, and it only comes with errors anyway.
+        """
+        findings = [w for w in self.warnings if w != RECOVERY_VIEW_NOTE]
+        if not findings:
+            return self
+        notes = [w for w in self.warnings if w == RECOVERY_VIEW_NOTE]
+        return replace(self, errors=[*self.errors, *findings], warnings=notes)
 
 
 class IntegrityError(RuntimeError):
@@ -318,7 +338,12 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     if not log_readable:
         return IntegrityReport(errors=errors, warnings=warnings, entries=[], **digests)
 
-    errors.extend(_head_findings(head, head_present, entries))
+    head_errors = _head_findings(head, head_present, entries)
+    errors.extend(head_errors)
+    if not head_present and not head_errors:
+        # Without a head file nothing marks where the log ends, so a truncated log, a
+        # deleted .riskforge/ or a system added by hand can pass every other check.
+        warnings.append(NO_HEAD_WARNING)
 
     if directories and not entries:
         with_items = [sid for sid in directories if registers[sid].holds_items]
@@ -545,6 +570,11 @@ async def checked_unit_of_work(storage: StorageBackend) -> AsyncIterator[Integri
             _GUARDS.reset(token)
 
 
+RECOVERY_VIEW_NOTE = (
+    "A change is in progress or unfinished (.riskforge/txn.json); the project "
+    "was checked as finishing or discarding it would leave it."
+)
+
 _IN_PROGRESS = (
     "A change to this project is in progress or unfinished (.riskforge/txn.json), so it "
     "was not checked. Run verify again when it has finished; if no riskforge command is "
@@ -606,11 +636,9 @@ async def check_integrity_settled(
         if await storage.read_commit_markers() != before:
             raise ChangeInProgressError(_IN_PROGRESS)
         if not report.ok:
-            note = (
-                "A change is in progress or unfinished (.riskforge/txn.json); the project "
-                "was checked as finishing or discarding it would leave it."
-            )
             return IntegrityReport(
-                errors=report.errors, warnings=[*report.warnings, note], entries=report.entries
+                errors=report.errors,
+                warnings=[*report.warnings, RECOVERY_VIEW_NOTE],
+                entries=report.entries,
             )
     raise ChangeInProgressError(_IN_PROGRESS)
