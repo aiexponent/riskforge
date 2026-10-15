@@ -60,11 +60,14 @@ def cmd(
     With --receipt FILE, the project check also fails unless the audit log still holds,
     at the receipt's seq, the entry the receipt names. This catches a log cut back or
     rebuilt with audit.head.json rewritten to match, which the project check alone
-    cannot see. A signed receipt must verify with its own public key.
+    cannot see. The receipt's register fingerprint must also be the last one the log
+    records for its system up to its seq. A signed receipt must verify with its own
+    public key.
 
     With --trusted-key PUBFILE, each receipt must be signed by one of the trusted keys,
-    and each signed audit entry must verify with one of them. Without it, signed audit
-    entries are reported as not checked. --receipt and --trusted-key check a project,
+    and each signed audit entry must verify with one of them. Unsigned audit entries are
+    then counted in a warning, so --strict --trusted-key fails unless every entry is
+    signed. Without it, signed audit entries are reported as not checked. --receipt and --trusted-key check a project,
     so they cannot be combined with --file yet.
 
     Exit codes:
