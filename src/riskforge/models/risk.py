@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum, IntEnum
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    computed_field,
+    field_validator,
+    model_serializer,
+)
 
 VAGUE_PHRASES = frozenset(
     {
@@ -56,6 +63,17 @@ class RiskDimension(str, Enum):
     # 8 dimensions only — matches the question bank YAML files and PRD spec
 
 
+def _drop_when_none(data: Any, key: str, value: object) -> Any:
+    """Leave an unset optional field out of the dump.
+
+    Registers written before the field existed then dump back byte for byte, and the
+    RMF 1.0.0 schema, which does not allow the field, still validates.
+    """
+    if value is None and isinstance(data, dict):
+        data.pop(key, None)
+    return data
+
+
 class Mitigation(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     description: str
@@ -66,6 +84,12 @@ class Mitigation(BaseModel):
     is_vague: bool = False  # auto-flagged if description is generic
     article_ref: str = ""
     nist_rmf_ref: str = ""
+    # Self-declared name of whoever recorded the mitigation (PRD-356); not verified.
+    recorded_by: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_recorded_by(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_when_none(handler(self), "recorded_by", self.recorded_by)
 
     @field_validator("description")
     @classmethod
@@ -101,6 +125,8 @@ class RiskItem(BaseModel):
     residual_severity: Severity
     accepted: bool = False
     acceptance_rationale: str = ""
+    # Self-declared name of whoever accepted the risk (PRD-356); not verified.
+    accepted_by: str | None = None
     identified_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     article_refs: list[str] = Field(default_factory=list)  # e.g. ["Art.9(2)(a)", "Art.14"]
     nist_rmf_refs: list[str] = Field(default_factory=list)  # e.g. ["MANAGE 1.3"]
@@ -113,6 +139,10 @@ class RiskItem(BaseModel):
     source_ref: str = ""  # e.g. "rag:pipeline_001", "traceforge:lineage_042"
     tags: list[str] = Field(default_factory=list)
     notes: str = ""
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_accepted_by(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_when_none(handler(self), "accepted_by", self.accepted_by)
 
     @computed_field
     @property

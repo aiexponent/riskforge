@@ -38,6 +38,14 @@
       ]
     },
     {
+      "article_ref": "Art.86(1)",
+      "iso42001_ref": "Clause A.6",
+      "nist_rmf_ref": "GOVERN 1.7",
+      "risk_item_ids": [
+        "<uuid>"
+      ]
+    },
+    {
       "article_ref": "Art.14(1)",
       "iso42001_ref": "Clause 6.1",
       "nist_rmf_ref": "MAP 1.5",
@@ -151,9 +159,10 @@
         "acceptance_rationale": "",
         "accepted": false,
         "article_refs": [
-          "Art.13"
+          "Art.13",
+          "Art.86(1)"
         ],
-        "description": "Automated credit decisions must be explainable to affected individuals under GDPR Article 22. The system may not currently provide this.",
+        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",

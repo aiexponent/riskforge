@@ -10,6 +10,11 @@ Two measurements:
    this path is O(n^2) in the number of items by design of the flat-file store;
    it is fast at the register sizes a real assessment produces (tens of items).
 
+The first two run their loop inside one ``AuditEngine.unit_of_work()``, so the
+integrity check that opens every change runs once. A third row times 50 ``add_risk``
+calls as separate changes, each running the full check (which reads the whole log and
+every register, as every CLI command does once), so a slower check shows up there.
+
     python benchmarks/perf.py
 
 Timings are wall-clock on the current machine and are indicative, not a guarantee.
@@ -83,8 +88,11 @@ async def _bench_audit(size: int) -> tuple[float, float]:
         store, sid = await _setup(Path(tmp))
         audit = AuditEngine(store, AuditActor(type="ci", identity="bench"))
         start = time.perf_counter()
-        for _ in range(size):
-            await audit.record("bench.event", sid, {})
+        # One unit of work, so the integrity check runs once (each separate change runs
+        # its own full check, which is O(n) in the log).
+        async with audit.unit_of_work():
+            for _ in range(size):
+                await audit.record("bench.event", sid, {})
         append_total = time.perf_counter() - start
         start = time.perf_counter()
         await store.verify_chain()
@@ -92,6 +100,19 @@ async def _bench_audit(size: int) -> tuple[float, float]:
 
 
 async def _bench_add_risk(size: int) -> float:
+    with tempfile.TemporaryDirectory() as tmp:
+        store, sid = await _setup(Path(tmp))
+        audit = AuditEngine(store, AuditActor(type="ci", identity="bench"))
+        engine = RiskEngine(store, audit)
+        start = time.perf_counter()
+        async with audit.unit_of_work():
+            for i in range(size):
+                await engine.add_risk(sid, _item(i))
+        return time.perf_counter() - start
+
+
+async def _bench_separate_changes(size: int) -> float:
+    """``add_risk`` with each call its own change, so each runs the full integrity check."""
     with tempfile.TemporaryDirectory() as tmp:
         store, sid = await _setup(Path(tmp))
         engine = RiskEngine(store, AuditEngine(store, AuditActor(type="ci", identity="bench")))
@@ -108,10 +129,16 @@ async def main() -> None:
         total, verify = await _bench_audit(size)
         print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f} {verify:>12.3f}")
 
-    print("\nadd_risk (register rewrite + audit, per-call O(n)):")
+    print("\nadd_risk, one unit of work (register rewrite + audit, each call O(n) in items):")
     print(f"  {'items':>8} {'total (s)':>12} {'per item (ms)':>16}")
     for size in [10, 50, 100, 200]:
         total = await _bench_add_risk(size)
+        print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f}")
+
+    print("\nadd_risk, a separate change per call (each also runs the full integrity check):")
+    print(f"  {'items':>8} {'total (s)':>12} {'per item (ms)':>16}")
+    for size in [50]:
+        total = await _bench_separate_changes(size)
         print(f"  {size:>8} {total:>12.3f} {total / size * 1000:>16.3f}")
 
 

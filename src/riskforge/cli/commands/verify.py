@@ -20,33 +20,44 @@ def cmd(
 ) -> None:
     """Verify integrity. Exits 2 if tampered or corrupt.
 
-    With no --file, verifies the project's append-only audit chain. With --file,
-    verifies that a standalone exported rmf.json still matches its own self-verifying
-    SHA-256 digest.
+    With no --file, checks the whole project: the audit chain, the head file, each
+    register against the fingerprint the log recorded last, each system file, and that
+    no system or log was deleted. It reads only and takes no lock, so a read-only copy
+    can be checked. With --file, verifies that a standalone exported rmf.json still
+    matches its own self-verifying SHA-256 digest.
 
     Exit codes:
-      0: valid, no tampering detected
-      1: unexpected error
-      2: chain corrupt, or the RMF file does not match its digest (CI-detectable)
+      0: valid, no tampering detected (warnings may be printed)
+      1: a change is in progress or unfinished (.riskforge/txn.json), so nothing was
+         checked; or an unexpected error
+      2: integrity failure: the chain, head file, a register or system file, or the RMF
+         file does not match what was recorded (CI-detectable)
       3: no project here, or the file is missing or not a JSON RMF file
     """
     if file is not None:
         _verify_rmf_file(file)
         return
 
-    from riskforge.cli.project import open_project
+    from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
+    from riskforge.cli.project import (
+        open_project_for_reading,
+        print_integrity_failure,
+        print_integrity_warnings,
+    )
+    from riskforge.engine.integrity import ChangeInProgressError, check_integrity_settled
 
-    store = open_project(project_dir)
-    is_valid, violations = asyncio.run(store.verify_chain())
+    store = open_project_for_reading(project_dir)
+    try:
+        report = asyncio.run(check_integrity_settled(store))
+    except ChangeInProgressError as exc:
+        fail(str(exc), EXIT_FAILED)
 
-    if is_valid:
-        console.print("[green]✓[/green] Audit chain verified: no tampering detected.")
-        raise typer.Exit(0)
-    else:
-        console.print("[red]✗[/red] Audit chain CORRUPT. Tampering or corruption detected:")
-        for v in violations:
-            console.print(f"  [red]•[/red] {v}")
-        raise typer.Exit(2)  # Exit code 2: detectable by CI pipelines
+    print_integrity_warnings(report)
+    if not report.ok:
+        print_integrity_failure(report)
+        raise typer.Exit(EXIT_TAMPERED)
+    console.print("[green]✓[/green] Audit chain verified: no tampering detected.")
+    raise typer.Exit(0)
 
 
 def _verify_rmf_file(file: Path) -> None:

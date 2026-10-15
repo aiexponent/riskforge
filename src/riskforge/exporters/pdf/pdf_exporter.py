@@ -25,9 +25,10 @@ class PDFExporter(Exporter):
             autoescape=select_autoescape(["html"]),
         )
 
-    def render(self, rmf: RiskManagementFile) -> bytes:
+    def render_html(self, rmf: RiskManagementFile) -> str:
+        """Return the report HTML that :meth:`render` turns into a PDF."""
         template = self._env.get_template("report.html")
-        html_content = template.render(
+        return template.render(
             rmf=rmf,
             register=rmf.register,
             system=rmf.register.system,
@@ -40,6 +41,8 @@ class PDFExporter(Exporter):
             },
         )
 
+    def render(self, rmf: RiskManagementFile) -> bytes:
+        html_content = self.render_html(rmf)
         try:
             import os
             import sys

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import typer
@@ -23,11 +22,10 @@ def cmd(
     (unless --force is supplied). WARN gates are advisory.
     """
     from riskforge.cli.errors import EXIT_FAILED
-    from riskforge.cli.project import open_project, read_register_or_fail
+    from riskforge.cli.project import read_register_or_fail, run_read_checked
     from riskforge.engine.validate import ValidateEngine
 
-    store = open_project(project_dir)
-    register = asyncio.run(read_register_or_fail(store, system_id))
+    register = run_read_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
 
     engine = ValidateEngine()
     results = engine.run(register)

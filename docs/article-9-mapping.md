@@ -238,9 +238,11 @@ under both intended-use and foreseeable-misuse conditions.
 
 - It does **not** include a built-in misuse-pattern library. Per the v0.1.4
   documentation correction (CHANGELOG line 17-21), the "20 pre-built risk
-  patterns" claim was an aspirational PRD target. Shipped reality is **6
-  patterns** covering credit scoring, hiring, facial recognition, medical
-  imaging, content moderation, and criminal risk assessment. Future patterns
+  patterns" claim was an aspirational PRD target. Shipped reality is **7
+  patterns** covering credit scoring, hiring, remote biometric identification,
+  education assessment, migration and asylum, criminal offending risk
+  assessment, and medical diagnosis. Each names its high-risk route (an Annex
+  III point, or Article 6(1) with the Annex I legislation). Future patterns
   arrive via community contribution per `docs/contributing/add-pattern.md`.
 - It does not run automated stress tests against the system; the deployer must
   provide the misuse-scenario reasoning.

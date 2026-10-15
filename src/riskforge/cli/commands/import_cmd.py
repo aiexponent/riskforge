@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from riskforge.models.risk import RiskItem
+    from riskforge.storage.filesystem import FileStore
 
 console = Console()
 
@@ -35,7 +39,7 @@ def cmd(
 
     from riskforge.adapters.base import AdapterSchemaError
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import open_project, read_register_or_fail
+    from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.models.audit import AuditActor
@@ -48,28 +52,26 @@ def cmd(
             f"unknown adapter '{adapter}'. Available: {', '.join(registry.list_adapters())}.",
             param_hint="'--adapter' / '-a'",
         )
-    store = open_project(project_dir)
-    asyncio.run(read_register_or_fail(store, system_id))
-    try:
-        data = json.loads(report.read_text(encoding="utf-8"))
-    except UnicodeDecodeError:
-        fail(f"{report} is not a JSON report (it is binary).")
-    except json.JSONDecodeError as exc:
-        fail(f"{report} is not valid JSON: {exc}")
-    try:
-        risk_items = registry.get_adapter(adapter).transform(data)
-    except AdapterSchemaError as exc:
-        fail(f"{report}: {exc}")
 
-    actor = AuditActor(type="human", identity="cli-import")
-    audit = AuditEngine(store, actor)
-    engine = RiskEngine(store, audit)
-
-    async def _import() -> None:
+    async def _import(store: FileStore) -> list[RiskItem]:
+        await read_register_or_fail(store, system_id)
+        try:
+            data = json.loads(report.read_text(encoding="utf-8"))
+        except UnicodeDecodeError:
+            fail(f"{report} is not a JSON report (it is binary).")
+        except json.JSONDecodeError as exc:
+            fail(f"{report} is not valid JSON: {exc}")
+        try:
+            risk_items = registry.get_adapter(adapter).transform(data)
+        except AdapterSchemaError as exc:
+            fail(f"{report}: {exc}")
+        actor = AuditActor(type="human", identity="cli-import")
+        engine = RiskEngine(store, AuditEngine(store, actor))
         for item in risk_items:
             await engine.add_risk(system_id, item)
+        return risk_items
 
-    asyncio.run(_import())
+    risk_items = run_checked(project_dir, _import)
     console.print(
         f"[green]✓[/green] Imported {len(risk_items)} risk item(s) from "
         f"[bold]{adapter}[/bold] report."

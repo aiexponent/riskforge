@@ -1,0 +1,862 @@
+"""check_integrity: every row of ADR-03 section 5, the baseline rule and read-only mode (PRD-332)."""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+import yaml
+from riskforge.engine.audit import AuditEngine
+from riskforge.engine.integrity import (
+    ChangeInProgressError,
+    IntegrityError,
+    check_integrity,
+    check_integrity_settled,
+    latest_fingerprints,
+    require_intact,
+)
+from riskforge.engine.risk import RiskEngine
+from riskforge.engine.system import SystemEngine
+from riskforge.integrity.canonical import document_fingerprint
+from riskforge.integrity.chain import GENESIS_PREV_HASH, compute_entry_hash, entry_to_dict
+from riskforge.models.audit import AuditActor, AuditEntry
+from riskforge.models.register import RiskRegister
+from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+from riskforge.models.system import AISystem
+from riskforge.storage.errors import PendingChangeError
+from riskforge.storage.filesystem import FileStore
+
+ACTOR = AuditActor(type="human", identity="t")
+
+
+def _item(n: int) -> RiskItem:
+    return RiskItem(
+        dimension=RiskDimension.privacy,
+        title=f"r{n}",
+        description="d",
+        likelihood=Likelihood(4),
+        severity=Severity(5),
+        residual_likelihood=Likelihood(4),
+        residual_severity=Severity(5),
+    )
+
+
+async def _seeded(tmp_path: Path) -> tuple[FileStore, str]:
+    store = FileStore(tmp_path)
+    await store.init_project("p", {})
+    audit = AuditEngine(store, ACTOR)
+    system = AISystem(name="S", version="1", purpose="credit scoring", provider_name="P")
+    sid = str(system.id)
+    await SystemEngine(store, audit).create(system)
+    engine = RiskEngine(store, audit)
+    await engine.create_register(sid, "A", "B")
+    for n in range(3):
+        await engine.add_risk(sid, _item(n))
+    return store, sid
+
+
+def _root(project: Path) -> Path:
+    return project / ".riskforge"
+
+
+def _log(project: Path) -> Path:
+    return _root(project) / "audit.jsonl"
+
+
+def _system_dir(project: Path, sid: str) -> Path:
+    return _root(project) / "systems" / sid
+
+
+def _entries(project: Path) -> list[AuditEntry]:
+    return [
+        AuditEntry.model_validate(json.loads(x)) for x in _log(project).read_text().splitlines()
+    ]
+
+
+def _write_entries(project: Path, entries: list[AuditEntry]) -> None:
+    _log(project).write_text(
+        "".join(json.dumps(entry_to_dict(e), separators=(",", ":")) + "\n" for e in entries)
+    )
+
+
+def _relink(entries: list[AuditEntry]) -> list[AuditEntry]:
+    prev = GENESIS_PREV_HASH
+    for seq, entry in enumerate(entries):
+        entry.seq = seq
+        entry.prev_hash = prev
+        entry.entry_hash = compute_entry_hash(entry)
+        prev = entry.entry_hash
+    return entries
+
+
+def _dump(document: object) -> str:
+    return yaml.dump(document, sort_keys=False, allow_unicode=True)
+
+
+def _v113_system_files(project: Path, items: int, *, register: bool = True) -> str:
+    """A system as RiskForge 1.1.3 left it: files on disk, no audit entry."""
+    system = AISystem(name="Other", version="1", purpose="hiring", provider_name="P")
+    sid = str(system.id)
+    directory = _system_dir(project, sid)
+    directory.mkdir(parents=True)
+    (directory / "system.yaml").write_text(_dump(system.model_dump(mode="json")))
+    if register:
+        now = datetime.now(UTC)
+        reg = RiskRegister(
+            system=system,
+            assessor_name="A",
+            assessor_role="B",
+            assessment_date=now,
+            review_date=now,
+            items=[_item(n) for n in range(items)],
+        )
+        (directory / "register.yaml").write_text(_dump(reg.model_dump(mode="json")))
+    return sid
+
+
+def _errors(report: object) -> str:
+    return "\n".join(report.errors)  # type: ignore[attr-defined]
+
+
+# --- intact projects ------------------------------------------------------------------
+
+
+async def test_intact_project_passes(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+    assert report.warnings == []
+    assert report.head is not None and report.head.event == "risk_item.created"
+    assert len(report.entries) == 5
+
+
+async def test_require_intact_raises_with_every_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    assert (await require_intact(store)).ok
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    (_root(tmp_path) / "audit.head.json").write_text("{}")
+    with pytest.raises(IntegrityError) as caught:
+        await require_intact(store)
+    assert len(caught.value.report.errors) == 2
+
+
+def test_latest_fingerprints_keeps_the_last_one_per_system() -> None:
+    def entry(sid: str, fingerprint: str | None) -> AuditEntry:
+        return AuditEntry(
+            seq=0, event="e", actor=ACTOR, system_id=sid, register_fingerprint=fingerprint
+        )
+
+    entries = [entry("a", "1"), entry("b", "2"), entry("a", "3"), entry("a", None)]
+    assert latest_fingerprints(entries) == {"a": "3", "b": "2"}
+
+
+# --- row 1: the chain -----------------------------------------------------------------
+
+
+async def test_edited_entry_fails(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    entries = _entries(tmp_path)
+    entries[1].actor.identity = "someone-else"
+    _write_entries(tmp_path, entries)
+    report = await check_integrity(store)
+    assert "entry_hash mismatch" in _errors(report)
+
+
+async def test_garbled_line_fails_without_raising(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    with _log(tmp_path).open("a") as fh:
+        fh.write("{not json\n")
+    report = await check_integrity(store)
+    assert "not valid JSON" in _errors(report)
+
+
+async def test_log_line_that_is_not_utf8_fails_without_raising(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    with _log(tmp_path).open("ab") as fh:
+        fh.write(b"\x80 not text\n")
+    report = await check_integrity(store)
+    assert "not UTF-8 text" in _errors(report)
+
+
+# --- rows 2 and 3: the head file ------------------------------------------------------
+
+
+async def test_log_cut_back_to_an_earlier_entry_fails(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    lines = _log(tmp_path).read_text().splitlines(keepends=True)
+    _log(tmp_path).write_text("".join(lines[:-1]))
+    report = await check_integrity(store)
+    assert "entries were removed from the end" in _errors(report)
+
+
+async def test_rewritten_log_fails_on_the_head_file(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    entries = _entries(tmp_path)
+    entries[0].actor.identity = "someone-else"
+    _write_entries(tmp_path, _relink(entries))
+    report = await check_integrity(store)
+    assert "the log was rewritten" in _errors(report)
+
+
+async def test_entries_appended_without_riskforge_fail(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    last = _entries(tmp_path)[-1]
+    extra = AuditEntry(
+        seq=last.seq + 1,
+        event="rmf.exported",
+        actor=AuditActor(type="human", identity="x"),
+        system_id=sid,
+        payload={},
+        prev_hash=last.entry_hash,
+        register_fingerprint=last.register_fingerprint,
+    )
+    extra.entry_hash = compute_entry_hash(extra)
+    with _log(tmp_path).open("a") as fh:
+        fh.write(json.dumps(entry_to_dict(extra), separators=(",", ":")) + "\n")
+    report = await check_integrity(store)
+    assert "RiskForge did not record" in _errors(report)
+
+
+async def test_unparseable_head_file_fails(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    (_root(tmp_path) / "audit.head.json").write_text("not json")
+    report = await check_integrity(store)
+    assert "audit.head.json does not parse" in _errors(report)
+
+
+async def test_deleted_head_file_fails_when_entries_carry_fingerprints(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    lines = _log(tmp_path).read_text().splitlines(keepends=True)
+    _log(tmp_path).write_text("".join(lines[:-1]))
+    (_root(tmp_path) / "audit.head.json").unlink()
+    report = await check_integrity(store)
+    assert "audit.head.json is missing" in _errors(report)
+
+
+async def test_deleted_head_file_fails_when_the_log_holds_events_only_2_0_writes(
+    tmp_path: Path,
+) -> None:
+    # Cut back to the system.created entry, which carries no fingerprint.
+    store, _sid = await _seeded(tmp_path)
+    lines = _log(tmp_path).read_text().splitlines(keepends=True)
+    _log(tmp_path).write_text(lines[0])
+    (_root(tmp_path) / "audit.head.json").unlink()
+    report = await check_integrity(store)
+    assert "audit.head.json is missing" in _errors(report)
+
+
+# --- rows 4 and 5: register fingerprints ----------------------------------------------
+
+
+async def test_register_edited_outside_riskforge_fails(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    register = yaml.safe_load(path.read_text())
+    register["items"][0]["likelihood"] = 1
+    path.write_text(_dump(register))
+    report = await check_integrity(store)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("title: r0", "title: 2026-10-12"),
+        ("title: r0", "title: !!binary aGVsbG8="),
+        ("title: r0", "title: !!set {a, b}"),
+        ("title: r0", "title: r0\n  1: mixed key types"),
+        ("title: r0", "title: [unclosed"),
+        ("title: r0", "title: 'line\x85break'"),
+    ],
+    ids=["unquoted-date", "binary", "set", "mixed-keys", "does-not-parse", "u0085"],
+)
+async def test_register_hand_edits_that_cannot_be_fingerprinted_fail_without_raising(
+    tmp_path: Path, old: str, new: str
+) -> None:
+    store, sid = await _seeded(tmp_path)
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    text = path.read_text()
+    assert old in text
+    path.write_text(text.replace(old, new, 1))
+    report = await check_integrity(store)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+async def test_register_with_no_fingerprint_fails_once_a_head_file_exists(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    audit = AuditEngine(store, ACTOR)
+    other = AISystem(name="T", version="1", purpose="hiring", provider_name="P")
+    await SystemEngine(store, audit).create(other)
+    src = _system_dir(tmp_path, _sid) / "register.yaml"
+    shutil.copyfile(src, _system_dir(tmp_path, str(other.id)) / "register.yaml")
+    report = await check_integrity(store)
+    assert f"System {other.id}: register.yaml has no fingerprint in the audit log" in _errors(
+        report
+    )
+
+
+# --- row 6: deleted registers ---------------------------------------------------------
+
+
+async def test_deleted_register_fails(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    (_system_dir(tmp_path, sid) / "register.yaml").unlink()
+    report = await check_integrity(store)
+    assert f"System {sid}: register.yaml is missing" in _errors(report)
+
+
+async def test_deleted_register_last_written_by_v113_fails(
+    v113_project: tuple[Path, str],
+) -> None:
+    root, sid = v113_project
+    (_system_dir(root, sid) / "register.yaml").unlink()
+    report = await check_integrity(FileStore(root))
+    assert f"System {sid}: register.yaml is missing" in _errors(report)
+
+
+async def test_system_with_no_register_and_no_register_events_passes(tmp_path: Path) -> None:
+    store = FileStore(tmp_path)
+    await store.init_project("p", {})
+    system = AISystem(name="S", version="1", purpose="p", provider_name="P")
+    await SystemEngine(store, AuditEngine(store, ACTOR)).create(system)
+    report = await check_integrity(store)
+    assert report.ok and report.warnings == []
+
+
+# --- row 7: missing or empty log ------------------------------------------------------
+
+
+async def test_missing_log_with_systems_fails(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _log(tmp_path).unlink()
+    (_root(tmp_path) / "audit.head.json").unlink()
+    report = await check_integrity(store)
+    assert "The audit log is missing or empty" in _errors(report)
+
+
+async def test_emptied_log_fails(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _log(tmp_path).write_text("")
+    report = await check_integrity(store)
+    assert "the audit log is missing or empty" in _errors(report).lower()
+
+
+async def test_v113_project_without_entries_and_empty_registers_passes_with_a_warning(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "riskforge.yaml").write_text("project_id: p\n")
+    _v113_system_files(tmp_path, items=0)
+    _v113_system_files(tmp_path, items=0, register=False)
+    report = await check_integrity(FileStore(tmp_path))
+    assert report.ok, report.errors
+    assert any("holds no entries" in warning for warning in report.warnings)
+
+
+async def test_v113_project_without_entries_but_with_risks_fails_naming_the_files(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "riskforge.yaml").write_text("project_id: p\n")
+    sid = _v113_system_files(tmp_path, items=2)
+    report = await check_integrity(FileStore(tmp_path))
+    assert "The audit log is missing or empty" in _errors(report)
+    assert f"systems/{sid}/register.yaml" in _errors(report)
+
+
+# --- rows 8 and 9: system directories -------------------------------------------------
+
+
+async def test_deleted_system_files_fail(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    shutil.rmtree(_system_dir(tmp_path, sid))
+    report = await check_integrity(store)
+    assert f"System {sid} appears in the audit log, but its files are missing" in _errors(report)
+
+
+async def test_system_added_by_hand_fails_once_a_head_file_exists(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    added = _v113_system_files(tmp_path, items=0, register=False)
+    report = await check_integrity(store)
+    assert f"System {added}: no audit entry names it" in _errors(report)
+
+
+# --- row 10: system.yaml --------------------------------------------------------------
+
+
+def _edit_system_yaml(project: Path, sid: str, how: str) -> None:
+    path = _system_dir(project, sid) / "system.yaml"
+    document = yaml.safe_load(path.read_text())
+    if how == "does-not-parse":
+        path.write_text("name: [unclosed\n")
+        return
+    if how == "invalid":
+        del document["provider_name"]
+    elif how == "wrong-id":
+        document["id"] = "00000000-0000-4000-8000-000000000000"
+    elif how == "differs-from-register":
+        document["name"] = "Renamed by hand"
+    path.write_text(_dump(document))
+
+
+@pytest.mark.parametrize(
+    ("how", "message"),
+    [
+        ("does-not-parse", "system.yaml does not parse"),
+        ("invalid", "system.yaml is not a valid system record"),
+        ("wrong-id", "system.yaml holds id 00000000-0000-4000-8000-000000000000"),
+        (
+            "differs-from-register",
+            "system.yaml differs from the copy in register.yaml: name is 'Renamed by hand' "
+            "in system.yaml and 'S' in register.yaml",
+        ),
+    ],
+)
+async def test_corrupt_or_edited_system_yaml_fails(tmp_path: Path, how: str, message: str) -> None:
+    store, sid = await _seeded(tmp_path)
+    _edit_system_yaml(tmp_path, sid, how)
+    report = await check_integrity(store)
+    assert f"System {sid}: {message}" in _errors(report)
+
+
+# --- 1.1.3 compatibility and the baseline ---------------------------------------------
+
+
+async def test_v113_project_passes_with_a_warning(v113_project: tuple[Path, str]) -> None:
+    root, sid = v113_project
+    report = await check_integrity(FileStore(root))
+    assert report.ok, report.errors
+    assert report.warnings == [
+        f"System {sid}: register.yaml is not covered by a fingerprint yet (last written before "
+        "RiskForge 2.0). The next change records one."
+    ]
+
+
+async def test_v113_project_is_covered_after_one_change(v113_project: tuple[Path, str]) -> None:
+    root, sid = v113_project
+    store = FileStore(root)
+    register = await store.read_register(sid)
+    target = next(item for item in register.items if not item.accepted)
+    engine = RiskEngine(store, AuditEngine(store, ACTOR))
+    await engine.accept_risk(sid, str(target.id), "Reviewed after upgrade.", "t")
+    report = await check_integrity(store)
+    assert report.ok and report.warnings == [], (report.errors, report.warnings)
+    assert (root / ".riskforge" / "audit.head.json").exists()
+    assert [entry.event for entry in report.entries[-1:]] == ["risk.accepted"]
+
+
+async def test_first_change_baselines_every_other_system(v113_project: tuple[Path, str]) -> None:
+    root, sid = v113_project
+    with_register = _v113_system_files(root, items=0)
+    without_register = _v113_system_files(root, items=0, register=False)
+    store = FileStore(root)
+    before = await check_integrity(store)
+    assert before.ok, before.errors
+    expected = document_fingerprint(await store.read_register_document(with_register))
+
+    register = await store.read_register(sid)
+    target = next(item for item in register.items if not item.accepted)
+    engine = RiskEngine(store, AuditEngine(store, ACTOR))
+    await engine.accept_risk(sid, str(target.id), "Reviewed after upgrade.", "t")
+
+    report = await check_integrity(store)
+    assert report.ok and report.warnings == [], (report.errors, report.warnings)
+    tail = report.entries[-3:]
+    assert [entry.event for entry in tail] == [
+        "risk.accepted",
+        "register.baselined",
+        "register.baselined",
+    ]
+    baselined = {entry.system_id: entry for entry in tail[1:]}
+    assert baselined[with_register].register_fingerprint == expected
+    assert baselined[without_register].register_fingerprint is None
+    assert baselined[with_register].payload == {"name": "Other"}
+
+    # Only the first 2.0 change records a baseline.
+    await engine.accept_risk(sid, str(target.id), "Reviewed again.", "t")
+    assert (await store.read_last_audit_entry()).event == "risk.accepted"
+
+
+async def test_a_new_project_records_no_baseline(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    assert "register.baselined" not in [entry.event for entry in _entries(tmp_path)]
+
+
+# --- read-only mode and changes in progress -------------------------------------------
+
+
+async def test_read_only_store_checks_and_refuses_writes(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    before = sorted(str(p) for p in tmp_path.rglob("*"))
+    store = FileStore(tmp_path, read_only=True)
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+    with pytest.raises(PermissionError):
+        await store.write_system(
+            "x", AISystem(name="S", version="1", purpose="p", provider_name="P")
+        )
+    with pytest.raises(PermissionError):
+        await store.init_project("p", {})
+    async with store.unit_of_work():
+        pass
+    assert sorted(str(p) for p in tmp_path.rglob("*")) == before
+
+
+async def test_read_only_unit_of_work_refuses_an_unfinished_change(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    (_root(tmp_path) / "txn.json").write_text('{"after_seq": 4, "log_size": 0, "files": []}')
+    with pytest.raises(PendingChangeError):
+        async with FileStore(tmp_path, read_only=True).unit_of_work():
+            pass
+
+
+def _plant_journal(project: Path, files: list[str]) -> None:
+    size = _log(project).stat().st_size
+    journal = {"after_seq": 4, "log_size": size, "count": 1, "files": files}
+    (_root(project) / "txn.json").write_text(json.dumps(journal))
+
+
+async def test_settled_check_gives_up_while_a_change_is_in_progress(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    _plant_journal(tmp_path, [])
+    store = FileStore(tmp_path, read_only=True)
+    with pytest.raises(ChangeInProgressError, match="in progress or unfinished"):
+        await check_integrity_settled(store, pause=0)
+    assert (_root(tmp_path) / "txn.json").exists()
+
+
+class _ChangingStore(FileStore):
+    """A store whose head moves during the first two checks, as if a writer ran alongside."""
+
+    def __init__(self, project: Path, moves: int) -> None:
+        super().__init__(project, read_only=True)
+        self.calls = 0
+        self.moves = moves
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        journal, head = await super().read_commit_markers()
+        self.calls += 1
+        if self.calls <= 2 * self.moves:
+            head = (head or b"") + str(self.calls).encode()
+        return journal, head
+
+
+async def test_settled_check_repeats_when_the_head_moves(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    store = _ChangingStore(tmp_path, moves=2)
+    report = await check_integrity_settled(store, pause=0)
+    assert report.ok
+    assert store.calls == 6
+
+
+async def test_settled_check_stops_after_three_repeats(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    store = _ChangingStore(tmp_path, moves=4)
+    with pytest.raises(ChangeInProgressError):
+        await check_integrity_settled(store, pause=0)
+    assert store.calls == 8
+
+
+# --- files that are not what they seem (round 1, items 4 and 5) -----------------------
+
+needs_non_root = pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0, reason="root reads files mode 000"
+)
+
+
+async def test_register_that_is_a_directory_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.unlink()
+    path.mkdir()
+    report = await check_integrity(store)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+    assert "not a regular file" in _errors(report)
+
+
+async def test_register_nested_too_deeply_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    (_system_dir(tmp_path, sid) / "register.yaml").write_text("a: " + "[" * 5000 + "]" * 5000)
+    report = await check_integrity(store)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+@needs_non_root
+async def test_unreadable_register_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.chmod(0)
+    try:
+        report = await check_integrity(store)
+    finally:
+        path.chmod(0o600)
+    assert "register.yaml cannot be read" in _errors(report)
+
+
+@needs_non_root
+async def test_unreadable_log_is_a_finding(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _log(tmp_path).chmod(0)
+    try:
+        report = await check_integrity(store)
+    finally:
+        _log(tmp_path).chmod(0o600)
+    assert "audit.jsonl cannot be read" in _errors(report)
+    assert not report.ok
+
+
+async def test_system_directory_with_an_invalid_name_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    shutil.copytree(_system_dir(tmp_path, sid), _root(tmp_path) / "systems" / "a\\b")
+    report = await check_integrity(store)
+    assert "systems/a\\b is not a valid system directory name" in _errors(report)
+
+
+async def test_system_directory_without_system_yaml_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    stray = _root(tmp_path) / "systems" / "00000000-0000-4000-8000-000000000000"
+    stray.mkdir()
+    shutil.copyfile(_system_dir(tmp_path, sid) / "register.yaml", stray / "register.yaml")
+    report = await check_integrity(store)
+    assert f"System {stray.name}: no audit entry names it" in _errors(report)
+
+
+async def test_deleted_system_yaml_of_a_known_system_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    (_system_dir(tmp_path, sid) / "system.yaml").unlink()
+    report = await check_integrity(store)
+    assert f"System {sid}: system.yaml is missing" in _errors(report)
+
+
+async def test_audit_log_that_does_not_end_with_a_line_break_is_a_finding(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _log(tmp_path).write_bytes(_log(tmp_path).read_bytes()[:-1])
+    report = await check_integrity(store)
+    assert "does not end with a line break" in _errors(report)
+
+
+async def test_unreadable_log_never_passes_silently(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    _log(tmp_path).write_bytes(b"\xef\xbb\xbf" + _log(tmp_path).read_bytes())
+    report = await check_integrity(store)
+    assert "byte order mark" in _errors(report)
+    assert "The audit log cannot be read" in _errors(report)
+
+
+# --- the own entry and its baseline commit together (round 1, item 2) ------------------
+
+
+async def test_baseline_entries_are_written_with_the_change_in_one_write(
+    v113_project: tuple[Path, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import riskforge.storage.filesystem as filesystem
+
+    root, sid = v113_project
+    _v113_system_files(root, items=0)
+    store = FileStore(root)
+    register = await store.read_register(sid)
+    target = next(item for item in register.items if not item.accepted)
+    real_write = os.write
+    writes: list[bytes] = []
+
+    def spy(fd: int, data: bytes) -> int:
+        if b'"seq"' in data:
+            writes.append(bytes(data))
+        return real_write(fd, data)
+
+    monkeypatch.setattr(filesystem.os, "write", spy)
+    await RiskEngine(store, AuditEngine(store, ACTOR)).accept_risk(
+        sid, str(target.id), "Reviewed after upgrade.", "t"
+    )
+    assert len(writes) == 1
+    assert b'"risk.accepted"' in writes[0] and b'"register.baselined"' in writes[0]
+
+
+async def test_baseline_cut_short_rolls_back_the_whole_change(
+    v113_project: tuple[Path, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import riskforge.storage.filesystem as filesystem
+
+    root, sid = v113_project
+    _v113_system_files(root, items=0)
+    store = FileStore(root)
+    register_before = (_system_dir(root, sid) / "register.yaml").read_bytes()
+    log_before = _log(root).read_bytes()
+    target = next(item for item in (await store.read_register(sid)).items if not item.accepted)
+    real_write = os.write
+
+    def first_line_only(fd: int, data: bytes) -> int:
+        if b'"register.baselined"' in data:
+            real_write(fd, data[: data.index(b"\n") + 1])
+            raise OSError(28, "No space left on device")
+        return real_write(fd, data)
+
+    monkeypatch.setattr(filesystem.os, "write", first_line_only)
+    engine = RiskEngine(store, AuditEngine(store, ACTOR))
+    with pytest.raises(OSError, match="No space left"):
+        await engine.accept_risk(sid, str(target.id), "Reviewed after upgrade.", "t")
+    monkeypatch.setattr(filesystem.os, "write", real_write)
+    async with store.unit_of_work():
+        pass
+    assert _log(root).read_bytes() == log_before
+    assert (_system_dir(root, sid) / "register.yaml").read_bytes() == register_before
+    assert not (_root(root) / "audit.head.json").exists()
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+
+
+async def test_settled_check_reports_tampering_outside_an_unfinished_change(
+    tmp_path: Path,
+) -> None:
+    _store, sid = await _seeded(tmp_path)
+    _plant_journal(tmp_path, [])
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+    assert any("checked as finishing or discarding" in w for w in report.warnings)
+
+
+async def test_settled_check_checks_the_files_a_planted_journal_names(tmp_path: Path) -> None:
+    _store, sid = await _seeded(tmp_path)
+    _plant_journal(tmp_path, [f"systems/{sid}/register.yaml"])
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+async def _crash_after_the_append(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[FileStore, str]:
+    """A change whose entry reached the log but whose files were not renamed into place."""
+    import riskforge.storage.filesystem as filesystem
+
+    store, sid = await _seeded(tmp_path)
+    real_replace = os.replace
+
+    def crash_on_pending(src, dst):  # noqa: ANN001, ANN202
+        if str(src).endswith(".pending"):
+            raise OSError("simulated crash after the audit append")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(filesystem.os, "replace", crash_on_pending)
+    with pytest.raises(OSError, match="simulated crash"):
+        await RiskEngine(store, AuditEngine(store, ACTOR)).add_risk(sid, _item(9))
+    monkeypatch.setattr(filesystem.os, "replace", real_replace)
+    assert (_root(tmp_path) / "txn.json").exists()
+    return store, sid
+
+
+async def test_change_that_recovery_would_finish_is_reported_in_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _crash_after_the_append(tmp_path, monkeypatch)
+    with pytest.raises(ChangeInProgressError):
+        await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    store = FileStore(tmp_path)
+    async with store.unit_of_work():
+        pass
+    report = await check_integrity(store)
+    assert report.ok, report.errors
+
+
+async def test_change_that_recovery_would_finish_is_checked_as_finished(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _store, sid = await _crash_after_the_append(tmp_path, monkeypatch)
+    pending = _system_dir(tmp_path, sid) / "register.yaml.pending"
+    pending.write_text(pending.read_text().replace("title: r9", "title: edited"))
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert f"System {sid}: register.yaml was changed outside RiskForge" in _errors(report)
+
+
+async def test_change_that_recovery_would_finish_needs_a_matching_head(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _crash_after_the_append(tmp_path, monkeypatch)
+    (_root(tmp_path) / "audit.head.json").write_text('{"seq": 1, "entry_hash": "x"}')
+    report = await check_integrity_settled(FileStore(tmp_path, read_only=True), pause=0)
+    assert "audit.head.json" in _errors(report)
+
+
+async def test_recovery_refuses_a_journal_that_does_not_match_the_log(tmp_path: Path) -> None:
+    from riskforge.storage.errors import StoredFileCorruptError
+
+    store, _sid = await _seeded(tmp_path)
+    log_before = _log(tmp_path).read_bytes()
+    last_line_start = log_before.rstrip(b"\n").rfind(b"\n") + 1
+    journal = {"after_seq": 3, "log_size": last_line_start + 5, "count": 1, "files": []}
+    (_root(tmp_path) / "txn.json").write_text(json.dumps(journal))
+    with pytest.raises(StoredFileCorruptError, match="txn.json"):
+        async with store.unit_of_work():
+            pass
+    assert _log(tmp_path).read_bytes() == log_before
+
+
+async def test_settled_check_reports_a_malformed_journal_at_once(tmp_path: Path) -> None:
+    await _seeded(tmp_path)
+    (_root(tmp_path) / "txn.json").write_text('{"after_seq": 4}')
+    store = _ChangingStore(tmp_path, moves=0)
+    report = await check_integrity_settled(store, pause=0)
+    assert "txn.json is not a journal RiskForge wrote" in _errors(report)
+    assert store.calls == 0
+
+
+# --- size caps (round 2, item 5) -------------------------------------------------------
+
+
+def _grow(path: Path, size: int) -> None:
+    with path.open("r+b") as fh:
+        fh.truncate(size)  # sparse, so the test writes no real data
+
+
+async def test_audit_log_above_64_mib_is_still_read(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _grow(_log(tmp_path), 64 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "larger than" not in _errors(report)
+    assert "does not end with a line break" in _errors(report)
+
+
+async def test_audit_log_above_1_gib_is_a_finding(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    _grow(_log(tmp_path), 1024 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "audit.jsonl is larger than 1024 MiB" in _errors(report)
+
+
+async def test_register_above_64_mib_is_a_finding(tmp_path: Path) -> None:
+    store, sid = await _seeded(tmp_path)
+    _grow(_system_dir(tmp_path, sid) / "register.yaml", 64 * 1024 * 1024 + 1)
+    report = await check_integrity(store)
+    assert "register.yaml is larger than 64 MiB" in _errors(report)
+
+
+class _WriterFinishesDuringTheLastCheck(FileStore):
+    """Markers move between the reads around the final check, as if the writer finished."""
+
+    def __init__(self, project: Path) -> None:
+        super().__init__(project, read_only=True)
+        self.calls = 0
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        journal, head = await super().read_commit_markers()
+        self.calls += 1
+        return journal, (head or b"") + str(self.calls).encode()
+
+
+async def test_final_check_on_the_recovery_view_is_bracketed_by_the_markers(
+    tmp_path: Path,
+) -> None:
+    _store, sid = await _seeded(tmp_path)
+    _plant_journal(tmp_path, [])
+    path = _system_dir(tmp_path, sid) / "register.yaml"
+    path.write_text(path.read_text().replace("title: r0", "title: edited"))
+    store = _WriterFinishesDuringTheLastCheck(tmp_path)
+    with pytest.raises(ChangeInProgressError):
+        await check_integrity_settled(store, pause=0)
+    assert store.calls == 2

@@ -92,8 +92,10 @@ riskforge assess <system-id> \
 riskforge risk list <system-id>
 riskforge risk mitigate <system-id> <risk-id> \
   -m "Remove postcode feature; add demographic parity monitoring" \
-  -c preventive --owner "ML Platform" --residual-likelihood 2 --residual-severity 3
-riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls."
+  -c preventive --owner "ML Platform" --residual-likelihood 2 --residual-severity 3 \
+  --by "Dr. Lena Fischer, AI Governance Lead"
+riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
+  --by "Dr. Lena Fischer, AI Governance Lead"
 
 # 5. Check readiness (exit 1 if a FAIL gate is unmet)
 riskforge validate <system-id>
@@ -110,7 +112,13 @@ The Annex III category is one of: `biometric`, `critical_infrastructure`,
 `education`, `employment`, `essential_services`, `law_enforcement`, `migration`,
 `justice`. A category plus matching purpose keywords triggers a pre-built risk
 pattern (for example, `employment` + "hiring/resume/screening" triggers the hiring
-pattern), whose risk items are added for your confirmation.
+pattern), whose risk items are added for your confirmation. A keyword matches the
+start of a word or phrase in the purpose, so "credit" matches "Creditworthiness".
+The medical diagnosis pattern follows the Article 6(1) route (an AI system that
+is, or is a safety component of, a product covered by the Annex I legislation and
+that is required to undergo a third-party conformity assessment: Art.6(1)(a) and
+(b)) and needs no category: purpose keywords such as "medical diagnosis" or
+"radiology" trigger it.
 
 ---
 
@@ -140,6 +148,18 @@ answers:
 Question ids come from the bundled question bank (see the files under
 `src/riskforge/_data/question_bank/`).
 
+Running `assess` again, with the same file or interactively, updates the register
+instead of adding to it. Each item is matched to the question or pattern risk it
+came from. An unchanged answer changes nothing and records nothing. A changed
+answer updates the item's likelihood, severity and knowledge-gap flag and records
+`risk_item.updated`. The residual scores follow only while the item has no
+mitigation and its residual scores were never changed. An acceptance is kept, and
+`assess` prints a line asking you to review the item. `assess` never removes an
+item: if a question is now answered `no` or `skip`, or left out of the answers file,
+its item stays and is listed so you can review it. A register that RiskForge 1.1.3
+already doubled keeps its duplicates: `assess` updates the first item for each
+question or pattern risk and lists the others so you can review them.
+
 ---
 
 ## Command reference
@@ -151,8 +171,8 @@ Question ids come from the bundled question bank (see the files under
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
 | `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE]` | Run the assessment, interactive or from an answers file. |
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
-| `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited. |
-| `riskforge risk accept <id> <risk-id> -r RATIONALE` | Accept a residual risk with a documented rationale, audited. |
+| `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
+| `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
@@ -163,6 +183,25 @@ Question ids come from the bundled question bank (see the files under
 Risk ids accept the first 8 characters shown by `riskforge risk list`. The
 `--sign` value is a GPG key identifier (email, key id, or fingerprint), not a file
 path; signing produces a detached `.asc` next to the export.
+
+### Who accepted a risk or recorded a mitigation
+
+`risk accept` and `risk mitigate` require a name, given as `--by "Name, Role"`.
+In CI you can set the `RISKFORGE_ACTOR` environment variable instead; when both
+are set, `--by` wins. With neither, or with a blank value, the command changes
+nothing and exits 3. The name must be plain text on one line: line breaks, control
+characters, bidirectional controls and invisible characters other than zero-width
+joiners are refused with exit 3.
+
+The name is self-declared. RiskForge records it as given and does not check who
+ran the command. It becomes the audit entry's actor and is stored on the risk item
+as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
+exports show it as "Accepted by" and "Recorded by". The JSON export (RMF schema
+1.0.0) does not include these two fields yet. The SHA-256 that the Markdown and
+PDF exports show (the PDF labels it "Document SHA-256") is the hash of the JSON
+export, so it does not cover the "Accepted by" and "Recorded by" text until a later RMF
+schema (1.1.0). Acceptances recorded before 2.0.0 show "Accepted by: not
+recorded".
 
 ### The 8 validation gates
 
@@ -186,8 +225,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`, or an unexpected crash (prints a traceback) |
-| 2 | Audit chain corrupt or tampered, or an RMF file that does not match its digest |
+| 1 | A validation FAIL gate without `--force`; `verify`, `validate` or `tests generate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest. Commands that change or export data exit 2 on such a project and change nothing |
 | 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
@@ -273,9 +312,10 @@ by a qualified legal professional, and does not constitute legal advice.
 **Does my risk data leave my machine?** No. RiskForge makes zero outbound calls.
 
 **Can I edit the state files by hand?** They are plain YAML and JSONL, readable and
-diff-able. Editing the `.riskforge/audit.jsonl` chain will be detected by
-`riskforge verify` (exit 2). Editing a register outside the tool is possible but
-not recommended.
+diff-able. Editing the `.riskforge/audit.jsonl` chain, a register or a system file
+by hand is detected by `riskforge verify` (exit 2), and every command that changes or
+exports data then refuses the project with exit 2 and changes nothing. Make changes
+through the CLI.
 
 **Why does validation fail with G2 even after `init`?** `init` records the Annex III
 category but not the self-classification confirmation. Run

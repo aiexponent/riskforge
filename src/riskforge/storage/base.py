@@ -3,12 +3,31 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractAsyncContextManager
+from dataclasses import dataclass
+from typing import Any
 
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
+
+# Set to True in ``unit_of_work_state()`` when opening the unit of work finished or
+# discarded a change that an earlier one left unfinished.
+RECOVERED_STATE_KEY = "riskforge.storage.recovered"
+# The ``("register" | "system", system_id)`` pairs written in ``unit_of_work_state()``
+# and not yet committed by an audit entry.
+WRITTEN_STATE_KEY = "riskforge.storage.written"
+
+
+@dataclass(frozen=True)
+class PendingChange:
+    """A change a writer started and has not finished (or never will, after a crash).
+
+    ``systems`` are the systems whose files the change writes.
+    """
+
+    systems: frozenset[str]
 
 
 class StorageBackend(ABC):
@@ -136,6 +155,41 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
+    async def read_register_document(self, system_id: str) -> dict:
+        """
+        Return the stored register as stored, as a JSON-compatible dict.
+
+        A register written with ``write_register`` must read back equal to
+        ``register.model_dump(mode="json")``.
+
+        The document is ``yaml.safe_load`` (or the backend's equivalent) of the bytes
+        as stored, never a model serialised again: audit entries record its
+        fingerprint (ADR-03 section 3).
+
+        Raises
+        ------
+        RegisterNotFoundError
+            If the system has no register.
+        StoredFileCorruptError
+            If the stored register does not parse.
+        """
+        ...
+
+    @abstractmethod
+    async def read_system_document(self, system_id: str) -> dict:
+        """
+        Return the stored system record as stored, as a JSON-compatible dict.
+
+        Raises
+        ------
+        SystemNotFoundError
+            If no system with the given ID exists in storage.
+        StoredFileCorruptError
+            If the stored record does not parse.
+        """
+        ...
+
+    @abstractmethod
     async def list_systems(self) -> list[str]:
         """
         Return the IDs of all AI systems currently stored in the project.
@@ -148,13 +202,18 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def audit_lock(self) -> AbstractAsyncContextManager[None]:
+    def unit_of_work(self) -> AbstractAsyncContextManager[None]:
         """
-        Return an asynchronous context manager that acquires an exclusive
-        lock for mutating the audit chain.
+        Exclusive, all-or-nothing scope for state changes and their audit entries.
 
-        This must be held across read-validate-append operations to prevent
-        branching the hash chain in concurrent environments.
+        Entering it again inside an open unit of work joins the open one. While it
+        is open, reads return this scope's own writes. A register or system write
+        and the audit entry that records it become visible to other readers
+        together; if the scope ends without recording an entry, the write is
+        discarded, and a scope that ends without an error should raise
+        ``RuntimeError`` so the lost write is not silent. A backend may commit at
+        each appended entry (the file backend does) or at the end of the
+        outermost scope (a database transaction does).
 
         Returns
         -------
@@ -162,14 +221,37 @@ class StorageBackend(ABC):
         """
         ...
 
-    @abstractmethod
-    async def append_audit(self, entry: AuditEntry) -> None:
+    def unit_of_work_state(self) -> dict[str, Any] | None:
         """
-        Append a single :class:`~riskforge.models.audit.AuditEntry` to the audit log.
+        State shared by every scope of the open outermost unit of work.
+
+        Engines keep what one change needs across nested scopes here, such as what the
+        integrity check ``AuditEngine`` runs before a change saw. The mapping starts
+        empty when the outermost scope opens and is dropped when it ends. A backend
+        may add ``RECOVERED_STATE_KEY`` when opening the scope finished or discarded
+        an unfinished change, and ``WRITTEN_STATE_KEY`` for the writes staged and not
+        yet committed, so engines can tell this change's writes from outside edits. Returns None outside a unit of
+        work. This default always returns None, and callers then keep the state
+        themselves.
+
+        Returns
+        -------
+        dict[str, Any] | None
+        """
+        return None
+
+    @abstractmethod
+    async def append_audit(self, entries: AuditEntry | Sequence[AuditEntry]) -> None:
+        """
+        Append one :class:`~riskforge.models.audit.AuditEntry`, or several chained ones.
+
+        Several entries commit together with the writes staged in the unit of work: all
+        of them or none (ADR-03 section 4).
 
         Implementations must guarantee append-only semantics; existing entries
         must never be modified.  The entry is serialised as a single JSON line
-        and appended to ``audit.jsonl``.
+        and appended to ``audit.jsonl``.  Must be called inside
+        ``unit_of_work()``; the writes staged in that scope commit with it.
 
         Parameters
         ----------
@@ -216,6 +298,63 @@ class StorageBackend(ABC):
         return last
 
     @abstractmethod
+    async def read_audit_head(self) -> dict | None:
+        """
+        Return ``{"seq": int, "entry_hash": str}`` of the last entry this backend wrote.
+
+        The head is written with each appended entry (ADR-03 section 4). Returns
+        ``None`` when no head has been written, as in a project last changed by 1.1.x.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the stored head does not parse or lacks ``seq`` or ``entry_hash``.
+        """
+        ...
+
+    async def read_commit_markers(self) -> tuple[bytes | None, bytes | None]:
+        """
+        Return ``(journal, head)`` as raw bytes, each ``None`` when absent.
+
+        A reader that does not take the write lock compares the markers before and
+        after it reads: a journal, or markers that moved, mean a writer was busy. The
+        default suits a backend whose reads see only committed changes.
+        """
+        return None, None
+
+    async def list_system_directories(self) -> list[str]:
+        """
+        Return the ids of every system the backend holds anything for, sorted.
+
+        Unlike ``list_systems`` this includes a system whose record is missing. The
+        default suits a backend that cannot hold files without a system record.
+        """
+        return await self.list_systems()
+
+    async def read_pending_change(self) -> PendingChange | None:
+        """
+        Return the change a writer started and has not finished, or ``None``.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the backend's record of the unfinished change is not one it wrote.
+        """
+        return None
+
+    async def view_after_recovery(self) -> StorageBackend:
+        """
+        A read-only view of the project as finishing or discarding ``read_pending_change``
+        would leave it, without writing anything.
+
+        Raises
+        ------
+        StoredFileCorruptError
+            If the record of the unfinished change does not fit the stored log.
+        """
+        return self
+
+    @abstractmethod
     async def verify_chain(self) -> tuple[bool, list[str]]:
         """
         Replay the entire audit chain and validate hash linkage.
@@ -229,36 +368,5 @@ class StorageBackend(ABC):
         tuple[bool, list[str]]
             ``(True, [])`` if the chain is intact, or
             ``(False, [<error>, ...])`` listing all integrity failures found.
-        """
-        ...
-
-    @abstractmethod
-    async def write_export(
-        self,
-        system_id: str,
-        export_id: str,
-        payload: bytes,
-        fmt: str,
-    ) -> str:
-        """
-        Write a binary export artefact (PDF, JSON, etc.) to storage.
-
-        Artefacts are stored under ``systems/{system_id}/exports/{export_id}.{fmt}``.
-
-        Parameters
-        ----------
-        system_id:
-            ID of the AI system this export relates to.
-        export_id:
-            A unique identifier for this export, e.g. a UUID string.
-        payload:
-            Raw bytes of the export artefact.
-        fmt:
-            File extension / format identifier, e.g. ``"pdf"``, ``"json"``.
-
-        Returns
-        -------
-        str
-            URI or absolute path to the written file.
         """
         ...

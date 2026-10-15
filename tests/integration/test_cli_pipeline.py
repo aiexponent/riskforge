@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from rf_testkit import run_rf
@@ -57,38 +56,29 @@ def _init_project(tmp_dir: Path, name: str = "Pipeline Test System") -> str:
 
 
 def _seed_register(tmp_dir: Path, sid: str, one_dim: bool = False, classify: bool = True) -> None:
-    """Seed a register directly via the engine (bypasses interactive assess)."""
+    """Seed a register through the engines (bypasses interactive assess)."""
     import asyncio
 
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
+    from riskforge.engine.system import SystemEngine
     from riskforge.models.audit import AuditActor
-    from riskforge.models.register import RiskRegister
     from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
     from riskforge.storage.filesystem import FileStore
 
     async def _run_async():
         store = FileStore(tmp_dir)
-        sys_obj = await store.read_system(sid)
-        sys_obj.annex_iii_self_classification_documented = classify
-        await store.write_system(sid, sys_obj)
-        reg = RiskRegister(
-            system=sys_obj,
-            assessor_name="Test Assessor",
-            assessor_role="QA Engineer",
-            assessment_date=datetime.now(UTC),
-            review_date=datetime.now(UTC) + timedelta(days=365),
-            question_bank_version="1.0.0",
-        )
-        await store.write_register(sid, reg)
         actor = AuditActor(type="ci", identity="integration-test")
         audit = AuditEngine(store, actor)
+        if classify:
+            await SystemEngine(store, audit).classify(sid, None)
         engine = RiskEngine(store, audit)
+        await engine.create_register(sid, "Test Assessor", "QA Engineer")
         dims = [RiskDimension.privacy] if one_dim else list(RiskDimension)
         for dim in dims:
             item = RiskItem(
                 dimension=dim,
-                title=f"Integration test risk — {dim.value}",
+                title=f"Integration test risk: {dim.value}",
                 description=f"Seeded by integration test for {dim.value}.",
                 source="manual",
                 likelihood=Likelihood.possible,
@@ -227,12 +217,26 @@ def test_risk_accept_by_prefix_and_clean_error() -> None:
         prefix = str(reg.items[0].id)[:8]
 
         ok = _run(
-            ["risk", "accept", sid, prefix, "-r", "Accepted after review.", "--project-dir", str(d)]
+            ["risk", "accept", sid, prefix, "-r", "Accepted after review.", "--by", "Jane Doe"]
+            + ["--project-dir", str(d)]
         )
         assert ok.returncode == 0, f"prefix accept failed:\n{ok.output}"
         assert "accepted" in ok.output.lower()
 
-        bad = _run(["risk", "accept", sid, "00000000", "-r", "x", "--project-dir", str(d)])
+        bad = _run(
+            [
+                "risk",
+                "accept",
+                sid,
+                "00000000",
+                "-r",
+                "x",
+                "--by",
+                "Jane Doe",
+                "--project-dir",
+                str(d),
+            ]
+        )
         assert bad.returncode == 3, f"expected clean exit 3, got {bad.returncode}:\n{bad.output}"
         assert "Traceback" not in bad.output, f"unhandled crash:\n{bad.output}"
         assert "No risk item matches" in bad.output
@@ -460,6 +464,8 @@ def test_risk_mitigate_adds_mitigation_and_rescores() -> None:
                 "1",
                 "--residual-severity",
                 "1",
+                "--by",
+                "Jane Doe",
                 "--project-dir",
                 str(d),
             ]
@@ -505,6 +511,8 @@ def test_risk_mitigate_flags_vague() -> None:
                 "detective",
                 "--owner",
                 "X",
+                "--by",
+                "Jane Doe",
                 "--project-dir",
                 str(d),
             ]

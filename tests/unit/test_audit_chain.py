@@ -7,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from riskforge.engine.audit import AuditChainCorruptError, AuditEngine
+from riskforge.engine.audit import AuditEngine
+from riskforge.engine.integrity import IntegrityError
 from riskforge.engine.risk import RiskEngine
 from riskforge.models.audit import AuditActor
 from riskforge.models.register import RiskRegister
@@ -184,7 +185,7 @@ def test_pdf_exporter_uses_items_not_system() -> None:
 
     from riskforge.exporters.pdf.pdf_exporter import PDFExporter
 
-    source = inspect.getsource(PDFExporter.render)
+    source = inspect.getsource(PDFExporter.render_html)
     assert (
         "items=rmf.register.items" in source
     ), "PDF exporter bug detected: 'items' context variable not set to register.items"
@@ -195,7 +196,7 @@ def test_pdf_exporter_uses_items_not_system() -> None:
 
 @pytest.mark.asyncio
 async def test_record_rejects_tampered_tail(tmp_path: Path) -> None:
-    """A record onto a chain whose tail entry was tampered must be refused."""
+    """A record onto a chain whose tail entry was tampered is refused, and appends nothing."""
     store = FileStore(tmp_path)
     sid = await _bootstrap(store, _make_system())
     audit = AuditEngine(store, AuditActor(type="human", identity="tester"))
@@ -209,5 +210,7 @@ async def test_record_rejects_tampered_tail(tmp_path: Path) -> None:
     lines[-1] = json.dumps(raw)
     audit_path.write_text("\n".join(lines) + "\n")
 
-    with pytest.raises(AuditChainCorruptError):
+    tampered = audit_path.read_bytes()
+    with pytest.raises(IntegrityError, match="entry_hash mismatch"):
         await audit.record("risk_item.created", sid, {})
+    assert audit_path.read_bytes() == tampered
