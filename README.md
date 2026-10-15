@@ -337,8 +337,8 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | :--- | :--- | :--- |
 | `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
 | `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify`, `validate` or `tests generate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
-| `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an RMF file does not match its digest. `verify` exits 2, and every command that changes or exports data exits 2 on such a project without changing it. |
-| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal. Prints one line saying what to do. |
+| `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an RMF file does not match its digest. `verify` exits 2 (with `--strict`, also on any integrity warning), and every command that changes or exports data exits 2 on such a project without changing it. |
+| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict` with `--file`, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 

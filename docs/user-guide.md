@@ -176,7 +176,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYID] [--force]` | Export the RMF. |
-| `riskforge verify [--file rmf.json] [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. |
+| `riskforge verify [--file rmf.json] [--strict] [--project-dir DIR]` | Verify the audit chain, or a standalone RMF's digest with `--file`. `--strict` fails on integrity warnings too. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show changes between two exported RMFs. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
@@ -226,8 +226,8 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 |---|---|
 | 0 | Success or valid |
 | 1 | A validation FAIL gate without `--force`; `verify`, `validate` or `tests generate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; or an unexpected crash (prints a traceback) |
-| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, or an RMF file that does not match its digest; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, `verify --strict` with `--file`, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
@@ -248,6 +248,13 @@ then fail the build if either the audit chain or the exported file has been alte
 To re-run an assessment on a model change without a human at the terminal, keep an
 `answers.yaml` in the repo and run `riskforge assess <id> --answers answers.yaml`
 followed by `riskforge validate <id>`.
+
+A project last written by RiskForge 1.1.3 passes `riskforge verify` with a warning on
+stderr until its next change, because its registers are not yet covered by a
+fingerprint and it has no `.riskforge/audit.head.json` yet. To fail the build on that, or on any other integrity warning, run
+`riskforge verify --strict`: it exits 2 and lists each warning as a finding on its own
+line. A change in progress still exits 1. `--strict` checks a project only, so with
+`--file` it exits 3.
 
 If your CI pipeline exports PDF reports (`riskforge export -f pdf`), install the
 system dependencies prior to running `riskforge`:
