@@ -247,6 +247,42 @@ def test_purpose_the_pattern_covers_still_gets_it(
     assert _ids(category, purpose) == [expected]
 
 
+@pytest.mark.parametrize(
+    ("category", "purpose", "expected"),
+    [
+        (
+            "essential_services",
+            "Credit card limit setting for existing customers",
+            "CREDIT_SCORING_BIAS",
+        ),
+        ("essential_services", "Credit approval for small business loans", "CREDIT_SCORING_BIAS"),
+        ("essential_services", "Consumer credit checks at checkout", "CREDIT_SCORING_BIAS"),
+        ("essential_services", "Credit underwriting for retail customers", "CREDIT_SCORING_BIAS"),
+        ("employment", "Analysing video interviews of applicants", "HIRING_SCREENING"),
+        ("employment", "AI interviewer for applicants", "HIRING_SCREENING"),
+        (
+            "biometric",
+            "Fingerprint matching against a police database",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("biometric", "Identification of suspects from CCTV footage", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("biometric", "Person re-identification across cameras", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("biometric", "Voice identification of callers", "LAW_ENFORCEMENT_BIOMETRIC"),
+        (
+            "biometric",
+            "Facial recognition unlocking investigative leads for police",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("migration", "Residence permit application triage", "MIGRATION_ASYLUM"),
+    ],
+)
+def test_purpose_phrased_another_way_still_gets_the_pattern(
+    category: str, purpose: str, expected: str
+) -> None:
+    # G6 review: narrowing the keywords must not drop these high-risk phrasings.
+    assert expected in _ids(category, purpose)
+
+
 def test_an_exclude_keyword_skips_the_pattern(tmp_path: Path) -> None:
     patterns_dir = tmp_path / "patterns"
     patterns_dir.mkdir()
