@@ -48,14 +48,14 @@ code { font-family: "Courier New", monospace; font-size: 8pt; background: #f3f4f
    Cover Page
    ────────────────────────────────────────────────── */
 .cover-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 240mm;
+  /* WeasyPrint ignores margin-top: auto in a flex column, so the digest is placed absolutely. */
+  position: relative;
+  height: 235mm;
   padding: 24pt 0;
 }
 
 .cover-logo {
-  font-size: 11pt;
+  font-size: 12pt;
   font-weight: 700;
   color: #0D5463;
   letter-spacing: 0.08em;
@@ -92,7 +92,7 @@ code { font-family: "Courier New", monospace; font-size: 8pt; background: #f3f4f
 
 .cover-meta td {
   padding: 4pt 8pt 4pt 0;
-  border-bottom: 0.5pt solid #f3f4f6;
+  border-bottom: 0.5pt solid #d1d5db;
   font-size: 9.5pt;
 }
 
@@ -103,11 +103,20 @@ code { font-family: "Courier New", monospace; font-size: 8pt; background: #f3f4f
 }
 
 .cover-hash {
-  margin-top: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding-top: 12pt;
   border-top: 0.5pt solid #e5e7eb;
-  font-size: 8pt;
-  color: #9ca3af;
+  font-size: 9pt;
+  color: #374151;
+}
+
+.cover-hash code {
+  font-size: 9pt;
+  color: #1f2937;
+  background: #f3f4f6;
 }
 
 /* ──────────────────────────────────────────────────
@@ -184,10 +193,11 @@ td {
   page-break-inside: avoid;
 }
 
-.risk-item.risk-band-low    { border-left-color: #22c55e; }
-.risk-item.risk-band-medium { border-left-color: #eab308; }
-.risk-item.risk-band-high   { border-left-color: #f97316; }
-.risk-item.risk-band-critical { border-left-color: #ef4444; background: #fff5f5; }
+/* Border width is a second cue for the band, so the bands still read in greyscale. */
+.risk-item.risk-band-low      { border-left-color: #22c55e; border-left-width: 3pt; }
+.risk-item.risk-band-medium   { border-left-color: #eab308; border-left-width: 4pt; }
+.risk-item.risk-band-high     { border-left-color: #f97316; border-left-width: 5pt; }
+.risk-item.risk-band-critical { border-left-color: #ef4444; border-left-width: 7pt; background: #fff5f5; }
 
 .risk-header {
   display: flex;
@@ -209,6 +219,7 @@ td {
   font-weight: 700;
   padding: 2pt 6pt;
   border-radius: 3pt;
+  border: 0.75pt solid currentColor;
   white-space: nowrap;
 }
 
@@ -253,7 +264,7 @@ td {
 
 .vague-flag {
   font-size: 8pt;
-  color: #d97706;
+  color: #b45309;
   font-style: italic;
 }
 
@@ -280,7 +291,7 @@ td {
 }
 
 .no-items {
-  color: #9ca3af;
+  color: #6b7280;
   font-style: italic;
   font-size: 9.5pt;
 }
@@ -334,6 +345,9 @@ td {
 .residual-table .score { white-space: nowrap; width: 12%; }
 .residual-table .count { width: 11%; text-align: right; }
 .residual-table td:first-child { width: 38%; }
+.residual-table .residual-critical { font-weight: 700; }
+
+.na { color: #6b7280; font-style: italic; }
 p code { white-space: nowrap; }
 .residual-table tr, .changelog-table tr, .metadata-table tr { page-break-inside: avoid; }
 

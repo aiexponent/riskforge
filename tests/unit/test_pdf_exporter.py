@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from pypdf import PdfReader
 from rf_testkit import pdf_text
-from riskforge.exporters.pdf.pdf_exporter import PDFExporter
+from riskforge.exporters.pdf.pdf_exporter import PDFExporter, report_css
 from riskforge.models.audit import AuditActor, AuditEntry
 from riskforge.models.receipt import Receipt
 from riskforge.models.register import RiskRegister
@@ -317,3 +317,54 @@ def test_report_html_references_no_external_resource() -> None:
     html = PDFExporter().render_html(_sample_rmf())
     assert "<link" not in html
     assert not re.search(r"""(?:src|href)\s*=|url\(""", html)
+
+
+CUT_TITLE = ("Does the system rely on proxy variables for protected characteristics " * 3)[:120]
+WHOLE_TITLE = "Is the training data representative of the people the system scores?".rjust(120, "X")
+
+
+def _rmf_with_titles(*titles: str) -> RiskManagementFile:
+    rmf = _sample_rmf()
+    template = rmf.register.items[0]
+    rmf.register.items = [template.model_copy(update={"title": t}) for t in titles]
+    return rmf
+
+
+def test_a_title_cut_at_120_characters_shows_an_ellipsis() -> None:
+    """Question-bank titles are cut at 120 characters; the report says so with '...'."""
+    assert len(CUT_TITLE) == 120 and len(WHOLE_TITLE) == 120
+    html = PDFExporter().render_html(_rmf_with_titles(CUT_TITLE, WHOLE_TITLE))
+    # Once in the register, once in the residual table.
+    assert html.count(f"{CUT_TITLE}...") == 2
+    assert f"{WHOLE_TITLE}..." not in html
+    assert html.count(WHOLE_TITLE) == 2
+
+
+def test_a_short_title_shows_no_ellipsis() -> None:
+    html = PDFExporter().render_html(_sample_rmf())
+    assert "Proxy demographic bias in training data<" in html
+
+
+def test_missing_system_fields_are_marked_not_specified() -> None:
+    """Rows stay so an auditor sees which fields are missing; the value is styled as absent."""
+    html = PDFExporter().render_html(_sample_rmf())
+    row = re.search(r"<td>Provider contact</td><td>(.*?)</td>", html)
+    assert row is not None
+    assert row.group(1) == '<span class="na">Not specified</span>'
+    assert "Not specified" not in html.replace('<span class="na">Not specified</span>', "")
+
+
+def test_critical_residual_rows_and_missing_values_have_a_style() -> None:
+    """Greyscale prints need a cue besides colour: bold critical rows, italic missing values."""
+    rmf = _sample_rmf()
+    rmf.register.items[0] = rmf.register.items[0].model_copy(
+        update={
+            "residual_likelihood": Likelihood.almost_certain,
+            "residual_severity": Severity.critical,
+        }
+    )
+    html = PDFExporter().render_html(rmf)
+    assert '<tr class="residual-critical">' in html
+    css = report_css()
+    assert re.search(r"\.residual-critical\s*\{[^}]*font-weight:\s*700", css)
+    assert re.search(r"\.na\s*\{[^}]*font-style:\s*italic", css)

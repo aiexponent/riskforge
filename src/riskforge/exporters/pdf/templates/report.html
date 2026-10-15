@@ -6,6 +6,8 @@
   <meta name="generator" content="RiskForge {{ riskforge_version }}">
 </head>
 <body>
+  {#- A missing value keeps its row, so an auditor sees which fields are not filled in. -#}
+  {% macro or_na(value) %}{% if value %}{{ value }}{% else %}<span class="na">Not specified</span>{% endif %}{% endmacro %}
 
   <!-- Cover. Styles come from report.css, which the exporter passes to WeasyPrint. -->
   <section class="cover-page">
@@ -54,11 +56,11 @@
       <tr><td>Name</td><td>{{ system.name }}</td></tr>
       <tr><td>Version</td><td>{{ system.version }}</td></tr>
       <tr><td>Provider</td><td>{{ system.provider_name }}</td></tr>
-      <tr><td>Provider contact</td><td>{{ system.provider_contact or 'Not specified' }}</td></tr>
-      <tr><td>Intended users</td><td>{{ system.intended_users | join(', ') or 'Not specified' }}</td></tr>
-      <tr><td>Inputs</td><td>{{ system.inputs | join(', ') or 'Not specified' }}</td></tr>
-      <tr><td>Outputs</td><td>{{ system.outputs | join(', ') or 'Not specified' }}</td></tr>
-      <tr><td>Deployment context</td><td>{{ system.deployment_context or 'Not specified' }}</td></tr>
+      <tr><td>Provider contact</td><td>{{ or_na(system.provider_contact) }}</td></tr>
+      <tr><td>Intended users</td><td>{{ or_na(system.intended_users | join(', ')) }}</td></tr>
+      <tr><td>Inputs</td><td>{{ or_na(system.inputs | join(', ')) }}</td></tr>
+      <tr><td>Outputs</td><td>{{ or_na(system.outputs | join(', ')) }}</td></tr>
+      <tr><td>Deployment context</td><td>{{ or_na(system.deployment_context) }}</td></tr>
     </table>
     <p class="disclosure">{{ rmf.disclosure }}</p>
   </section>
@@ -92,7 +94,7 @@
         {% for item in dim_items %}
           <div class="risk-item risk-band-{{ item.risk_band }}">
             <div class="risk-header">
-              <span class="risk-title">{{ item.title }}</span>
+              <span class="risk-title">{{ item.title | display_title }}</span>
               <span class="risk-score-badge band-{{ item.risk_band }}">{{ item.risk_band.upper() }} ({{ item.risk_score }})</span>
             </div>
             <p class="risk-description">{{ item.description }}</p>
@@ -134,8 +136,8 @@
       <thead><tr><th>Risk</th><th class="score">Inherent</th><th class="score">Residual</th><th class="count">Mitigations</th><th>Decision and rationale</th></tr></thead>
       <tbody>
         {% for item in items | sort(attribute='title') | sort(attribute='residual_risk_score', reverse=True) %}
-          <tr>
-            <td>{{ item.title }}</td>
+          <tr class="residual-{{ item.residual_risk_band }}">
+            <td>{{ item.title | display_title }}</td>
             <td class="score">{{ item.risk_score }} ({{ item.risk_band }})</td>
             <td class="score">{{ item.residual_risk_score }} ({{ item.residual_risk_band }})</td>
             <td class="count">{{ item.mitigations | length }}</td>
