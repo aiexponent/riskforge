@@ -9,7 +9,7 @@ patterns:
     annex_iii_point: "5(b)"
     triggers:
       annex_iii_categories: [essential_services]
-      purpose_keywords: ["credit", "loan", "mortgage", "underwriting"]
+      purpose_keywords: ["creditworth", "credit scor", "credit risk", "credit decision", "credit application", "credit limit", "loan", "mortgage"]
     risks:
       - dimension: discrimination
         title: "Demographic bias in credit scoring outputs"
@@ -33,7 +33,7 @@ patterns:
     annex_iii_point: "4(a)"
     triggers:
       annex_iii_categories: [employment]
-      purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "interview", "candidate"]
+      purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "job interview", "candidate"]
     risks:
       - dimension: discrimination
         title: "Proxy discrimination in automated CV screening"
@@ -65,7 +65,8 @@ patterns:
     annex_iii_point: "1(a)"
     triggers:
       annex_iii_categories: [biometric, law_enforcement]
-      purpose_keywords: ["facial recognition", "face recognition", "biometric", "identification", "surveillance", "matching"]
+      purpose_keywords: ["facial recognition", "face recognition", "biometric", "facial identification", "face identification", "surveillance", "face matching", "facial matching"]
+      exclude_keywords: ["unlock"]
     risks:
       - dimension: fundamental_rights
         title: "Chilling effect on freedom of assembly and expression"
@@ -146,7 +147,7 @@ patterns:
     annex_iii_point: "7(c)"
     triggers:
       annex_iii_categories: [migration]
-      purpose_keywords: ["asylum", "border", "visa", "migration", "refugee", "immigration"]
+      purpose_keywords: ["asylum", "visa", "migration", "refugee", "immigration"]
     risks:
       - dimension: fundamental_rights
         title: "AI-assisted asylum decisions affecting right to protection"
