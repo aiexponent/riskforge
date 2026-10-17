@@ -29,8 +29,8 @@
 
 Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers of **high-risk AI systems** (Article 6, Annexes I and III) must establish, implement, document and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
 
-* **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by Regulation (EU) 2026/1744, in force since 27 July 2026).
-* **Statutory Non-Compliance Penalties**: Fines up to **€15,000,000 or 3% of total worldwide annual turnover**.
+* **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by [Regulation (EU) 2026/1744](https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng), in force since 27 July 2026).
+* **Penalties**: breaches of the provider obligations can be fined up to **€15,000,000 or, for an undertaking, 3% of its total worldwide annual turnover for the preceding financial year, whichever is higher** (Article 99(4)); for SMEs, including start-ups, and for small mid-cap enterprises, whichever is lower (Article 99(6) and (6a)).
 * **The bottleneck**: the assessment has to be repeated at every significant model or system change, and advisory engagements are not built for that pace.
 
 **RiskForge** answers the essential high-risk compliance requirement directly in your terminal or CI/CD pipeline:
@@ -244,8 +244,8 @@ graph LR
 Cross-maps to:
 * **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
 * **ISO/IEC 42001:2023**: Clauses 6.1 and 9.1, and Annex A.6, A.7 and A.9
-* **Colorado AI Act**: SB 24-205 (repealed and reenacted by SB 26-189)
-* **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA)
+* **Colorado AI Act**: SB 24-205, repealed and reenacted by SB 26-189 (signed 14 May 2026)
+* **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA), in effect since 1 January 2026
 
 ---
 
@@ -631,7 +631,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | **Signed exports and receipts** | Ed25519 keys from `riskforge keygen`; `verify --file` checks the digest, signatures and chain proof; a receipt kept outside the project catches a rewritten chain |
 | **Schema-validated exports** | Every export is validated against the bundled RMF schema 1.1.0 (`$id` `https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json`) before it is written |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
-| **Pattern matching** | 7 pre-built risk patterns, each tied to its high-risk route. Six name the Annex III point they cover: law enforcement biometric identification (1(a)), automated student assessment (3(b)), hiring and CV screening (4(a)), credit scoring (5(b)), offending risk assessment (6(d)), and migration and asylum decision support (7(c)). One covers medical diagnosis and clinical decision support, on the Art. 6(1) and Annex I product route |
+| **Pattern matching** | 7 pre-built risk patterns, each tied to its high-risk route. Six name the Annex III point they cover: credit scoring (5(b)), recruitment and CV screening (4(a)), remote biometric identification (1(a)), assessment of learning outcomes (3(b)), asylum, visa and residence applications (7(c)), and offending risk assessment (6(d)). One covers medical diagnosis and clinical decision support, high-risk under Art. 6(1) where the AI system is, or is a safety component of, a medical device covered by Annex I that must undergo a third-party conformity assessment |
 | **Plugin extensible** | Add question banks, exporters, adapters via `pip install`, no config edit required |
 | **Git-friendly state** | YAML + JSONL files, human-readable and diff-able. One writer at a time: merging two branches' audit logs breaks the chain, and `verify` reports it |
 
@@ -689,7 +689,7 @@ make lint        # ruff check + format
 
 > **REGULATORY EVIDENCE GENERATOR, NOT A NOTIFIED BODY**
 >
-> RiskForge produces documented evidence and audit logs to satisfy EU AI Act Article 9 and Annex IV technical documentation requirements. It is a technical workflow utility authored to support engineering and governance teams.
+> RiskForge produces documented evidence and audit logs for the EU AI Act Article 9 risk management system, and the description of that system that Annex IV point 5 asks for. It is a technical workflow tool for engineering and governance teams.
 >
 > **RiskForge does not constitute legal advice and is not a notified body.** Using RiskForge does not replace mandatory third-party conformity assessment where required under Article 43 of the EU AI Act.
 
