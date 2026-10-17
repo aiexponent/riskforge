@@ -22,7 +22,12 @@ from riskforge.integrity.canonical import (
     document_fingerprint,
     sha256_hex,
 )
-from riskforge.integrity.chain import BASELINE_EVENT, check_entry_signatures, written_since_2_0
+from riskforge.integrity.chain import (
+    BASELINE_EVENT,
+    check_entry_signatures,
+    verify_links,
+    written_since_2_0,
+)
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -297,6 +302,12 @@ async def check_integrity(
     ``key_id`` and no signature, or the reverse, always fails; signatures are verified
     against ``trusted_keys`` (base64 raw public keys) when given, and otherwise reported
     as not checked, in a warning.
+
+    The chain is checked twice: by the backend's ``verify_chain``, which can also check
+    the stored lines, and again here from the entries ``read_audit`` returns, with the
+    same rules (``verify_links``), so a backend whose own check misses an edited entry
+    still fails. Entry ``n`` is labelled ``Line n``, its line in FileStore's log, and a
+    finding both checks report is listed once.
     """
     _chain_ok, chain_errors = await storage.verify_chain()
     errors: list[str] = list(chain_errors)
@@ -304,6 +315,9 @@ async def check_integrity(
     try:
         entries = [entry async for entry in storage.read_audit()]
         log_readable = True
+        reported = set(errors)
+        labelled = ((f"Line {n}", entry) for n, entry in enumerate(entries, start=1))
+        errors.extend(error for error in verify_links(labelled) if error not in reported)
         signature_errors, signature_warnings = check_entry_signatures(entries, trusted_keys)
         errors.extend(signature_errors)
         warnings.extend(signature_warnings)
