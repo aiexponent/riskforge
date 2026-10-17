@@ -54,6 +54,6 @@ A product-route pattern (Article 6(1)) replaces `annex_iii_point` with:
 - Each pattern should generate 2-4 risk items, not just one
 - `likelihood_hint` and `severity_hint` are starting points; assessors always override them
 - A keyword matches when it starts a word, or a run of words, in the system purpose. Matching ignores case, accents and punctuation, so `credit` matches "Creditworthiness" and `facial recognition` matches "facial-recognition", but `test` does not match "contest". Pick keywords that do not also start unrelated words.
-- Use `exclude_keywords` only for a use the pattern clearly does not cover but that shares its keywords, such as `unlock` for unlocking a phone by face. They match the same way, and any one of them skips the pattern, even when a purpose keyword also appears.
+- Use `exclude_keywords` only for a use the pattern clearly does not cover but that shares its keywords, such as `unlock`, for a system that opens a phone by face. They match the same way, and any one of them skips the pattern, even when a purpose keyword also appears.
 - Do not change a kept risk's `title`: `assess` matches existing register items by pattern id and title, so a new title adds a new item when a project is assessed again
 - Include at least one NIST AI RMF reference and one ISO/IEC 42001 reference per risk
