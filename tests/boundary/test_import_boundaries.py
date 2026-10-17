@@ -2,6 +2,7 @@
 
 ADR-02 mandates strict import boundary separation:
 - riskforge.engine.* must not import from riskforge.cli.*
+- riskforge.api, the supported library surface, must not import it either
 
 This test suite is parametrised over all engine submodules and enforces
 the boundary by introspecting the loaded module's global namespace and
@@ -27,9 +28,11 @@ def _submodules(package: str) -> list[str]:
 
 
 ENGINE_MODULES = _submodules("riskforge.engine")
+# riskforge.api re-exports engine names for applications that never load the CLI.
+CHECKED_MODULES = [*ENGINE_MODULES, "riskforge.api"]
 
 
-@pytest.mark.parametrize("module", ENGINE_MODULES)
+@pytest.mark.parametrize("module", CHECKED_MODULES)
 def test_engine_does_not_import_cli(module: str) -> None:
     """Engine module must not directly import from riskforge.cli.*"""
     m = importlib.import_module(module)
@@ -48,7 +51,7 @@ def test_engine_does_not_import_cli(module: str) -> None:
             pass
 
 
-@pytest.mark.parametrize("module", ENGINE_MODULES)
+@pytest.mark.parametrize("module", CHECKED_MODULES)
 def test_engine_source_has_no_cli_string(module: str) -> None:
     """Engine source file must not contain 'from riskforge.cli' or 'import riskforge.cli'."""
     import ast

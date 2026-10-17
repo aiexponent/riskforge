@@ -7,7 +7,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SRC = REPO / "src" / "riskforge"
 # storage/ is scanned because FileStore logs audit-chain failures to stderr.
-SCANNED_PATHS = [SRC / "cli", SRC / "exporters", SRC / "_data", SRC / "storage"]
+SCANNED_PATHS = [
+    SRC / "cli",
+    SRC / "exporters",
+    SRC / "_data",
+    SRC / "storage",
+    SRC / "api.py",
+    REPO / "docs" / "library-api.md",
+]
 SUFFIXES = {".py", ".html", ".css", ".yaml", ".json", ".md"}
 EM_DASH = chr(0x2014)
 
