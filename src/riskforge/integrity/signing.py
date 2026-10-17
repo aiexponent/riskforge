@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import base64
 import binascii
+import errno
 import hashlib
 import os
+import stat
 from pathlib import Path
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -27,6 +29,10 @@ KEY_ID_PREFIX = "ed25519:"
 
 class KeyFileError(ValueError):
     """A key file is missing, unreadable, or not an Ed25519 key."""
+
+
+class KeyFileNotFoundError(KeyFileError):
+    """The key file does not exist."""
 
 
 def _b64(data: bytes) -> str:
@@ -46,6 +52,50 @@ def _read_key_file(path: Path, kind: str) -> bytes:
         raise KeyFileError(
             f"Cannot read {kind.lower()} file {path}: {exc.strerror or exc}"
         ) from exc
+
+
+def read_private_key_file(path: Path) -> bytes:
+    """The bytes of a private key file, refused unless only its owner can use it.
+
+    ``KeyFileError`` when the file is missing (``KeyFileNotFoundError``), unreadable or
+    not a regular file, and on POSIX systems when it is a symbolic link or its group or
+    other users have any access to it. A FIFO is refused without waiting for a writer.
+    """
+    # One open: the mode check and the read use the same descriptor, so the file cannot be
+    # swapped in between. O_NOFOLLOW refuses a symlink; O_NONBLOCK keeps a FIFO from
+    # blocking the open (the regular-file check then rejects it).
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_BINARY", 0)
+    )
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError as exc:
+        raise KeyFileNotFoundError(f"Key file not found: {path}") from exc
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.EMLINK) and path.is_symlink():
+            raise KeyFileError(
+                f"Key file {path} is a symbolic link. Pass the path of the key file itself."
+            ) from exc
+        raise KeyFileError(f"Cannot read key file {path}: {exc.strerror or exc}") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise KeyFileError(f"Key file {path} is not a regular file.")
+        mode = stat.S_IMODE(info.st_mode)
+        if os.name == "posix" and mode & 0o077:
+            raise KeyFileError(
+                f"Key file {path} can be read by other users (mode {mode:03o}). "
+                f"Run: chmod 600 {path}"
+            )
+        with os.fdopen(fd, "rb", closefd=False) as fh:
+            return fh.read()
+    except OSError as exc:
+        raise KeyFileError(f"Cannot read key file {path}: {exc.strerror or exc}") from exc
+    finally:
+        os.close(fd)
 
 
 PUBLIC_KEY_BYTES = 32
@@ -156,8 +206,13 @@ class Ed25519Signer:
 
     @classmethod
     def from_file(cls, path: Path) -> Ed25519Signer:
-        """Load an unencrypted PEM private key; ``KeyFileError`` for anything else."""
-        return cls.from_pem(_read_key_file(path, "Key"), path)
+        """Load an unencrypted PEM private key; ``KeyFileError`` for anything else.
+
+        The file is read as ``read_private_key_file`` reads it, the rule ``--sign``
+        applies: a symbolic link, a file that is not a regular file, and on POSIX
+        systems a key its group or other users can access, are refused.
+        """
+        return cls.from_pem(read_private_key_file(path), path)
 
     @classmethod
     def from_pem(cls, pem: bytes, source: Path) -> Ed25519Signer:

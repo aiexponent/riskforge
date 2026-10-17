@@ -255,52 +255,17 @@ def load_signer(path: Path) -> Ed25519Signer:
 
     Exits 3 when the file is missing, unreadable, not a regular file or not an Ed25519
     private key, and on POSIX systems when it is a symbolic link or its group or other
-    users have any access to it.
+    users have any access to it (``Ed25519Signer.from_file``).
     """
-    import errno
-    import os
-    import stat
+    from riskforge.integrity.signing import Ed25519Signer, KeyFileError, KeyFileNotFoundError
 
-    from riskforge.integrity.signing import Ed25519Signer, KeyFileError
-
-    # One open: the mode check and the read use the same descriptor, so the file cannot be
-    # swapped in between. O_NOFOLLOW refuses a symlink; O_NONBLOCK keeps a FIFO from
-    # blocking the open (the regular-file check then rejects it).
-    flags = (
-        os.O_RDONLY
-        | getattr(os, "O_NOFOLLOW", 0)
-        | getattr(os, "O_NONBLOCK", 0)
-        | getattr(os, "O_BINARY", 0)
-    )
     try:
-        fd = os.open(path, flags)
-    except FileNotFoundError:
+        return Ed25519Signer.from_file(path)
+    except KeyFileNotFoundError as exc:
         fail(
-            f"Key file not found: {path}. RiskForge signs with an Ed25519 key file; "
+            f"{exc}. RiskForge signs with an Ed25519 key file; "
             "create one with `riskforge keygen --output FILE`."
         )
-    except OSError as exc:
-        if exc.errno in (errno.ELOOP, errno.EMLINK) and path.is_symlink():
-            fail(f"Key file {path} is a symbolic link. Pass the path of the key file itself.")
-        fail(f"Cannot read key file {path}: {exc.strerror or exc}")
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode):
-            fail(f"Key file {path} is not a regular file.")
-        mode = stat.S_IMODE(info.st_mode)
-        if os.name == "posix" and mode & 0o077:
-            fail(
-                f"Key file {path} can be read by other users (mode {mode:03o}). "
-                f"Run: chmod 600 {path}"
-            )
-        with os.fdopen(fd, "rb", closefd=False) as fh:
-            pem = fh.read()
-    except OSError as exc:
-        fail(f"Cannot read key file {path}: {exc.strerror or exc}")
-    finally:
-        os.close(fd)
-    try:
-        return Ed25519Signer.from_pem(pem, path)
     except KeyFileError as exc:
         fail(str(exc))
 
