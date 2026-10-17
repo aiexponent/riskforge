@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+from importlib.resources import files
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from riskforge.exporters.base import Exporter
+from riskforge.exporters.base import Exporter, display_title
+from riskforge.models.risk import RiskDimension
 from riskforge.models.rmf import RiskManagementFile
+
+TEMPLATE_DIR = Path(__file__).parent / "templates"
+
+
+def report_css() -> str:
+    """The report stylesheet, read from package data so any install layout finds it."""
+    return files("riskforge.exporters.pdf").joinpath("templates", "report.css").read_text("utf-8")
 
 
 class PDFExporter(Exporter):
@@ -19,26 +28,52 @@ class PDFExporter(Exporter):
     """
 
     def __init__(self) -> None:
-        template_dir = Path(__file__).parent / "templates"
         self._env = Environment(
-            loader=FileSystemLoader(str(template_dir)),
+            loader=FileSystemLoader(str(TEMPLATE_DIR)),
             autoescape=select_autoescape(["html"]),
         )
+        self._env.filters["display_title"] = display_title
 
     def render_html(self, rmf: RiskManagementFile) -> str:
         """Return the report HTML that :meth:`render` turns into a PDF."""
-        template = self._env.get_template("report.html")
-        return template.render(
+        # Imported here: the engine package loads the exporters through the plugin registry.
+        from riskforge import __version__
+        from riskforge.engine.validate import GateStatus, ValidateEngine
+
+        register = rmf.register
+        gates = ValidateEngine().run(register)
+        failing = [gate.gate_id for gate in gates if gate.status == GateStatus.FAIL]
+        system_id = str(register.system.id)
+        category = register.system.annex_iii_category
+        return self._env.get_template("report.html").render(
             rmf=rmf,
-            register=rmf.register,
-            system=rmf.register.system,
-            items=rmf.register.items,
-            risk_band_colour={
-                "low": "#22c55e",
-                "medium": "#eab308",
-                "high": "#f97316",
-                "critical": "#ef4444",
-            },
+            register=register,
+            system=register.system,
+            items=register.items,
+            dimensions=[dimension.value for dimension in RiskDimension],
+            gates=gates,
+            status_line=(
+                "All FAIL gates pass"
+                if not failing
+                else "Exported with failing gates: " + ", ".join(failing)
+            ),
+            category_label=(
+                category.value.replace("_", " ").title() if category else "Not classified"
+            ),
+            patterns_used=sorted(
+                {
+                    tag.split(":", 1)[1]
+                    for item in register.items
+                    for tag in item.tags
+                    if tag.startswith("pattern:")
+                }
+            ),
+            change_log=(
+                [e for e in rmf.chain_proof.entries if e.system_id in (system_id, "")]
+                if rmf.chain_proof
+                else []
+            ),
+            riskforge_version=__version__,
         )
 
     def render(self, rmf: RiskManagementFile) -> bytes:
@@ -57,11 +92,11 @@ class PDFExporter(Exporter):
                                 f"{path}:{curr}" if curr else path
                             )
 
-            from weasyprint import HTML
-
-            return HTML(string=html_content).write_pdf()
+            from weasyprint import CSS, HTML
         except ImportError as e:
             raise RuntimeError(
                 "WeasyPrint is required for PDF export. "
                 "Install with: pip install riskforge  (WeasyPrint is a core dependency)"
             ) from e
+        # No base_url: the report loads nothing by URL, so nothing resolves against one.
+        return HTML(string=html_content).write_pdf(stylesheets=[CSS(string=report_css())])

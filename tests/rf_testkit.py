@@ -91,3 +91,42 @@ def add_risks_worker(project: str, system_id: str, worker_id: int, count: int) -
             )
 
     asyncio.run(run())
+
+
+def pdf_text(path: Path) -> str:
+    """Text of every page of a PDF, as a reader sees it."""
+    from pypdf import PdfReader
+
+    return "\n".join(page.extract_text() for page in PdfReader(str(path)).pages)
+
+
+def with_provenance(rmf):
+    """``rmf`` with the chain proof and receipt every export embeds: one checkpoint entry.
+
+    For tests that build a RiskManagementFile by hand and validate it against schema
+    1.1.0, which requires both blocks.
+    """
+    from datetime import UTC, datetime
+
+    from riskforge.integrity.canonical import document_fingerprint
+    from riskforge.integrity.chain import GENESIS_PREV_HASH, compute_entry_hash
+    from riskforge.integrity.receipts import build_receipt
+    from riskforge.models.audit import AuditActor, AuditEntry
+    from riskforge.models.rmf import ChainProof
+
+    system_id = str(rmf.register.system.id)
+    fingerprint = document_fingerprint(rmf.register.model_dump(mode="json"))
+    entry = AuditEntry(
+        seq=0,
+        event="register.checkpoint",
+        timestamp=datetime.now(UTC),
+        actor=AuditActor(type="human", identity="test"),
+        system_id=system_id,
+        payload={"riskforge_version": "test"},
+        prev_hash=GENESIS_PREV_HASH,
+        register_fingerprint=fingerprint,
+    )
+    entry.entry_hash = compute_entry_hash(entry)
+    rmf.chain_proof = ChainProof(scope="project", entries=[entry])
+    rmf.receipt = build_receipt(entry, system_id, fingerprint)
+    return rmf

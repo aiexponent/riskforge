@@ -100,13 +100,17 @@ jobs:
       - name: Install jsonschema
         run: pip install jsonschema
 
-      - name: Validate rmf.schema.json is valid JSON Schema
+      - name: Validate the RMF schemas (1.0.0 and 1.1.0) are valid JSON Schema
         run: |
           python -c "
           import json, jsonschema
-          schema = json.load(open('src/riskforge/_data/schemas/rmf.schema.json'))
-          jsonschema.Draft202012Validator.check_schema(schema)
-          print('Schema valid:', schema.get('\$id'))
+          for version in ('1.0.0', '1.1.0'):
+              path = f'src/riskforge/_data/schemas/rmf-{version}.schema.json'
+              schema = json.load(open(path))
+              jsonschema.Draft202012Validator.check_schema(schema)
+              expected = f'https://aiexponent.com/schemas/riskforge/rmf/{version}.json'
+              assert schema['\$id'] == expected, (path, schema['\$id'])
+              print('Schema valid:', path, schema['\$id'])
           "
 
   security:

@@ -1,25 +1,22 @@
-"""Contract tests — every export path must validate against rmf.schema.json."""
+"""Contract tests: every export path must validate against RMF schema 1.1.0."""
 
 from __future__ import annotations
 
 import datetime
-import json
-from pathlib import Path
 
 import jsonschema
 import pytest
+from rf_testkit import with_provenance
+from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.models.rmf import RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem, AnnexIIICategory
 
 
 @pytest.fixture
 def schema() -> dict:
-    schema_path = (
-        Path(__file__).parent.parent.parent / "src/riskforge/_data/schemas/rmf.schema.json"
-    )
-    return json.loads(schema_path.read_text())
+    return load_schema("1.1.0")
 
 
 def minimal_rmf() -> RiskManagementFile:
@@ -50,18 +47,20 @@ def minimal_rmf() -> RiskManagementFile:
         review_date=datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365),
         question_bank_version="1.0.0",
     )
-    return RiskManagementFile(register=register)
+    rmf = RiskManagementFile(register=register)
+    rmf.sha256_hash = content_digest(rmf_document(rmf))
+    return with_provenance(rmf)
 
 
 def test_minimal_rmf_passes_schema(schema: dict) -> None:
     rmf = minimal_rmf()
-    data = rmf.model_dump(mode="json", by_alias=True)
+    data = rmf_document(rmf)
     # Should not raise
     jsonschema.validate(data, schema)
 
 
 def test_schema_has_correct_id(schema: dict) -> None:
-    assert schema["$id"] == "https://schemas.aiexponent.com/riskforge/rmf/v1.0.0"
+    assert schema["$id"] == "https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json"
 
 
 def test_schema_requires_sha256_hash(schema: dict) -> None:
@@ -69,14 +68,14 @@ def test_schema_requires_sha256_hash(schema: dict) -> None:
 
 
 def test_rmf_without_register_fails_schema(schema: dict) -> None:
-    data = minimal_rmf().model_dump(mode="json", by_alias=True)
+    data = rmf_document(minimal_rmf())
     del data["register"]
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(data, schema)
 
 
 def test_risk_item_invalid_dimension_fails_schema(schema: dict) -> None:
-    data = minimal_rmf().model_dump(mode="json", by_alias=True)
+    data = rmf_document(minimal_rmf())
     data["register"]["items"][0]["dimension"] = "invalid_dimension"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(data, schema)

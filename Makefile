@@ -35,7 +35,7 @@ format:
 	ruff check --fix src/ tests/
 
 schema-validate:
-	python -c "import json, jsonschema; schema=json.load(open('src/riskforge/_data/schemas/rmf.schema.json')); print('Schema valid:', schema.get('$$id'))"
+	python -c "import json, jsonschema; [(jsonschema.Draft202012Validator.check_schema(s), print('Schema valid:', p, s['\$$id'])) for p in ('rmf-1.0.0', 'rmf-1.1.0') for s in [json.load(open(f'src/riskforge/_data/schemas/{p}.schema.json'))]]"
 
 pdf-preview:
 	riskforge init --name "Test System" --sys-version "1.0" --purpose "Test" --provider "AiExponent" --category essential_services --non-interactive 2>/dev/null || true

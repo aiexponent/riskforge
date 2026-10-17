@@ -16,16 +16,27 @@ def generate_tests(
     system_id: str = typer.Argument(..., help="System ID"),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
-    """Derive test requirements from the risk register."""
-    from riskforge.cli.project import read_register_or_fail, run_read_checked
+    """Derive test requirements from the risk register and save them on it."""
+    from riskforge.cli.project import read_register_or_fail, run_checked
+    from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.risk import RiskEngine
     from riskforge.engine.tests import TestDerivationEngine
+    from riskforge.models.audit import AuditActor
+    from riskforge.models.requirements import TestRequirement
+    from riskforge.storage.filesystem import FileStore
 
-    register = run_read_checked(project_dir, lambda store: read_register_or_fail(store, system_id))
+    async def _generate(store: FileStore) -> tuple[list[TestRequirement], bool]:
+        register = await read_register_or_fail(store, system_id)
+        requirements = TestDerivationEngine().derive(register.items)
+        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
+        return requirements, await engine.set_test_requirements(system_id, requirements)
 
-    engine = TestDerivationEngine()
-    requirements = engine.derive(register.items)
+    requirements, changed = run_checked(project_dir, _generate)
 
-    console.print(f"[green]✓[/green] Derived {len(requirements)} test requirement(s).")
+    verb = "Saved" if changed else "Unchanged:"
+    console.print(
+        f"[green]✓[/green] {verb} {len(requirements)} test requirement(s) on the register."
+    )
     for req in requirements:
         console.print(
             f"  • [bold]{req.metric_type}[/bold] {req.threshold_range} "

@@ -1,0 +1,142 @@
+# Checked list of legal and standards references in src/ (PRD-368).
+#
+# tests/contract/test_legal_references.py extracts every reference from src/ and fails
+# on any reference missing here. Keys use the extractor's normal form: "Art.9(8)",
+# "GDPR Art.22(1)", "Charter Art.19(2)", "Annex III point 5(b)", "MEASURE 2.11".
+# Unqualified "Art." keys are EU AI Act articles unless the note says otherwise.
+#
+# Every entry was checked against its source on 2026-10-15. Before adding an entry,
+# check the reference against the official text and name the source. "unverified"
+# marks a reference that exists but whose use in src/ could not be checked.
+
+sources:
+  aiact_oj:
+    title: "Regulation (EU) 2024/1689, OJ L, 2024/1689, 12.7.2024 (CELEX 32024R1689)"
+    url: "http://publications.europa.eu/resource/cellar/dc8116a1-3fe6-11ef-865a-01aa75ed71a1"
+  aiact_consolidated:
+    title: "Regulation (EU) 2024/1689, consolidated text as at 27.7.2026 (CELEX 02024R1689-20260727)"
+    url: "http://publications.europa.eu/resource/cellar/b1730fb2-8f1c-11f1-9262-01aa75ed71a1"
+  aiact_amendment:
+    title: "Regulation (EU) 2026/1744, OJ L, 2026/1744, 24.7.2026 (CELEX 32026R1744)"
+    url: "http://publications.europa.eu/resource/cellar/b459c07f-86fb-11f1-bf5e-01aa75ed71a1"
+  gdpr:
+    title: "Regulation (EU) 2016/679, OJ L 119, 4.5.2016 (CELEX 32016R0679)"
+    url: "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1"
+  charter:
+    title: "Charter of Fundamental Rights of the European Union, OJ C 202, 7.6.2016"
+    url: "http://publications.europa.eu/resource/cellar/c483a582-2c70-11e6-b497-01aa75ed71a1"
+  mdr:
+    title: "Regulation (EU) 2017/745 on medical devices (CELEX 32017R0745)"
+    url: "http://publications.europa.eu/resource/celex/32017R0745"
+  ivdr:
+    title: "Regulation (EU) 2017/746 on in vitro diagnostic medical devices (CELEX 32017R0746)"
+    url: "http://publications.europa.eu/resource/celex/32017R0746"
+  nist_ai_rmf:
+    title: "NIST AI 100-1, Artificial Intelligence Risk Management Framework (AI RMF 1.0), January 2023"
+    url: "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf"
+  iso42001_toc:
+    title: "AS ISO/IEC 42001:2023 table of contents (identical adoption of ISO/IEC 42001:2023)"
+    url: "https://store.standards.org.au/product/as-iso-iec-42001-2023"
+
+references:
+  # EU AI Act: Article 9
+  "Art.9": {source: aiact_oj, status: verified}
+  "Art.9(2)(a)": {source: aiact_oj, status: verified}
+  "Art.9(2)(b)": {source: aiact_oj, status: verified}
+  "Art.9(6)": {source: aiact_oj, status: verified}
+  "Art.9(8)": {source: aiact_oj, status: verified}
+  "Art.9(9)": {source: aiact_oj, status: verified}
+  # EU AI Act: other articles
+  "Art.2(13)": {source: aiact_amendment, status: verified, note: "inserted by Regulation (EU) 2026/1744"}
+  "Art.4a(1)": {source: aiact_amendment, status: verified, note: "inserted by Regulation (EU) 2026/1744"}
+  "Art.5(1)(d)": {source: aiact_consolidated, status: verified}
+  "Art.6": {source: aiact_consolidated, status: verified}
+  "Art.6(1)": {source: aiact_consolidated, status: verified}
+  "Art.6(1)(b)": {source: aiact_consolidated, status: verified}
+  "Art.6(1a)": {source: aiact_amendment, status: verified, note: "inserted by Regulation (EU) 2026/1744"}
+  "Art.6(1c)": {source: aiact_amendment, status: verified, note: "inserted by Regulation (EU) 2026/1744"}
+  "Art.6(2)": {source: aiact_consolidated, status: verified}
+  "Art.10": {source: aiact_consolidated, status: verified}
+  "Art.10(2)": {source: aiact_consolidated, status: verified}
+  "Art.10(2)(b)": {source: aiact_consolidated, status: verified}
+  "Art.10(2)(c)": {source: aiact_consolidated, status: verified}
+  "Art.10(2)(f)": {source: aiact_consolidated, status: verified}
+  "Art.10(3)": {source: aiact_consolidated, status: verified}
+  "Art.11": {source: aiact_consolidated, status: verified}
+  "Art.13": {source: aiact_consolidated, status: verified}
+  "Art.13(3)(b)": {source: aiact_consolidated, status: verified}
+  "Art.13(3)(b)(iv)": {source: aiact_consolidated, status: verified}
+  "Art.14": {source: aiact_consolidated, status: verified}
+  "Art.14(1)": {source: aiact_consolidated, status: verified}
+  "Art.14(4)": {source: aiact_consolidated, status: verified}
+  "Art.14(4)(b)": {source: aiact_consolidated, status: verified}
+  "Art.14(4)(c)": {source: aiact_consolidated, status: verified}
+  "Art.14(4)(e)": {source: aiact_consolidated, status: verified}
+  "Art.15": {source: aiact_consolidated, status: verified}
+  "Art.15(5)": {source: aiact_consolidated, status: verified}
+  "Art.17": {source: aiact_amendment, status: verified, note: "end of a range named in Art.2(13)"}
+  "Art.19(1)": {source: aiact_consolidated, status: verified}
+  "Art.25": {source: aiact_amendment, status: verified, note: "end of a range named in Art.2(13)"}
+  "Art.26(2)": {source: aiact_consolidated, status: verified}
+  "Art.26(6)": {source: aiact_consolidated, status: verified}
+  "Art.26(9)": {source: aiact_consolidated, status: verified}
+  "Art.26(11)": {source: aiact_consolidated, status: verified}
+  "Art.50(1)": {source: aiact_consolidated, status: verified}
+  "Art.72": {source: aiact_consolidated, status: verified}
+  "Art.86(1)": {source: aiact_consolidated, status: verified}
+  # EU AI Act: annexes
+  "Annex I": {source: aiact_consolidated, status: verified}
+  "Annex I Section A point 11": {source: aiact_consolidated, status: verified}
+  "Annex I Section A point 12": {source: aiact_consolidated, status: verified}
+  "Annex III": {source: aiact_consolidated, status: verified}
+  "Annex III point 1(a)": {source: aiact_consolidated, status: verified}
+  "Annex III point 3(b)": {source: aiact_consolidated, status: verified}
+  "Annex III point 4(a)": {source: aiact_consolidated, status: verified}
+  "Annex III point 5(b)": {source: aiact_consolidated, status: verified}
+  "Annex III point 6(d)": {source: aiact_consolidated, status: verified}
+  "Annex III point 7(c)": {source: aiact_consolidated, status: verified}
+  "Annex IV": {source: aiact_consolidated, status: verified}
+  # Regulations named in src/
+  "Regulation (EU) 2024/1689": {source: aiact_oj, status: verified}
+  "Regulation (EU) 2026/1744": {source: aiact_amendment, status: verified}
+  "Regulation (EU) 2017/745": {source: mdr, status: verified}
+  "Regulation (EU) 2017/746": {source: ivdr, status: verified}
+  # GDPR
+  "GDPR Art.5(1)(e)": {source: gdpr, status: verified}
+  "GDPR Art.5(1)(b)": {source: gdpr, status: verified}
+  "GDPR Art.5(1)(c)": {source: gdpr, status: verified}
+  "GDPR Art.9": {source: gdpr, status: verified}
+  "GDPR Art.13(2)(f)": {source: gdpr, status: verified}
+  "GDPR Art.14(2)(g)": {source: gdpr, status: verified}
+  "GDPR Art.15(1)(h)": {source: gdpr, status: verified}
+  "GDPR Art.22(1)": {source: gdpr, status: verified}
+  "GDPR Art.22(2)(a)": {source: gdpr, status: verified}
+  "GDPR Art.22(2)(c)": {source: gdpr, status: verified}
+  "GDPR Art.22(3)": {source: gdpr, status: verified}
+  "GDPR Art.35": {source: gdpr, status: verified}
+  # Charter of Fundamental Rights
+  "Charter Art.19(2)": {source: charter, status: verified}
+  # NIST AI RMF 1.0 subcategories
+  "GOVERN 1.1": {source: nist_ai_rmf, status: verified}
+  "MANAGE 1.3": {source: nist_ai_rmf, status: verified}
+  "MANAGE 2.4": {source: nist_ai_rmf, status: verified}
+  "MAP 1.1": {source: nist_ai_rmf, status: unverified, note: "comment example in models/rmf.py; not checked"}
+  "MAP 2.3": {source: nist_ai_rmf, status: verified}
+  "MAP 3.5": {source: nist_ai_rmf, status: verified}
+  "MAP 4.1": {source: nist_ai_rmf, status: verified}
+  "MAP 5.1": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.4": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.5": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.6": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.7": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.8": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.9": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.10": {source: nist_ai_rmf, status: verified}
+  "MEASURE 2.11": {source: nist_ai_rmf, status: verified}
+  # ISO/IEC 42001:2023 (paywalled: clause titles from the table of contents only)
+  "Clause 6.1": {source: iso42001_toc, status: verified}
+  "Clause 8.4": {source: iso42001_toc, status: verified, note: "8.4 is 'AI system impact assessment'"}
+  "Clause 9.1": {source: iso42001_toc, status: verified}
+  "Annex A.6": {source: iso42001_toc, status: unverified, note: "topic and fit not checked; Annex A control text unavailable"}
+  "Annex A.7": {source: iso42001_toc, status: verified, note: "Data for AI systems (B.7)"}
+  "Annex A.9": {source: iso42001_toc, status: unverified, note: "fit not checked; Annex A control text unavailable"}

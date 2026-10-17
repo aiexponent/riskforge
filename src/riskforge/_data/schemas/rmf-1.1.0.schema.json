@@ -1,0 +1,883 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json",
+  "title": "RiskManagementFile",
+  "description": "EU AI Act Article 9 Risk Management File produced by RiskForge, RMF schema 1.1.0.",
+  "type": "object",
+  "required": [
+    "id",
+    "rmf_schema_version",
+    "register",
+    "generated_at",
+    "sha256_hash",
+    "disclosure",
+    "chain_proof",
+    "receipt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this RMF export"
+    },
+    "rmf_schema_version": {
+      "const": "1.1.0",
+      "description": "Schema version of this document"
+    },
+    "register": {
+      "$ref": "#/$defs/RiskRegister"
+    },
+    "test_requirements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TestRequirement"
+      },
+      "default": []
+    },
+    "cross_references": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CrossReference"
+      },
+      "default": []
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sha256_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "Content digest: SHA-256 of the canonical JSON of this document without id, generated_at, sha256_hash, signatures, public_keys, chain_proof and receipt, with signoffs read as [] when absent (ADR-04 section 2)."
+    },
+    "disclosure": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Mandatory non-legal-advice disclosure. Required and non-empty so a hand-crafted or tampered RMF cannot validate without it."
+    },
+    "signoffs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SignOff"
+      },
+      "default": []
+    },
+    "signatures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Signature"
+      },
+      "default": []
+    },
+    "public_keys": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PublicKey"
+      },
+      "default": []
+    },
+    "chain_proof": {
+      "$ref": "#/$defs/ChainProof"
+    },
+    "receipt": {
+      "$ref": "#/$defs/Receipt"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "RiskRegister": {
+      "type": "object",
+      "required": [
+        "id",
+        "system",
+        "assessor_name",
+        "assessor_role",
+        "assessment_date",
+        "review_date",
+        "question_bank_version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "system": {
+          "$ref": "#/$defs/AISystem"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RiskItem"
+          },
+          "default": []
+        },
+        "risk_appetite_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25,
+          "default": 9
+        },
+        "assessor_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assessor_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assessment_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "review_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "question_bank_version": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string",
+          "default": "1.0.0"
+        },
+        "test_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestRequirement"
+          },
+          "default": [],
+          "description": "Test requirements saved on the register by riskforge tests generate."
+        }
+      },
+      "additionalProperties": false
+    },
+    "AISystem": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "purpose",
+        "provider_name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intended_users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deployment_context": {
+          "type": "string",
+          "default": ""
+        },
+        "annex_iii_category": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "biometric",
+                "critical_infrastructure",
+                "education",
+                "employment",
+                "essential_services",
+                "law_enforcement",
+                "migration",
+                "justice"
+              ]
+            }
+          ]
+        },
+        "annex_iii_self_classification_documented": {
+          "type": "boolean",
+          "default": false
+        },
+        "provider_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_contact": {
+          "type": "string",
+          "default": ""
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "schema_version": {
+          "type": "string",
+          "default": "1.0.0"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RiskItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "dimension",
+        "title",
+        "description",
+        "source",
+        "likelihood",
+        "severity",
+        "residual_likelihood",
+        "residual_severity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "dimension": {
+          "type": "string",
+          "enum": [
+            "health_safety",
+            "fundamental_rights",
+            "discrimination",
+            "privacy",
+            "transparency",
+            "human_oversight",
+            "robustness",
+            "data_governance"
+          ],
+          "description": "8 EU AI Act Article 9 risk dimensions"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "question_bank",
+            "pattern",
+            "traceforge",
+            "rag_benchmarking"
+          ]
+        },
+        "likelihood": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "severity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "risk_score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "risk_band": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "residual_likelihood": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "residual_severity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "residual_risk_score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "mitigations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Mitigation"
+          },
+          "default": []
+        },
+        "accepted": {
+          "type": "boolean",
+          "default": false
+        },
+        "acceptance_rationale": {
+          "type": "string",
+          "default": ""
+        },
+        "identified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "article_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "nist_rmf_ref": {
+          "type": "string",
+          "default": ""
+        },
+        "iso42001_ref": {
+          "type": "string",
+          "default": ""
+        },
+        "regulatory_status": {
+          "type": "string",
+          "enum": [
+            "settled",
+            "pending_implementing_act"
+          ]
+        },
+        "knowledge_gap": {
+          "type": "boolean",
+          "default": false
+        },
+        "knowledge_gap_reason": {
+          "type": "string",
+          "default": ""
+        },
+        "source_ref": {
+          "type": "string",
+          "default": ""
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "nist_rmf_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "iso42001_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "default": ""
+        },
+        "residual_risk_band": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "accepted_by": {
+          "type": "string",
+          "description": "Self-declared name of whoever accepted the risk. Left out when not recorded."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Mitigation": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "control_type",
+        "owner",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_type": {
+          "type": "string",
+          "enum": [
+            "preventive",
+            "detective",
+            "corrective"
+          ]
+        },
+        "owner": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "implemented",
+            "verified"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "is_vague": {
+          "type": "boolean",
+          "default": false
+        },
+        "article_ref": {
+          "type": "string",
+          "default": ""
+        },
+        "nist_rmf_ref": {
+          "type": "string",
+          "default": ""
+        },
+        "recorded_by": {
+          "type": "string",
+          "description": "Self-declared name of whoever recorded the mitigation. Left out when not recorded."
+        }
+      },
+      "additionalProperties": false
+    },
+    "TestRequirement": {
+      "type": "object",
+      "required": [
+        "id",
+        "risk_item_id",
+        "description",
+        "metric_type",
+        "threshold_range",
+        "article_ref"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "risk_item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": {
+          "type": "string"
+        },
+        "metric_type": {
+          "type": "string"
+        },
+        "threshold_range": {
+          "type": "string"
+        },
+        "article_ref": {
+          "type": "string"
+        },
+        "nist_rmf_ref": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "additionalProperties": false
+    },
+    "CrossReference": {
+      "type": "object",
+      "required": [
+        "article_ref",
+        "risk_item_ids",
+        "nist_rmf_ref",
+        "iso42001_ref"
+      ],
+      "properties": {
+        "article_ref": {
+          "type": "string"
+        },
+        "risk_item_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "nist_rmf_ref": {
+          "type": "string"
+        },
+        "iso42001_ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SignOff": {
+      "type": "object",
+      "description": "An approver's decision on one register version, signed (ADR-04 section 4).",
+      "required": [
+        "approver",
+        "decision",
+        "version_number",
+        "register_fingerprint",
+        "totp_verified_at",
+        "signed_at",
+        "key_id",
+        "signature"
+      ],
+      "properties": {
+        "approver": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected",
+            "changes_requested"
+          ]
+        },
+        "comment": {
+          "type": "string",
+          "default": ""
+        },
+        "version_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "register_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "totp_verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
+        }
+      },
+      "additionalProperties": false
+    },
+    "Signature": {
+      "type": "object",
+      "description": "Ed25519 signature over the content digest (ADR-04 section 4).",
+      "required": [
+        "key_id",
+        "algorithm",
+        "signed_at",
+        "signature"
+      ],
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "signed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
+        }
+      },
+      "additionalProperties": false
+    },
+    "PublicKey": {
+      "type": "object",
+      "description": "A key that signed the file, a sign-off, its receipt or a chain proof entry.",
+      "required": [
+        "key_id",
+        "algorithm",
+        "public_key"
+      ],
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
+          "minLength": 44,
+          "maxLength": 44
+        }
+      },
+      "additionalProperties": false
+    },
+    "AuditEntry": {
+      "type": "object",
+      "description": "An audit entry as audit.jsonl stores it (ADR-03). Unset optional fields are left out.",
+      "required": [
+        "seq",
+        "event",
+        "timestamp",
+        "actor",
+        "system_id",
+        "payload",
+        "prev_hash",
+        "entry_hash"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "required": [
+            "type",
+            "identity"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "human",
+                "ci",
+                "api"
+              ]
+            },
+            "identity": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "system_id": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "prev_hash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            {
+              "const": "0000000000"
+            }
+          ]
+        },
+        "entry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "register_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
+        }
+      },
+      "dependentRequired": {
+        "key_id": [
+          "signature"
+        ],
+        "signature": [
+          "key_id"
+        ]
+      },
+      "additionalProperties": false
+    },
+    "ChainProof": {
+      "type": "object",
+      "description": "Every entry of the project chain up to the export (ADR-04 section 6).",
+      "required": [
+        "scope",
+        "entries"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "project",
+            "system"
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEntry"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "Receipt": {
+      "type": "object",
+      "description": "The last chain proof entry, as riskforge receipt writes it (ADR-04 section 5).",
+      "required": [
+        "receipt_version",
+        "system_id",
+        "seq",
+        "entry_hash",
+        "register_fingerprint",
+        "issued_at"
+      ],
+      "properties": {
+        "receipt_version": {
+          "const": "1"
+        },
+        "system_id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "entry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "register_fingerprint": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            }
+          ]
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{16}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
+          "minLength": 44,
+          "maxLength": 44
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$",
+          "minLength": 88,
+          "maxLength": 88
+        }
+      },
+      "dependentRequired": {
+        "key_id": [
+          "public_key",
+          "signature"
+        ],
+        "public_key": [
+          "key_id",
+          "signature"
+        ],
+        "signature": [
+          "key_id",
+          "public_key"
+        ]
+      },
+      "additionalProperties": false
+    }
+  }
+}

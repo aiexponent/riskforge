@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from riskforge.exporters.base import Exporter
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.models.rmf import RiskManagementFile, rmf_document
 
 
 class JSONExporter(Exporter):
@@ -16,5 +16,6 @@ class JSONExporter(Exporter):
     """
 
     def render(self, rmf: RiskManagementFile) -> bytes:
-        data = rmf.model_dump(mode="json", by_alias=True)
-        return json.dumps(data, indent=2, sort_keys=False, ensure_ascii=False).encode("utf-8")
+        data = rmf_document(rmf)
+        text = json.dumps(data, indent=2, sort_keys=False, ensure_ascii=False)
+        return (text + "\n").encode("utf-8")

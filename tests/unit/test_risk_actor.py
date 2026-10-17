@@ -3,27 +3,27 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jsonschema
 import pytest
 import yaml
+from rf_testkit import with_provenance
 from riskforge.engine.actor import ActorNameError, normalise_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.engine.risk import RiskEngine
 from riskforge.exporters.markdown_exporter import MarkdownExporter, _md
 from riskforge.exporters.pdf.pdf_exporter import PDFExporter
+from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.audit import AuditActor
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.models.rmf import RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem
 from riskforge.storage.filesystem import FileStore
 
 FIXTURE_REGISTER = Path(__file__).resolve().parents[1] / "fixtures/v1_1_3_project/register.yaml"
-SCHEMA = Path(__file__).resolve().parents[2] / "src/riskforge/_data/schemas/rmf.schema.json"
 
 
 def _mitigation(**kwargs) -> Mitigation:
@@ -89,15 +89,15 @@ def test_v113_register_rewrites_to_the_same_bytes() -> None:
     assert rewritten.encode("utf-8") == stored
 
 
-def test_rmf_1_0_0_leaves_the_names_out_and_validates() -> None:
+def test_rmf_1_1_0_keeps_the_names_and_validates() -> None:
     rmf = _rmf(_item(accepted=True, accepted_by="Jane", mitigations=[_mitigation(recorded_by="S")]))
-    payload = rmf.model_dump(mode="json", by_alias=True)
+    with_provenance(rmf)
+    rmf.sha256_hash = content_digest(rmf_document(rmf))
+    payload = rmf_document(rmf)
     item = payload["register"]["items"][0]
-    assert "accepted_by" not in item
-    assert "recorded_by" not in item["mitigations"][0]
-    jsonschema.validate(payload, json.loads(SCHEMA.read_text(encoding="utf-8")))
-    # The register itself keeps them for the Markdown and PDF exporters.
-    assert rmf.register.items[0].accepted_by == "Jane"
+    assert item["accepted_by"] == "Jane"
+    assert item["mitigations"][0]["recorded_by"] == "S"
+    jsonschema.validate(payload, load_schema("1.1.0"))
 
 
 # --- actor name ---------------------------------------------------------------------
@@ -198,6 +198,13 @@ def test_markdown_shows_accepted_by_and_recorded_by() -> None:
     assert "Accepted by: Jane Doe, Head of AI" in text
     assert "Recorded by: Sam Lee, ML Lead" in text
     assert text.count("Recorded by:") == 1
+
+
+def test_markdown_reads_not_set_without_a_review_date() -> None:
+    rmf = _rmf(_item())
+    rmf.register.review_date = None  # possible through the library API
+    text = MarkdownExporter().render(rmf).decode("utf-8")
+    assert "- **Review Date:** Not set" in text
 
 
 def test_markdown_escapes_user_text() -> None:

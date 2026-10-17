@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from riskforge.engine.tests import TestDerivationEngine
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import RiskDimension
 
@@ -57,7 +58,8 @@ class ValidateEngine:
                 "All 8 risk dimensions have entries",
                 GateStatus.FAIL,
                 f"Missing: {', '.join(d.value for d in sorted(missing, key=lambda d: d.value))}. "
-                "Mark as not-applicable with a justification or add a risk item.",
+                f"Add a risk item for each: `riskforge assess {r.system.id} -a NAME -r ROLE "
+                "--dimension <dimension>`.",
             )
         return GateResult("G1", "All 8 risk dimensions have entries", GateStatus.PASS)
 
@@ -85,14 +87,24 @@ class ValidateEngine:
         return GateResult("G3", "All high-scoring risks mitigated or accepted", GateStatus.PASS)
 
     def _gate_knowledge_gaps_have_tests(self, r: RiskRegister) -> GateResult:
-        gaps_without_tests = [i for i in r.knowledge_gaps() if not i.tags]
-        if gaps_without_tests:
+        covered = {requirement.risk_item_id for requirement in r.test_requirements}
+        missing = [item for item in r.knowledge_gaps() if item.id not in covered]
+        if missing:
             return GateResult(
                 "G4",
                 "Knowledge gaps have test requirements",
                 GateStatus.WARN,
-                f"{len(gaps_without_tests)} knowledge gap(s) without test requirements. "
-                "Run `riskforge tests generate` to derive tests.",
+                f"{len(missing)} knowledge gap(s) without a saved test requirement: "
+                + ", ".join(str(item.id)[:8] for item in missing)
+                + f". Run `riskforge tests generate {r.system.id}` to save them.",
+            )
+        if r.test_requirements != TestDerivationEngine().derive(r.items):
+            return GateResult(
+                "G4",
+                "Knowledge gaps have test requirements",
+                GateStatus.WARN,
+                "The saved test requirements are out of date with the register. "
+                f"Run `riskforge tests generate {r.system.id}` to update them.",
             )
         return GateResult("G4", "Knowledge gaps have test requirements", GateStatus.PASS)
 

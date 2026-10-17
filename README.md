@@ -27,9 +27,9 @@
 
 ## The Problem
 
-Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers and deployers of **high-risk AI systems** (governed by Article 6 and Annex III) face mandatory statutory obligations to establish, document, and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
+Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689)), providers of **high-risk AI systems** (Article 6, Annexes I and III) must establish, implement, document and maintain a continuous **Risk Management System (Article 9)** throughout the entire AI lifecycle.
 
-* **Provisional Enforcement Deadline**: Stand-alone high-risk systems under Annex III must comply by **2 December 2027** (under the Digital Omnibus simplification package).
+* **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by Regulation (EU) 2026/1744, in force since 27 July 2026).
 * **Statutory Non-Compliance Penalties**: Fines up to **€15,000,000 or 3% of total worldwide annual turnover**.
 * **The Compliance Bottleneck**: Engineering and MLOps teams cannot afford multi-month, €100K+ Big 4 advisory engagements for every model iteration or system change.
 
@@ -91,7 +91,8 @@ riskforge risk mitigate <system-id> <risk-id> \
 riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
   --by "Dr. Lena Fischer, AI Governance Lead"
 
-# 5. (Optional) Derive Article 9(6)-(8) test requirements per open or knowledge-gap risk
+# 5. Derive Article 9(6)-(8) test requirements per open or knowledge-gap risk and save them
+#    on the register (the export carries them; gate G4 warns until every knowledge gap has one)
 riskforge tests generate <system-id>
 
 # 6. Check completeness before export (exit 1 if a FAIL gate is unmet)
@@ -210,26 +211,26 @@ All interactions occur via plain JSON artifacts on disk. RiskForge never calls e
 graph LR
     A9_1["Art. 9(1)<br/>Establish RMS"] --> REG["Register lifecycle<br/>Version history<br/>Audit log"]
     A9_2a["Art. 9(2)(a)<br/>Identify risks"] --> QB["Guided question bank<br/>8 dimensions · 37 questions"]
-    A9_2b["Art. 9(2)(b)<br/>Estimate misuse risks"] --> PAT["Risk patterns<br/>6 Annex III scenarios"]
-    A9_4["Art. 9(4)<br/>Risk measures"] --> MIT["Mitigation docs<br/>Vague-detection"]
+    A9_2b["Art. 9(2)(b)<br/>Estimate misuse risks"] --> PAT["Risk patterns<br/>6 Annex III points, 1 Annex I route"]
+    A9_2d_5["Art. 9(2)(d), 9(5)<br/>Risk measures"] --> MIT["Mitigation docs<br/>Vague-detection"]
     A9_6_8["Art. 9(6)–(8)<br/>Testing requirements"] --> TEST["riskforge tests generate<br/>Per-risk metric hints"]
     A9_9["Art. 9(9)<br/>Vulnerable groups"] --> VG["Dedicated questions<br/>Mandatory flag"]
-    A9_10["Art. 9(10)<br/>Documentation"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
+    A9_1D["Art. 9(1)<br/>Documented"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
 
     style A9_1 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_2a fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_2b fill:#E6F4F1,stroke:#0D5463,color:#0D5463
-    style A9_4 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_2d_5 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_6_8 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
     style A9_9 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
-    style A9_10 fill:#E6F4F1,stroke:#0D5463,color:#0D5463
+    style A9_1D fill:#E6F4F1,stroke:#0D5463,color:#0D5463
 ```
 
 Cross-maps to:
 * **NIST AI RMF 1.0**: `GOVERN`, `MAP`, `MEASURE`, `MANAGE`
-* **ISO/IEC 42001:2023**: Clauses 6.1, 8.4, and Annex Controls A.6–A.9
-* **Colorado AI Act**: SB 24-205 (reset by SB 26-189)
-* **Texas AI Framework**: Texas HB 149 (TRAIGA)
+* **ISO/IEC 42001:2023**: Clauses 6.1 and 9.1, and Annex A.6, A.7 and A.9
+* **Colorado AI Act**: SB 24-205 (repealed and reenacted by SB 26-189)
+* **Texas Responsible Artificial Intelligence Governance Act**: Texas HB 149 (TRAIGA)
 
 ---
 
@@ -273,12 +274,10 @@ created_at: "2026-09-22T08:00:00Z"
 
 ```json
 {
-  "$schema": "https://schemas.aiexponent.com/riskforge/rmf/v1.0.0",
   "id": "e9b271d4-8521-4f1a-9694-81d3d6e5a401",
-  "rmf_schema_version": "1.0.0",
+  "rmf_schema_version": "1.1.0",
   "generated_at": "2026-09-22T09:00:00Z",
   "sha256_hash": "4e9a3b8d1f2c6e7a0b5d8f3e2a1c9b8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
-  "audit_entry_hash": "a7c8e9f0123456789abcdef0123456789abcdef0123456789abcdef012345678",
   "register": {
     "system": {
       "name": "Loan Scoring Model",
@@ -294,8 +293,8 @@ created_at: "2026-09-22T08:00:00Z"
   "cross_references": [
     {
       "article_ref": "Art.9(2)(a)",
-      "iso42001_ref": "Clause A.7",
-      "nist_rmf_ref": "MEASURE 2.9"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_ref": "MEASURE 2.11"
     }
   ]
 }
@@ -336,9 +335,9 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | Exit Code | Meaning | CI Behavior |
 | :--- | :--- | :--- |
 | `0` | **PASS / VALID** | Risk management file and audit chain are complete and valid. |
-| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify`, `validate` or `tests generate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
-| `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an RMF file does not match its digest. `verify` exits 2, and every command that changes or exports data exits 2 on such a project without changing it. |
-| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, a failed `export --sign`, or interactive `assess` without a terminal. Prints one line saying what to do. |
+| `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify` or `validate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
+| `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an exported RMF file fails `verify --file` (its digest, a signature, its chain proof or its receipt). `verify` exits 2 (with `--strict`, also on any integrity warning), and every command that changes or exports data exits 2 on such a project without changing it. |
+| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` value that is not an Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 
@@ -351,7 +350,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge assess <id>` | Run the interactive 8-dimension guided assessment (supports `--answers`). |
 | `riskforge risk mitigate <id> <risk-id> --by NAME` | Document preventive/corrective mitigation controls and re-score residual risk. `--by` (or `RISKFORGE_ACTOR`) names who recorded it; the name is self-declared and not verified. |
 | `riskforge risk accept <id> <risk-id> --by NAME` | Formally accept residual risk with documented business/technical rationale. `--by` (or `RISKFORGE_ACTOR`) names who accepted it; the name is self-declared and not verified. |
-| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks. |
+| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks and save them on the register (exported with the RMF). |
 | `riskforge validate <id>` | Execute the 8 completeness and quality gates before report generation. |
 | `riskforge export <id>` | Export Risk Management File to `pdf`, `json`, or `markdown`. |
 | `riskforge verify` | Verify cryptographic SHA-256 hash-chain integrity of audit log and exports. |
@@ -366,9 +365,9 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 |---|---|
 | **Offline-first** | Zero outbound calls after `pip install`, enforced by `pytest-socket` CI gate |
 | **Hash-chained audit** | Every mutation appended to `audit.jsonl` with atomic file locks; `riskforge verify` exits code 2 on tampering |
-| **Schema-validated exports** | Every JSON export validated against `rmf.schema.json` before writing |
+| **Schema-validated exports** | Every export validated against RMF schema 1.1.0 (`rmf-1.1.0.schema.json`) before writing |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
-| **Pattern matching** | 6 pre-built risk patterns for common Annex III use cases (credit scoring, hiring, facial recognition, medical imaging, content moderation, criminal risk assessment) |
+| **Pattern matching** | 7 pre-built risk patterns: six Annex III points (biometric identification 1(a), education 3(b), hiring 4(a), credit 5(b), offending risk 6(d), migration 7(c)) and one Article 6(1)/Annex I product route (medical diagnosis) |
 | **Plugin extensible** | Add question banks, exporters, adapters via `pip install`, no config edit required |
 | **Git-friendly state** | YAML + JSONL files, human-readable, diff-able, merge-conflict-resolvable |
 
@@ -384,13 +383,13 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 # src/riskforge/_data/question_bank/privacy.yaml
 - id: PRIV-007
   text: "Does the system process special category data under GDPR Article 9?"
-  guidance: "Special category data includes health, biometric, racial, or political data."
+  guidance: "Special category data includes data revealing racial or ethnic origin or political opinions, health data, and biometric data processed to uniquely identify a person (GDPR Article 9(1))."
   annex_iii_categories: [essential_services, employment]
   default_likelihood_hint: 3
   default_severity_hint: 5
-  article_refs: ["Art.9(2)(a)", "Art.10(3)"]
-  nist_rmf_ref: "MAP 1.5"
-  iso42001_ref: "Clause A.7"
+  article_refs: ["Art.9(2)(a)", "Art.4a(1)"]
+  nist_rmf_ref: "MEASURE 2.10"
+  iso42001_ref: "Annex A.7"
   regulatory_status: settled
 ```
 

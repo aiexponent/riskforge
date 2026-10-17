@@ -9,7 +9,7 @@ patterns:
     annex_iii_point: "5(b)"
     triggers:
       annex_iii_categories: [essential_services]
-      purpose_keywords: ["credit", "loan", "mortgage", "underwriting"]
+      purpose_keywords: ["creditworth", "credit scor", "credit risk", "credit decision", "credit application", "credit limit", "credit card limit", "credit card application", "credit line", "credit eligib", "credit approv", "credit assess", "credit evaluat", "credit check", "credit underwrit", "credit grant", "consumer credit", "extend credit", "approve credit", "lending", "loan", "mortgage"]
     risks:
       - dimension: discrimination
         title: "Demographic bias in credit scoring outputs"
@@ -17,23 +17,23 @@ patterns:
         likelihood_hint: 3
         severity_hint: 4
         article_refs: ["Art.9(2)(a)", "Art.9(9)", "Art.10(2)(f)"]
-        nist_rmf_ref: "MEASURE 2.9"
-        iso42001_ref: "Clause A.7"
+        nist_rmf_ref: "MEASURE 2.11"
+        iso42001_ref: "Annex A.7"
       - dimension: transparency
         title: "Lack of explanation for credit decisions"
-        description: "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this."
+        description: "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this."
         likelihood_hint: 3
         severity_hint: 3
         article_refs: ["Art.13", "Art.86(1)"]
-        nist_rmf_ref: "GOVERN 1.7"
-        iso42001_ref: "Clause A.6"
+        nist_rmf_ref: "MEASURE 2.8"
+        iso42001_ref: "Annex A.6"
 
   - pattern_id: HIRING_SCREENING
     name: "Hiring and CV screening: risk cluster"
     annex_iii_point: "4(a)"
     triggers:
       annex_iii_categories: [employment]
-      purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "interview", "candidate"]
+      purpose_keywords: ["recruit", "hiring", "cv", "resume", "screening", "job interview", "candidate", "applicant", "job applica", "shortlist", "video interview", "interview scor"]
     risks:
       - dimension: discrimination
         title: "Proxy discrimination in automated CV screening"
@@ -41,31 +41,32 @@ patterns:
         likelihood_hint: 4
         severity_hint: 4
         article_refs: ["Art.9(2)(a)", "Art.10(2)(f)"]
-        nist_rmf_ref: "MEASURE 2.9"
-        iso42001_ref: "Clause A.7"
+        nist_rmf_ref: "MEASURE 2.11"
+        iso42001_ref: "Annex A.7"
       - dimension: transparency
         title: "Lack of explainability for rejection decisions"
-        description: "Candidates subject to automated CV screening may have a right to explanation under GDPR Article 22. The system may not be designed to provide this."
+        description: "Where a solely automated screening decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) requires at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not be designed to provide this."
         likelihood_hint: 3
         severity_hint: 3
-        article_refs: ["Art.13", "Art.14"]
-        nist_rmf_ref: "GOVERN 1.7"
-        iso42001_ref: "Clause A.6"
+        article_refs: ["Art.13", "Art.14", "Art.86(1)"]
+        nist_rmf_ref: "MEASURE 2.8"
+        iso42001_ref: "Annex A.6"
       - dimension: human_oversight
         title: "Automation bias in recruiter review of shortlisted candidates"
-        description: "Recruiters presented with AI-ranked shortlists tend to follow the ranking without independent assessment. This undermines the human oversight requirement."
+        description: "Recruiters presented with AI-ranked shortlists may follow the ranking without independent assessment. This undermines the human oversight requirement."
         likelihood_hint: 4
         severity_hint: 3
-        article_refs: ["Art.14(3)"]
-        nist_rmf_ref: "MANAGE 1.1"
-        iso42001_ref: "Clause A.9"
+        article_refs: ["Art.14(4)(b)"]
+        nist_rmf_ref: "MAP 3.5"
+        iso42001_ref: "Annex A.9"
 
   - pattern_id: LAW_ENFORCEMENT_BIOMETRIC
     name: "Law enforcement: biometric identification risk cluster"
     annex_iii_point: "1(a)"
     triggers:
       annex_iii_categories: [biometric, law_enforcement]
-      purpose_keywords: ["facial recognition", "face recognition", "biometric", "identification", "surveillance", "matching"]
+      purpose_keywords: ["facial recognition", "face recognition", "biometric", "facial identification", "face identification", "surveillance", "face matching", "facial matching", "identification of persons", "identification of natural persons", "identification of suspects", "identify people", "identify persons", "identify individuals", "identify suspects", "person identification", "re-identification", "fingerprint", "iris recognition", "voice identification", "gait recognition", "watchlist"]
+      exclude_keywords: ["face unlock", "phone unlock", "device unlock", "unlocks the owner", "unlock the owner", "unlocks their own", "unlock their own"]
     risks:
       - dimension: fundamental_rights
         title: "Chilling effect on freedom of assembly and expression"
@@ -73,16 +74,16 @@ patterns:
         likelihood_hint: 4
         severity_hint: 5
         article_refs: ["Art.9(2)(a)"]
-        nist_rmf_ref: "MAP 1.5"
+        nist_rmf_ref: "MAP 5.1"
         iso42001_ref: "Clause 6.1"
       - dimension: discrimination
         title: "Higher false match rates for under-represented demographic groups"
-        description: "Facial recognition systems have documented higher false positive rates for darker skin tones and women. This creates discriminatory law enforcement outcomes."
+        description: "Facial recognition systems may have higher false positive rates for some demographic groups, for example by skin tone or gender. This can lead to discriminatory law enforcement outcomes."
         likelihood_hint: 4
         severity_hint: 5
         article_refs: ["Art.9(2)(a)", "Art.10(2)(f)"]
-        nist_rmf_ref: "MEASURE 2.9"
-        iso42001_ref: "Clause A.7"
+        nist_rmf_ref: "MEASURE 2.11"
+        iso42001_ref: "Annex A.7"
 
   - pattern_id: EDUCATION_ASSESSMENT
     name: "Education: automated student assessment risk"
@@ -97,21 +98,26 @@ patterns:
         likelihood_hint: 3
         severity_hint: 4
         article_refs: ["Art.9(2)(a)", "Art.10(2)(f)"]
-        nist_rmf_ref: "MEASURE 2.9"
-        iso42001_ref: "Clause A.7"
+        nist_rmf_ref: "MEASURE 2.11"
+        iso42001_ref: "Annex A.7"
       - dimension: transparency
         title: "Students unable to understand or contest automated grade decisions"
-        description: "Where automated assessment influences final grades or academic progression, students must be able to understand the basis and contest the outcome."
+        description: "Where automated assessment influences final grades or academic progression, students should be able to understand the basis and contest the outcome."
         likelihood_hint: 3
         severity_hint: 4
-        article_refs: ["Art.13"]
-        nist_rmf_ref: "GOVERN 1.7"
-        iso42001_ref: "Clause A.6"
+        article_refs: ["Art.13", "Art.86(1)"]
+        nist_rmf_ref: "MEASURE 2.8"
+        iso42001_ref: "Annex A.6"
 
   - pattern_id: MEDICAL_DIAGNOSIS
     name: "Healthcare: medical diagnosis or clinical decision support"
     high_risk_route: annex_i
     article_6_ref: "Art.6(1)"
+    # Regulation (EU) 2026/1744 inserted Art.6(1a) to 6(1c), which set further conditions on
+    # the Art.6(1) route: under Art.6(1c), a third-party conformity assessment required solely
+    # due to risks other than risks to health and safety does not meet Art.6(1)(b). It also
+    # inserted Art.2(13): delegated acts may limit how Articles 9 to 15 and 17 to 25 apply to
+    # Art.6(1) systems. Re-check this pattern when such delegated acts are adopted.
     annex_i_legislation:
       - "Regulation (EU) 2017/745 on medical devices (Annex I, Section A, point 11)"
       - "Regulation (EU) 2017/746 on in vitro diagnostic medical devices (Annex I, Section A, point 12)"
@@ -132,33 +138,33 @@ patterns:
         description: "Clinicians may defer to AI suggestions even when clinical judgement contradicts them. Human oversight may become nominal without workload safeguards."
         likelihood_hint: 3
         severity_hint: 5
-        article_refs: ["Art.14"]
-        nist_rmf_ref: "MANAGE 1.1"
-        iso42001_ref: "Clause A.9"
+        article_refs: ["Art.14(4)(b)"]
+        nist_rmf_ref: "MAP 3.5"
+        iso42001_ref: "Annex A.9"
 
   - pattern_id: MIGRATION_ASYLUM
     name: "Migration and asylum: decision support risk cluster"
     annex_iii_point: "7(c)"
     triggers:
       annex_iii_categories: [migration]
-      purpose_keywords: ["asylum", "border", "visa", "migration", "refugee", "immigration"]
+      purpose_keywords: ["asylum", "visa", "migration", "refugee", "immigration", "residence permit", "international protection"]
     risks:
       - dimension: fundamental_rights
         title: "AI-assisted asylum decisions affecting right to protection"
-        description: "Errors in AI-assisted migration decisions can result in refoulement: return of persons to places where they face persecution. This is an absolute fundamental rights violation."
+        description: "Errors in AI-assisted migration decisions can lead to a person being removed, expelled or extradited to a State where there is a serious risk that they would be subjected to the death penalty, torture or other inhuman or degrading treatment or punishment, which Article 19(2) of the Charter of Fundamental Rights prohibits."
         likelihood_hint: 2
         severity_hint: 5
         article_refs: ["Art.9(2)(a)"]
-        nist_rmf_ref: "MAP 1.5"
+        nist_rmf_ref: "MAP 5.1"
         iso42001_ref: "Clause 6.1"
       - dimension: transparency
         title: "Applicants unable to understand factors influencing their assessment"
         description: "Asylum seekers subject to AI-assisted assessment may not understand which factors were considered or how to address adverse outcomes."
         likelihood_hint: 3
         severity_hint: 4
-        article_refs: ["Art.13"]
-        nist_rmf_ref: "GOVERN 1.7"
-        iso42001_ref: "Clause A.6"
+        article_refs: ["Art.13", "Art.86(1)"]
+        nist_rmf_ref: "MEASURE 2.8"
+        iso42001_ref: "Annex A.6"
 
   - pattern_id: CRIMINAL_RISK_ASSESSMENT
     name: "Law enforcement: offending risk assessment"
@@ -173,7 +179,7 @@ patterns:
         likelihood_hint: 3
         severity_hint: 5
         article_refs: ["Art.5(1)(d)", "Art.9(2)(a)"]
-        nist_rmf_ref: "MAP 1.5"
+        nist_rmf_ref: "MAP 5.1"
         iso42001_ref: "Clause 6.1"
       - dimension: discrimination
         title: "Biased re-offending scores for protected groups"
@@ -181,13 +187,13 @@ patterns:
         likelihood_hint: 4
         severity_hint: 5
         article_refs: ["Art.9(2)(a)", "Art.9(9)", "Art.10(2)(f)"]
-        nist_rmf_ref: "MEASURE 2.9"
-        iso42001_ref: "Clause A.7"
+        nist_rmf_ref: "MEASURE 2.11"
+        iso42001_ref: "Annex A.7"
       - dimension: human_oversight
         title: "Decision makers deferring to the risk score"
         description: "Law enforcement officers shown a risk score may follow it without an independent assessment, which weakens human oversight of decisions that can affect a person's liberty."
         likelihood_hint: 4
         severity_hint: 4
         article_refs: ["Art.14(1)", "Art.14(4)(b)"]
-        nist_rmf_ref: "MANAGE 1.1"
-        iso42001_ref: "Clause A.9"
+        nist_rmf_ref: "MAP 3.5"
+        iso42001_ref: "Annex A.9"

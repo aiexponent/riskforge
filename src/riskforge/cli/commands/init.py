@@ -32,12 +32,12 @@ def cmd(
     import uuid
 
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import parse_category
+    from riskforge.cli.project import MANIFEST_MISSING_HINT, parse_category
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.system import SystemEngine
     from riskforge.models.audit import AuditActor
     from riskforge.models.system import AISystem
-    from riskforge.storage.errors import ProjectExistsError
+    from riskforge.storage.errors import ManifestMissingError, ProjectExistsError
     from riskforge.storage.filesystem import FileStore
 
     store = FileStore(project_dir)
@@ -61,6 +61,8 @@ def cmd(
 
     try:
         asyncio.run(_init())
+    except ManifestMissingError as exc:
+        fail(f"{exc} {MANIFEST_MISSING_HINT}")
     except ProjectExistsError as exc:
         fail(
             f"{exc} Delete .riskforge/ and riskforge.yaml to start again, "

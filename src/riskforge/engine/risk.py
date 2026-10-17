@@ -9,20 +9,17 @@ from typing import Literal, NamedTuple
 from riskforge.engine.actor import require_actor_name
 from riskforge.engine.audit import AuditEngine
 from riskforge.models.register import RiskRegister
-from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
+from riskforge.models.requirements import TestRequirement
+from riskforge.models.risk import (
+    Likelihood,
+    Mitigation,
+    RiskDimension,
+    RiskItem,
+    Severity,
+    is_vague_description,
+)
 from riskforge.storage.base import StorageBackend
 from riskforge.storage.errors import RegisterNotFoundError
-
-VAGUE_PHRASES = {
-    "we'll monitor it",
-    "to be determined",
-    "tbd",
-    "n/a",
-    "will address later",
-    "monitor",
-    "ongoing",
-    "review",
-}
 
 
 class RiskNotFoundError(KeyError):
@@ -252,6 +249,30 @@ class RiskEngine:
             )
         return item
 
+    async def set_test_requirements(
+        self, system_id: str, requirements: list[TestRequirement]
+    ) -> bool:
+        """Save the register's test requirements (event ``tests.generated``).
+
+        Returns False, and records nothing, when the register already holds them.
+        """
+        async with self._audit.unit_of_work():
+            register = await self._audit.read_register(system_id)
+            if register.test_requirements == requirements:
+                return False
+            register.test_requirements = list(requirements)
+            await self._storage.write_register(system_id, register)
+            self._audit.wrote_register(system_id)
+            await self._audit.record(
+                "tests.generated",
+                system_id,
+                {
+                    "count": len(requirements),
+                    "risk_item_ids": sorted({str(r.risk_item_id) for r in requirements}),
+                },
+            )
+        return True
+
     async def list_risks(
         self, system_id: str, dimension: RiskDimension | None = None
     ) -> list[RiskItem]:
@@ -337,9 +358,7 @@ class RiskEngine:
 
     @staticmethod
     def _flag_vague(mitigation: Mitigation) -> Mitigation:
-        mitigation.is_vague = any(
-            phrase in mitigation.description.lower() for phrase in VAGUE_PHRASES
-        )
+        mitigation.is_vague = is_vague_description(mitigation.description)
         return mitigation
 
     @staticmethod

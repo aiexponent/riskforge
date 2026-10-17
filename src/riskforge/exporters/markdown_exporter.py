@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from riskforge.exporters.base import Exporter
+from riskforge.exporters.base import Exporter, display_title
 from riskforge.models.rmf import RiskManagementFile
 
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_\[\]#|~!])")
@@ -51,7 +51,8 @@ class MarkdownExporter(Exporter):
         lines.append(f"- **Name:** {_md(reg.assessor_name)}")
         lines.append(f"- **Role:** {_md(reg.assessor_role)}")
         lines.append(f"- **Assessment Date:** {reg.assessment_date.date().isoformat()}")
-        lines.append(f"- **Review Date:** {reg.review_date.date().isoformat()}")
+        review = reg.review_date.date().isoformat() if reg.review_date else "Not set"
+        lines.append(f"- **Review Date:** {review}")
         lines.append("")
         lines.append("---")
         lines.append("")
@@ -72,7 +73,7 @@ class MarkdownExporter(Exporter):
                     item.risk_band, "⚪"
                 )
                 lines.append(
-                    f"**{band_emoji} {_md(item.title)}** "
+                    f"**{band_emoji} {_md(display_title(item.title))}** "
                     f"(Score: {item.risk_score} → Residual: {item.residual_risk_score})"
                 )
                 lines.append(f"> {_md(item.description)}")

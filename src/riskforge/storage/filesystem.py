@@ -78,6 +78,7 @@ from riskforge.integrity.chain import (
     verify_links,
     written_since_2_0,
 )
+from riskforge.integrity.strict_json import StrictJsonError, refuse_deep_nesting
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -90,6 +91,7 @@ from riskforge.storage.base import (
 from riskforge.storage.errors import (
     AuditLogCorruptError,
     InvalidSystemIdError,
+    ManifestMissingError,
     PendingChangeError,
     ProjectExistsError,
     ProjectLockedError,
@@ -327,6 +329,10 @@ def _entry_from_line(raw: bytes) -> AuditEntry:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise _BadLine("not UTF-8 text") from exc
+    try:
+        refuse_deep_nesting(text)
+    except StrictJsonError as exc:
+        raise _BadLine(f"holds {exc}, which RiskForge never writes") from exc
     try:
         document = json.loads(text)
     except (ValueError, RecursionError) as exc:
@@ -773,23 +779,30 @@ class FileStore(StorageBackend):
         ------
         ProjectExistsError
             If ``riskforge.yaml`` already exists (a ``FileExistsError``).
+        ManifestMissingError
+            If ``riskforge.yaml`` is gone but ``.riskforge/`` still holds a project.
+            Either way nothing is written.
         """
 
         self._require_writable()
+        manifest_path = self._root.parent / "riskforge.yaml"
+        exists_message = (
+            f"A RiskForge project already exists in {self._root.parent.resolve()} "
+            "(riskforge.yaml found)."
+        )
 
         def _sync() -> None:
+            if manifest_path.exists():
+                raise ProjectExistsError(exists_message)
+            self._raise_if_manifest_missing()
             self._ensure_dirs()
             self._gitignore_check()
-            manifest_path = self._root.parent / "riskforge.yaml"
             content = {"project_id": project_id, "schema_version": "1.0.0", **metadata}
             data = yaml.dump(content, sort_keys=False, allow_unicode=True).encode("utf-8")
             try:
                 fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_BINARY, 0o600)
             except FileExistsError as exc:
-                raise ProjectExistsError(
-                    f"A RiskForge project already exists in {self._root.parent.resolve()} "
-                    "(riskforge.yaml found)."
-                ) from exc
+                raise ProjectExistsError(exists_message) from exc
             with os.fdopen(fd, "wb") as fh:
                 fh.write(data)
                 fh.flush()
@@ -798,13 +811,64 @@ class FileStore(StorageBackend):
 
         await asyncio.to_thread(_sync)
 
+    def _raise_if_manifest_missing(self) -> None:
+        """Raise ManifestMissingError when ``.riskforge/`` holds an audit log or a system.
+
+        Call only once ``riskforge.yaml`` is known to be absent.
+        """
+
+        # lstat, not exists(): a dangling symlink still counts, and a path that cannot be
+        # checked (permission denied) counts as holding data so the command refuses cleanly.
+        def present(path: Path) -> bool:
+            try:
+                path.lstat()
+            except (FileNotFoundError, NotADirectoryError):
+                return False
+            except OSError:
+                return True
+            return True
+
+        holds_data = any(
+            present(path) for path in (self._audit_path, self._head_path, self._journal_path)
+        )
+        if not holds_data:
+            try:
+                holds_data = any(self._systems_dir.iterdir())
+            except (FileNotFoundError, NotADirectoryError):
+                holds_data = False
+            except OSError:
+                holds_data = True
+        if holds_data:
+            raise ManifestMissingError(
+                f"riskforge.yaml is missing from {self._root.parent.resolve()}, "
+                "but .riskforge/ there holds an existing RiskForge project."
+            )
+
     def ensure_project(self) -> None:
-        """Raise ProjectNotFoundError unless ``riskforge.yaml`` exists."""
+        """Raise ProjectNotFoundError unless ``riskforge.yaml`` exists.
+
+        Raises the ManifestMissingError subclass when ``.riskforge/`` still holds a project.
+        """
         manifest = self._root.parent / "riskforge.yaml"
         if not manifest.exists():
+            self._raise_if_manifest_missing()
             raise ProjectNotFoundError(
                 f"No RiskForge project in {self._root.parent.resolve()} (riskforge.yaml not found)."
             )
+
+    def protected_paths(self) -> tuple[Path, ...]:
+        """``.riskforge/`` and the ``riskforge.yaml`` manifest."""
+        return (self._root, self._root.parent / "riskforge.yaml")
+
+    def read_project_id(self) -> str | None:
+        """The manifest's ``project_id``, or None when the manifest cannot be read."""
+        try:
+            data = _read_stored(self._root.parent / "riskforge.yaml", "riskforge.yaml")
+            manifest = _load_yaml(data, "riskforge.yaml")
+        except (FileNotFoundError, StoredFileCorruptError):
+            return None
+        project_id = manifest.get("project_id") if isinstance(manifest, dict) else None
+        return project_id if isinstance(project_id, str) else None
 
     # ------------------------------------------------------------------ #
     # AI system CRUD                                                       #

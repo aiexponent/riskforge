@@ -9,7 +9,13 @@ from typing import Any
 
 import yaml
 
-from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
+from riskforge.models.risk import (
+    QUESTION_TITLE_MAX_LENGTH,
+    Likelihood,
+    RiskDimension,
+    RiskItem,
+    Severity,
+)
 
 PATTERN_SCHEMA_VERSION = "1.1.0"
 
@@ -76,12 +82,16 @@ class AssessEngine:
         An Annex III pattern needs the system's Annex III category. A product-route
         pattern (``high_risk_route: annex_i``) matches on keywords alone, because an
         AI system covered by Article 6(1) usually has no Annex III category.
+        A pattern is skipped when any of its optional ``exclude_keywords`` appears
+        in the purpose.
         """
         matched: list[dict[str, Any]] = []
         for pattern in self.load_patterns():
             triggers = pattern["triggers"]
             product_route = pattern.get("high_risk_route") == "annex_i"
             if not product_route and annex_iii_category not in triggers["annex_iii_categories"]:
+                continue
+            if any(keyword_matches(word, purpose) for word in triggers.get("exclude_keywords", [])):
                 continue
             if any(keyword_matches(keyword, purpose) for keyword in triggers["purpose_keywords"]):
                 matched.append(pattern)
@@ -100,7 +110,7 @@ class AssessEngine:
         sv = Severity(min(max(severity, 1), 5))
         return RiskItem(
             dimension=dimension,
-            title=question["text"][:120],
+            title=question["text"][:QUESTION_TITLE_MAX_LENGTH],
             description=question.get("guidance", question["text"]),
             source="question_bank",
             likelihood=lh,

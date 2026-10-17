@@ -191,6 +191,123 @@ def test_keyword_matching_folds_accents_and_case(
     assert keyword_matches(keyword, purpose) is expected
 
 
+ALL_CATEGORIES = ["", *POINT_CATEGORY.values()]
+
+
+@pytest.mark.parametrize(
+    ("purpose", "wrong_pattern"),
+    [
+        ("Detects credit card fraud in real-time card payments", "CREDIT_SCORING_BIAS"),
+        ("Life insurance underwriting for individual applicants", "CREDIT_SCORING_BIAS"),
+        ("Facial recognition unlocks the owner's own phone", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("Biometric face unlock for the user's own phone", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("Licence plate identification for car park barriers", "LAW_ENFORCEMENT_BIOMETRIC"),
+        (
+            "Matching licence plates against a permit list to open car park barriers",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("Interview room booking for the HR team", "HIRING_SCREENING"),
+        ("Border queue wait-time display at airport passport control", "MIGRATION_ASYLUM"),
+        ("Engine control unit diagnoses faults in vehicle engines", "MEDICAL_DIAGNOSIS"),
+    ],
+)
+def test_purpose_outside_the_pattern_does_not_get_it(purpose: str, wrong_pattern: str) -> None:
+    for category in ALL_CATEGORIES:
+        assert wrong_pattern not in _ids(category, purpose), category
+
+
+@pytest.mark.parametrize(
+    ("category", "purpose", "expected"),
+    [
+        (
+            "essential_services",
+            "Creditworthiness scoring for consumer loans",
+            "CREDIT_SCORING_BIAS",
+        ),
+        ("essential_services", "Credit risk decisions on card applications", "CREDIT_SCORING_BIAS"),
+        ("employment", "CV screening for job applicants", "HIRING_SCREENING"),
+        (
+            "law_enforcement",
+            "Police facial recognition to identify suspects using their own device",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("employment", "Scores recorded job interviews of graduates", "HIRING_SCREENING"),
+        (
+            "biometric",
+            "Facial recognition to identify people in a crowd",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        (
+            "law_enforcement",
+            "Face matching of CCTV stills against a watchlist",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("migration", "Visa application triage for consular officers", "MIGRATION_ASYLUM"),
+        ("", "Medical diagnosis support for radiology", "MEDICAL_DIAGNOSIS"),
+    ],
+)
+def test_purpose_the_pattern_covers_still_gets_it(
+    category: str, purpose: str, expected: str
+) -> None:
+    assert _ids(category, purpose) == [expected]
+
+
+@pytest.mark.parametrize(
+    ("category", "purpose", "expected"),
+    [
+        (
+            "essential_services",
+            "Credit card limit setting for existing customers",
+            "CREDIT_SCORING_BIAS",
+        ),
+        ("essential_services", "Credit approval for small business loans", "CREDIT_SCORING_BIAS"),
+        ("essential_services", "Consumer credit checks at checkout", "CREDIT_SCORING_BIAS"),
+        ("essential_services", "Credit underwriting for retail customers", "CREDIT_SCORING_BIAS"),
+        ("employment", "Analysing video interviews of applicants", "HIRING_SCREENING"),
+        ("employment", "AI interviewer for applicants", "HIRING_SCREENING"),
+        (
+            "biometric",
+            "Fingerprint matching against a police database",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("biometric", "Identification of suspects from CCTV footage", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("biometric", "Person re-identification across cameras", "LAW_ENFORCEMENT_BIOMETRIC"),
+        ("biometric", "Voice identification of callers", "LAW_ENFORCEMENT_BIOMETRIC"),
+        (
+            "biometric",
+            "Facial recognition unlocking investigative leads for police",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
+        ("migration", "Residence permit application triage", "MIGRATION_ASYLUM"),
+    ],
+)
+def test_purpose_phrased_another_way_still_gets_the_pattern(
+    category: str, purpose: str, expected: str
+) -> None:
+    # G6 review: narrowing the keywords must not drop these high-risk phrasings.
+    assert expected in _ids(category, purpose)
+
+
+def test_an_exclude_keyword_skips_the_pattern(tmp_path: Path) -> None:
+    patterns_dir = tmp_path / "patterns"
+    patterns_dir.mkdir()
+    (patterns_dir / "patterns.yaml").write_text(
+        'schema_version: "1.1.0"\n'
+        "patterns:\n"
+        "  - pattern_id: P\n"
+        "    triggers:\n"
+        "      annex_iii_categories: [biometric]\n"
+        '      purpose_keywords: ["face recognition"]\n'
+        '      exclude_keywords: ["unlock"]\n',
+        encoding="utf-8",
+    )
+    engine = AssessEngine(tmp_path)
+    assert [p["pattern_id"] for p in engine.match_patterns("biometric", "Face recognition")] == [
+        "P"
+    ]
+    assert engine.match_patterns("biometric", "Face recognition unlocks a phone") == []
+
+
 @pytest.mark.parametrize("version", ["1.0.0", None])
 def test_load_patterns_refuses_another_schema_version(tmp_path: Path, version: str | None) -> None:
     patterns_dir = tmp_path / "patterns"

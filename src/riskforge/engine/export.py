@@ -1,26 +1,271 @@
-"""ExportEngine — dispatches to Exporter plugins; hashes and signs the output."""
+"""ExportEngine: build the RMF, render it, write it atomically, then record the export (ADR-04)."""
 
 from __future__ import annotations
 
 import hashlib
-import json
+import os
+import re
+import stat
+import tempfile
+import time
+from collections import OrderedDict
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from importlib.metadata import version as pkg_version
 from pathlib import Path
+from typing import TYPE_CHECKING
+from uuid import UUID, uuid4
 
-from riskforge.engine.audit import AuditEngine
-from riskforge.models.rmf import RiskManagementFile
+import jsonschema
+
+from riskforge.engine.audit import AuditEngine, StagedEntries
+from riskforge.engine.integrity import latest_fingerprints
+from riskforge.engine.validate import GateResult, GateStatus, ValidateEngine
+from riskforge.integrity.canonical import UnfingerprintableDocumentError, document_fingerprint
+from riskforge.integrity.chain import entry_signing_message
+from riskforge.integrity.receipts import build_receipt
+from riskforge.integrity.rmf import content_digest, load_schema, rmf_signing_message
+from riskforge.integrity.signing import key_id_for, verify_signature
+from riskforge.models.audit import AuditEntry
+from riskforge.models.register import RiskRegister
+from riskforge.models.risk import RiskItem
+from riskforge.models.rmf import (
+    RMF_SCHEMA_VERSION,
+    ChainProof,
+    CrossReference,
+    PublicKeyRecord,
+    RiskManagementFile,
+    RmfSignature,
+    rmf_document,
+)
 from riskforge.plugins.registry import PluginRegistry
+from riskforge.storage.base import StorageBackend
+
+if TYPE_CHECKING:
+    from riskforge.integrity.signing import Ed25519Signer
+
+CHECKPOINT_EVENT = "register.checkpoint"
+
+# An export's temporary file is named TEMP_PREFIX + project token + "-" + random part +
+# TEMP_SUFFIX, so the next export of the same project to the directory can find and
+# remove one an interrupted export left behind, and leaves other projects' files alone.
+TEMP_PREFIX = ".riskforge-export-"
+TEMP_SUFFIX = ".tmp"
+
+_SAFE_TOKEN = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+_IS_WINDOWS = os.name == "nt"
 
 
-class SchemaViolationError(RuntimeError):
-    """Raised when an RMF document fails schema validation at export time."""
+class ExportError(RuntimeError):
+    """An export that was refused or failed before its file was written. Nothing was recorded."""
 
 
-class SigningError(RuntimeError):
-    """Raised when detached signing of the exported file fails."""
+class SchemaViolationError(ExportError):
+    """The RMF document failed schema validation at export time."""
+
+
+class ValidationGateError(ExportError):
+    """FAIL gates block an export that was not forced."""
+
+    def __init__(self, results: list[GateResult]) -> None:
+        failing = [r.gate_id for r in results if r.status == GateStatus.FAIL]
+        super().__init__("Validation gates failed: " + ", ".join(failing))
+        self.results = results
+
+
+class ExportTargetError(ExportError):
+    """The output path cannot be written: a missing or unwritable directory, or a full disk."""
+
+
+class CheckpointError(ExportError):
+    """The register does not read back as the current model serialises it, so no checkpoint."""
+
+
+class MissingPublicKeyError(ExportError):
+    """A chain proof entry is signed by a key the export was not given."""
+
+
+class EntrySignatureError(ExportError):
+    """A signed chain proof entry does not verify with its key."""
+
+
+@dataclass(frozen=True)
+class ExportResult:
+    """What one export wrote and recorded."""
+
+    path: Path
+    export_id: str
+    content_digest: str
+    file_sha256: str
+    entry: AuditEntry
+    checkpoint: AuditEntry | None
+
+
+def build_cross_references(items: list[RiskItem]) -> list[CrossReference]:
+    """One cluster per article reference, with the first NIST and ISO reference seen for it."""
+    clusters: OrderedDict[str, dict] = OrderedDict()
+    for item in items:
+        for art in item.article_refs:
+            cluster = clusters.setdefault(art, {"ids": [], "nist": "", "iso": ""})
+            cluster["ids"].append(item.id)
+            if not cluster["nist"]:
+                cluster["nist"] = (
+                    item.nist_rmf_refs[0] if item.nist_rmf_refs else ""
+                ) or item.nist_rmf_ref
+            if not cluster["iso"]:
+                cluster["iso"] = (
+                    item.iso42001_refs[0] if item.iso42001_refs else ""
+                ) or item.iso42001_ref
+    return [
+        CrossReference(
+            article_ref=art,
+            risk_item_ids=cluster["ids"],
+            nist_rmf_ref=cluster["nist"],
+            iso42001_ref=cluster["iso"],
+        )
+        for art, cluster in clusters.items()
+    ]
+
+
+def _fsync_dir(directory: Path) -> None:
+    if _IS_WINDOWS:
+        return
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _reason(exc: OSError) -> str:
+    return exc.strerror or str(exc)
+
+
+def _committed(checkpoint: AuditEntry | None) -> str:
+    """The sentence that says a checkpoint was committed, or nothing when there was none."""
+    if checkpoint is None:
+        return ""
+    return f"The register.checkpoint (seq {checkpoint.seq}) was committed; no value changed. "
+
+
+def _refuse_protected_target(target: Path, protected: Sequence[Path]) -> None:
+    """Refuse an output path that is a directory or part of the project's own files.
+
+    The target and each of its parents are compared, after following symlinks, with
+    every protected path, both by resolved path and by file identity (device and
+    inode), so another spelling of the same directory is caught too.
+
+    Raises
+    ------
+    ExportTargetError
+        If ``target`` is an existing directory, or is or lies inside a protected path.
+    """
+    resolved = Path(os.path.realpath(target))
+    if resolved.is_dir():
+        raise ExportTargetError(f"{target} is a directory; pass a file path with --output.")
+    by_path = {Path(os.path.realpath(path)): path for path in protected}
+    by_identity: dict[tuple[int, int], Path] = {}
+    for path in protected:
+        try:
+            info = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        by_identity[(info.st_dev, info.st_ino)] = path
+    for candidate in (resolved, *resolved.parents):
+        hit = by_path.get(candidate)
+        if hit is None:
+            try:
+                info = os.stat(candidate)
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            hit = by_identity.get((info.st_dev, info.st_ino))
+        if hit is not None:
+            raise ExportTargetError(
+                f"{target} is part of the project's own files ({hit}); write the export "
+                "somewhere else. Nothing was written."
+            )
+
+
+def _project_token(project_id: str | None) -> str:
+    """The project's part of a temporary file name: its id, or a digest of an unusual one."""
+    if project_id is None:
+        return "project"
+    if _SAFE_TOKEN.fullmatch(project_id):
+        return project_id
+    return hashlib.sha256(project_id.encode("utf-8")).hexdigest()[:32]
+
+
+def _remove_stale_temporaries(directory: Path, token: str, older_than: float) -> None:
+    """Remove this project's export temporary files in ``directory`` older than ``older_than``.
+
+    Only regular files (never followed through a symlink) owned by the current user are
+    removed. An entry that cannot be checked or removed is left in place.
+    """
+    prefix = f"{TEMP_PREFIX}{token}-"
+    uid = os.getuid() if hasattr(os, "getuid") else None
+    try:
+        with os.scandir(directory) as entries:
+            names = [entry.name for entry in entries]
+    except PermissionError:
+        return  # a directory that can be written but not listed: nothing to clean
+    for name in names:
+        if not (name.startswith(prefix) and name.endswith(TEMP_SUFFIX)):
+            continue
+        # mkstemp's random part never contains "-", so this is exactly this project's name.
+        if "-" in name[len(prefix) : -len(TEMP_SUFFIX)]:
+            continue
+        path = directory / name
+        try:
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode) or info.st_mtime >= older_than:
+                continue
+            if uid is not None and info.st_uid != uid:
+                continue
+            os.unlink(path)
+        except (PermissionError, IsADirectoryError, FileNotFoundError):
+            continue
+
+
+def _write_temporary(target: Path, data: bytes, token: str, older_than: float) -> Path:
+    """Write ``data`` to a new temporary file next to ``target``, flushed to disk.
+
+    The file is created exclusively under a unique name with mode 600 (``mkstemp``).
+
+    Raises
+    ------
+    ExportTargetError
+        If the directory is missing or the file cannot be written. Nothing is left.
+    """
+    directory = target.parent
+    if not directory.is_dir():
+        raise ExportTargetError(f"Output directory does not exist: {directory}")
+    if target.is_dir():
+        raise ExportTargetError(f"{target} is a directory; pass a file path with --output.")
+    try:
+        _remove_stale_temporaries(directory, token, older_than)
+        fd, name = tempfile.mkstemp(
+            dir=directory, prefix=f"{TEMP_PREFIX}{token}-", suffix=TEMP_SUFFIX
+        )
+    except OSError as exc:
+        raise ExportTargetError(f"Cannot write to {directory}: {_reason(exc)}") from exc
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except BaseException as exc:
+        temporary.unlink(missing_ok=True)
+        if isinstance(exc, OSError):
+            raise ExportTargetError(f"Cannot write {target}: {_reason(exc)}") from exc
+        raise
+    return temporary
 
 
 class ExportEngine:
-    """Dispatches to registered Exporter plugins; signs and hashes the output."""
+    """Exports a system's register as an RMF document in a registered format."""
 
     DISCLOSURE_TEMPLATE = (
         "This document was produced using RiskForge v{version}, "
@@ -30,98 +275,214 @@ class ExportEngine:
         "It does not constitute legal advice under the EU AI Act or any other regulation."
     )
 
-    def __init__(self, registry: PluginRegistry, audit: AuditEngine) -> None:
+    def __init__(
+        self, registry: PluginRegistry, audit: AuditEngine, storage: StorageBackend
+    ) -> None:
         self._registry = registry
         self._audit = audit
+        self._storage = storage
+
+    def build_rmf(
+        self, register: RiskRegister, export_id: UUID | None = None
+    ) -> RiskManagementFile:
+        """The RMF content for ``register``, with its content digest and no provenance."""
+        rmf = RiskManagementFile(
+            id=export_id or uuid4(),
+            rmf_schema_version=RMF_SCHEMA_VERSION,
+            register=register,
+            test_requirements=list(register.test_requirements),
+            cross_references=build_cross_references(register.items),
+            disclosure=self.DISCLOSURE_TEMPLATE.format(
+                version=pkg_version("riskforge"), qb_version=register.question_bank_version
+            ),
+        )
+        rmf.sha256_hash = content_digest(rmf_document(rmf))
+        return rmf
 
     async def export(
         self,
-        rmf: RiskManagementFile,
+        system_id: str,
         fmt: str,
         output_path: Path,
-        sign_with: str | None = None,
-    ) -> Path:
-        # 1. Inject mandatory disclosure
-        from importlib.metadata import version as pkg_version
+        *,
+        force: bool = False,
+        signer: Ed25519Signer | None = None,
+        public_keys: Sequence[str] = (),
+        export_id: UUID | None = None,
+    ) -> ExportResult:
+        """Export the system's register to ``output_path`` in the order ADR-04 section 7 fixes.
 
-        rmf.disclosure = self.DISCLOSURE_TEMPLATE.format(
-            version=pkg_version("riskforge"),
-            qb_version=rmf.register.question_bank_version,
-        )
+        Integrity check, gates (unless ``force``), a staged ``register.checkpoint`` when
+        the stored register is not the current model's serialisation, the document with
+        its chain proof, receipt and (with ``signer``) signature, schema validation, the
+        rendered file written to a temporary file, the checkpoint committed, the rename,
+        and last ``rmf.exported``. A failure before the commit leaves no file and records
+        nothing. ``public_keys`` (base64 raw keys) name the keys of signed chain entries.
 
-        # 2. Self-verifying SHA-256 over the document CONTENT. The integrity and
-        # provenance fields are blanked first: sha256_hash cannot cover itself;
-        # audit_entry_hash is derived from this hash (its audit entry carries the
-        # sha256, so it would be circular); signed_by is provenance carried by the
-        # detached signature. `verify --file` blanks the same three before recomputing.
-        # by_alias=True ensures risk_register serialises as "register" per the schema.
-        rmf.sha256_hash = ""
-        rmf.audit_entry_hash = ""
-        rmf.signed_by = ""
-        canonical = json.dumps(
-            rmf.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":")
-        )
-        rmf.sha256_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-        # 3. Validate against rmf.schema.json before recording anything.
-        self._validate_schema(rmf)
-
-        # 4. Link the export to the append-only audit chain, then carry the entry
-        # hash back on the RMF so the written artefact references its audit record.
-        entry = await self._audit.record(
-            "rmf.exported",
-            system_id=str(rmf.register.system.id),
-            payload={
-                "export_id": str(rmf.id),
-                "format": fmt,
-                "sha256": rmf.sha256_hash,
-            },
-        )
-        rmf.audit_entry_hash = entry.entry_hash
-        rmf.signed_by = sign_with or ""
-
-        # 5. Render + write the fully-populated document (chmod 600)
-        exporter = self._registry.get_exporter(fmt)
-        output_path.write_bytes(exporter.render(rmf))
-        output_path.chmod(0o600)
-
-        # 6. Optional PGP detached signature over the written file
-        if sign_with:
-            self._sign(output_path, sign_with)
-
-        return output_path
-
-    def _validate_schema(self, rmf: RiskManagementFile) -> None:
-        from importlib.resources import files
-
-        import jsonschema
-
-        schema_text = files("riskforge._data.schemas").joinpath("rmf.schema.json").read_text()
-        schema = json.loads(schema_text)
-        try:
-            jsonschema.validate(rmf.model_dump(mode="json", by_alias=True), schema)
-        except jsonschema.ValidationError as e:
-            raise SchemaViolationError(f"RMF schema violation: {e.message}") from e
-
-    def _sign(self, path: Path, signer: str) -> None:
-        """Create a detached, armored GPG signature with the caller-supplied key.
-
-        `signer` is a GPG key identifier (email, key id, or fingerprint) passed via
-        `--local-user`, so the signature carries the provenance the caller intended
-        rather than GPG's default key. Failures raise SigningError with a clean message.
+        Raises
+        ------
+        IntegrityError
+            If the project fails its integrity check.
+        ValidationGateError
+            If a gate fails and ``force`` is not set.
+        CheckpointError, SchemaViolationError, MissingPublicKeyError, EntrySignatureError,
+        ExportTargetError
+            As their docstrings say. Nothing is written or recorded.
         """
-        import shutil
-        import subprocess
+        exporter = self._registry.get_exporter(fmt)
+        _refuse_protected_target(output_path, self._storage.protected_paths())
+        async with self._audit.unit_of_work():
+            locked_at = time.time()
+            register = await self._audit.read_register(system_id)
+            if not force:
+                validator = ValidateEngine()
+                results = validator.run(register)
+                if validator.has_failures(results):
+                    raise ValidationGateError(results)
+            committed = [entry async for entry in self._storage.read_audit()]
+            staged: StagedEntries | None = None
+            if self._needs_checkpoint(system_id, register, committed):
+                await self._storage.write_register(system_id, register)
+                staged = await self._stage_checkpoint(system_id, register)
+            proof = committed + list(staged.entries if staged else ())
 
-        if shutil.which("gpg") is None:
-            raise SigningError("gpg is not installed; cannot sign. Install GnuPG or omit --sign.")
-        try:
-            subprocess.run(
-                ["gpg", "--detach-sign", "--armor", "--local-user", signer, str(path)],
-                check=True,
-                capture_output=True,
-                text=True,
+            rmf = self.build_rmf(register, export_id)
+            rmf.chain_proof = ChainProof(scope="project", entries=proof)
+            fingerprint = latest_fingerprints(proof).get(system_id)
+            rmf.receipt = build_receipt(proof[-1], system_id, fingerprint, signer)
+            if signer is not None:
+                rmf.signatures = [
+                    RmfSignature(
+                        key_id=signer.key_id,
+                        signed_at=datetime.now(UTC),
+                        signature=signer.sign(rmf_signing_message(rmf.sha256_hash)),
+                    )
+                ]
+            rmf.public_keys = self._public_key_records(proof, signer, public_keys)
+            self._validate(rmf)
+
+            data = exporter.render(rmf)
+            token = _project_token(self._storage.read_project_id())
+            temporary = _write_temporary(output_path, data, token, locked_at)
+            try:
+                checkpoint = await self._audit.commit(staged) if staged else None
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+            try:
+                os.replace(temporary, output_path)
+            except OSError as exc:
+                temporary.unlink(missing_ok=True)
+                raise ExportTargetError(
+                    f"Cannot write {output_path}: {_reason(exc)}. "
+                    f"{_committed(checkpoint)}No file was written."
+                ) from exc
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+            try:
+                _fsync_dir(output_path.parent)
+            except OSError as exc:
+                raise ExportTargetError(
+                    f"{output_path} was written, but its directory could not be flushed to "
+                    f"disk: {_reason(exc)}. {_committed(checkpoint)}The export was not recorded."
+                ) from exc
+
+            file_sha256 = hashlib.sha256(data).hexdigest()
+            entry = await self._audit.record(
+                "rmf.exported",
+                system_id,
+                {
+                    "export_id": str(rmf.id),
+                    "format": fmt,
+                    "sha256": rmf.sha256_hash,
+                    "file_sha256": file_sha256,
+                },
             )
-        except subprocess.CalledProcessError as exc:
-            detail = (exc.stderr or "").strip() or str(exc)
-            raise SigningError(f"gpg signing with key '{signer}' failed: {detail}") from exc
+        return ExportResult(
+            path=output_path,
+            export_id=str(rmf.id),
+            content_digest=rmf.sha256_hash,
+            file_sha256=file_sha256,
+            entry=entry,
+            checkpoint=checkpoint,
+        )
+
+    @staticmethod
+    def _needs_checkpoint(
+        system_id: str, register: RiskRegister, committed: list[AuditEntry]
+    ) -> bool:
+        """True when the chain's latest fingerprint is not the register's serialisation.
+
+        That is when the chain records no fingerprint for the system, or one taken from
+        a register last written by 1.1.3 or by an older model.
+        """
+        expected = document_fingerprint(register.model_dump(mode="json"))
+        return latest_fingerprints(committed).get(system_id) != expected
+
+    async def _stage_checkpoint(self, system_id: str, register: RiskRegister) -> StagedEntries:
+        """The ``register.checkpoint`` entries for the register the export just staged.
+
+        The staged register must read back as the model serialises it, so the checkpoint
+        records a rewrite that changes no value.
+        """
+        self._audit.wrote_register(system_id)
+        stored = await self._storage.read_register_document(system_id)
+        try:
+            matches = document_fingerprint(stored) == document_fingerprint(
+                register.model_dump(mode="json")
+            )
+        except UnfingerprintableDocumentError:
+            matches = False
+        if not matches:
+            raise CheckpointError(
+                f"The register of system {system_id} does not read back as RiskForge writes "
+                "it, so the export cannot record its exact state. Nothing was written. Run "
+                "`riskforge verify` for details."
+            )
+        return await self._audit.stage(
+            CHECKPOINT_EVENT, system_id, {"riskforge_version": pkg_version("riskforge")}
+        )
+
+    def _public_key_records(
+        self,
+        proof: list[AuditEntry],
+        signer: Ed25519Signer | None,
+        public_keys: Sequence[str],
+    ) -> list[PublicKeyRecord]:
+        """A record for every key that signed the file, its receipt or a chain proof entry."""
+        known = {key_id_for(key): key for key in public_keys}
+        for key_signer in (self._audit.signer, signer):
+            if key_signer is not None:
+                known[key_signer.key_id] = key_signer.public_key_b64
+        used = {signer.key_id} if signer is not None else set()
+        for entry in proof:
+            if entry.key_id is None:
+                continue
+            key = known.get(entry.key_id)
+            if key is None:
+                raise MissingPublicKeyError(
+                    f"Audit entry seq {entry.seq} is signed by {entry.key_id}, and the export "
+                    "was not given that public key, so its chain proof could not be checked. "
+                    "Give it with --public-key PUBFILE."
+                )
+            if not verify_signature(
+                key, entry_signing_message(entry.entry_hash), entry.signature or ""
+            ):
+                raise EntrySignatureError(
+                    f"The signature of audit entry seq {entry.seq} does not verify with "
+                    f"{entry.key_id}. Run `riskforge verify --trusted-key PUBFILE`."
+                )
+            used.add(entry.key_id)
+        return [PublicKeyRecord(key_id=key_id, public_key=known[key_id]) for key_id in sorted(used)]
+
+    @staticmethod
+    def _validate(rmf: RiskManagementFile) -> None:
+        try:
+            jsonschema.validate(rmf_document(rmf), load_schema(RMF_SCHEMA_VERSION))
+        except jsonschema.ValidationError as exc:
+            location = "/".join(str(part) for part in exc.absolute_path) or "the document"
+            raise SchemaViolationError(
+                f"The export does not fit RMF schema {RMF_SCHEMA_VERSION} at {location}: "
+                f"{exc.message[:300]}. Nothing was written."
+            ) from exc

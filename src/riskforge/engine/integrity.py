@@ -11,8 +11,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import contextvars
-from collections.abc import AsyncIterator, Iterator
-from dataclasses import dataclass, field
+from collections.abc import AsyncIterator, Iterator, Sequence
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic import ValidationError
@@ -22,7 +22,7 @@ from riskforge.integrity.canonical import (
     document_fingerprint,
     sha256_hex,
 )
-from riskforge.integrity.chain import BASELINE_EVENT, written_since_2_0
+from riskforge.integrity.chain import BASELINE_EVENT, check_entry_signatures, written_since_2_0
 from riskforge.models.audit import AuditEntry
 from riskforge.models.register import RiskRegister
 from riskforge.models.system import AISystem
@@ -43,6 +43,13 @@ from riskforge.storage.errors import (
 # Events that change a register. A system whose log holds one must have a register.
 REGISTER_EVENT_PREFIXES = ("register.", "risk_item.", "mitigation.")
 REGISTER_EVENTS = frozenset({"risk.accepted"})
+
+
+NO_HEAD_WARNING = (
+    "There is no .riskforge/audit.head.json, so nothing records where the audit log ends: "
+    "RiskForge 2.0 has not written this project yet, or its files were deleted. The next "
+    "change records it."
+)
 
 
 UNENCODABLE = (
@@ -70,6 +77,19 @@ class IntegrityReport:
     @property
     def head(self) -> AuditEntry | None:
         return self.entries[-1] if self.entries else None
+
+    def strict(self) -> IntegrityReport:
+        """This report with every warning about missing coverage made an error.
+
+        For ``riskforge verify --strict``. The note that a change in progress was
+        checked as recovery would leave it stays a warning: it says how the project was
+        checked, not what is wrong with it, and it only comes with errors anyway.
+        """
+        findings = [w for w in self.warnings if w != RECOVERY_VIEW_NOTE]
+        if not findings:
+            return self
+        notes = [w for w in self.warnings if w == RECOVERY_VIEW_NOTE]
+        return replace(self, errors=[*self.errors, *findings], warnings=notes)
 
 
 class IntegrityError(RuntimeError):
@@ -264,12 +284,19 @@ def _register_findings(
     return errors, warnings
 
 
-async def check_integrity(storage: StorageBackend) -> IntegrityReport:
+async def check_integrity(
+    storage: StorageBackend, *, trusted_keys: Sequence[str] | None = None
+) -> IntegrityReport:
     """Check the chain, the head file, every register and system file, and the files on disk.
 
     Reads only. Reports every finding of ADR-03 section 5 rather than stopping at the
     first, and reports a file that cannot be read or parsed as a finding instead of
     raising.
+
+    Signed entries are checked as ``check_entry_signatures`` describes: an entry with a
+    ``key_id`` and no signature, or the reverse, always fails; signatures are verified
+    against ``trusted_keys`` (base64 raw public keys) when given, and otherwise reported
+    as not checked, in a warning.
     """
     _chain_ok, chain_errors = await storage.verify_chain()
     errors: list[str] = list(chain_errors)
@@ -277,6 +304,9 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     try:
         entries = [entry async for entry in storage.read_audit()]
         log_readable = True
+        signature_errors, signature_warnings = check_entry_signatures(entries, trusted_keys)
+        errors.extend(signature_errors)
+        warnings.extend(signature_warnings)
     except AuditLogCorruptError as exc:
         entries, log_readable = [], False
         errors.append(
@@ -318,7 +348,12 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     if not log_readable:
         return IntegrityReport(errors=errors, warnings=warnings, entries=[], **digests)
 
-    errors.extend(_head_findings(head, head_present, entries))
+    head_errors = _head_findings(head, head_present, entries)
+    errors.extend(head_errors)
+    if not head_present and not head_errors:
+        # Without a head file nothing marks where the log ends, so a truncated log, a
+        # deleted .riskforge/ or a system added by hand can pass every other check.
+        warnings.append(NO_HEAD_WARNING)
 
     if directories and not entries:
         with_items = [sid for sid in directories if registers[sid].holds_items]
@@ -360,9 +395,11 @@ async def check_integrity(storage: StorageBackend) -> IntegrityReport:
     return IntegrityReport(errors=errors, warnings=warnings, entries=entries, **digests)
 
 
-async def require_intact(storage: StorageBackend) -> IntegrityReport:
+async def require_intact(
+    storage: StorageBackend, *, trusted_keys: Sequence[str] | None = None
+) -> IntegrityReport:
     """The report of an intact project, or ``IntegrityError`` holding every finding."""
-    report = await check_integrity(storage)
+    report = await check_integrity(storage, trusted_keys=trusted_keys)
     if not report.ok:
         raise IntegrityError(report)
     return report
@@ -545,6 +582,11 @@ async def checked_unit_of_work(storage: StorageBackend) -> AsyncIterator[Integri
             _GUARDS.reset(token)
 
 
+RECOVERY_VIEW_NOTE = (
+    "A change is in progress or unfinished (.riskforge/txn.json); the project "
+    "was checked as finishing or discarding it would leave it."
+)
+
 _IN_PROGRESS = (
     "A change to this project is in progress or unfinished (.riskforge/txn.json), so it "
     "was not checked. Run verify again when it has finished; if no riskforge command is "
@@ -553,7 +595,11 @@ _IN_PROGRESS = (
 
 
 async def check_integrity_settled(
-    storage: StorageBackend, *, repeats: int = 3, pause: float = 0.25
+    storage: StorageBackend,
+    *,
+    trusted_keys: Sequence[str] | None = None,
+    repeats: int = 3,
+    pause: float = 0.25,
 ) -> IntegrityReport:
     """Run ``check_integrity`` without the write lock, as ``riskforge verify`` does.
 
@@ -580,7 +626,7 @@ async def check_integrity_settled(
             continue
         before = await storage.read_commit_markers()
         try:
-            report = await check_integrity(storage)
+            report = await check_integrity(storage, trusted_keys=trusted_keys)
         except OSError:
             # A file a writer renamed or removed while it was read. Only a moved
             # marker excuses it; otherwise it is a real error and is raised.
@@ -596,7 +642,7 @@ async def check_integrity_settled(
         before = await storage.read_commit_markers()
         try:
             view = await storage.view_after_recovery()
-            report = await check_integrity(view)
+            report = await check_integrity(view, trusted_keys=trusted_keys)
         except (StoredFileCorruptError, OSError) as exc:
             if await storage.read_commit_markers() != before:
                 raise ChangeInProgressError(_IN_PROGRESS) from None
@@ -606,11 +652,9 @@ async def check_integrity_settled(
         if await storage.read_commit_markers() != before:
             raise ChangeInProgressError(_IN_PROGRESS)
         if not report.ok:
-            note = (
-                "A change is in progress or unfinished (.riskforge/txn.json); the project "
-                "was checked as finishing or discarding it would leave it."
-            )
             return IntegrityReport(
-                errors=report.errors, warnings=[*report.warnings, note], entries=report.entries
+                errors=report.errors,
+                warnings=[*report.warnings, RECOVERY_VIEW_NOTE],
+                entries=report.entries,
             )
     raise ChangeInProgressError(_IN_PROGRESS)

@@ -8,7 +8,7 @@ questions:
     default_likelihood_hint: 3
     default_severity_hint: 4
     article_refs: ["Art.9(2)(a)", "Art.14(1)"]
-    nist_rmf_ref: "MAP 1.5"
+    nist_rmf_ref: "MAP 3.5"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
 
@@ -30,8 +30,8 @@ questions:
     default_likelihood_hint: null
     default_severity_hint: null
     article_refs: ["Art.14(4)(e)"]
-    nist_rmf_ref: "MANAGE 1.1"
-    iso42001_ref: "Clause A.9"
+    nist_rmf_ref: "MANAGE 2.4"
+    iso42001_ref: "Annex A.9"
     regulatory_status: settled
 
   - id: HS-004
@@ -40,8 +40,8 @@ questions:
     annex_iii_categories: [critical_infrastructure, essential_services, biometric]
     default_likelihood_hint: null
     default_severity_hint: null
-    article_refs: ["Art.9(2)(c)", "Art.11"]
-    nist_rmf_ref: "MAP 5.2"
+    article_refs: ["Art.9(2)(a)", "Art.11"]
+    nist_rmf_ref: "MEASURE 2.6"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
 
@@ -51,8 +51,8 @@ questions:
     annex_iii_categories: [critical_infrastructure, essential_services, employment]
     default_likelihood_hint: 2
     default_severity_hint: 3
-    article_refs: ["Art.9(7)", "Art.72"]
-    nist_rmf_ref: "MEASURE 2.5"
+    article_refs: ["Art.9(8)", "Art.72"]
+    nist_rmf_ref: "MEASURE 2.4"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
 

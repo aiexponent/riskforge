@@ -2,40 +2,42 @@
 
 from __future__ import annotations
 
-from riskforge.models.risk import RiskDimension, RiskItem
-from riskforge.models.rmf import TestRequirement
+from uuid import NAMESPACE_URL, uuid5
 
-# Dimension → suggested metric types for Art.9(7) test requirements
+from riskforge.models.requirements import TestRequirement
+from riskforge.models.risk import RiskDimension, RiskItem
+
+# Dimension → suggested metric types for Art.9(8) test requirements
 DIMENSION_METRIC_HINTS: dict[RiskDimension, list[dict[str, str]]] = {
     RiskDimension.robustness: [
         {
             "metric_type": "faithfulness",
             "threshold_range": ">= 0.85",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
         {
             "metric_type": "answer_relevance",
             "threshold_range": ">= 0.80",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.discrimination: [
         {
             "metric_type": "demographic_parity",
             "threshold_range": "<= 0.10",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
         {
             "metric_type": "equalised_odds",
             "threshold_range": "<= 0.10",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.privacy: [
         {
             "metric_type": "pii_leakage_rate",
             "threshold_range": "= 0.00",
-            "article_ref": "Art.9(7)",
+            "article_ref": "Art.9(8)",
         },
     ],
     RiskDimension.transparency: [
@@ -76,32 +78,41 @@ DIMENSION_METRIC_HINTS: dict[RiskDimension, list[dict[str, str]]] = {
 }
 
 
-class TestDerivationEngine:
-    """Derives Article 9(7) test requirements from risk items.
+# Requirement ids are uuid5 of the risk item id and metric under this namespace, so the
+# same register yields the same ids on every run and machine.
+TEST_ID_NAMESPACE = uuid5(NAMESPACE_URL, "https://github.com/aiexponent/riskforge#test-requirement")
 
-    Knowledge-gap items (where the answer was 'unknown') generate
-    mandatory test requirements that must be closed before export.
+
+class TestDerivationEngine:
+    """Derives Article 9(6) to 9(8) test requirements from risk items.
+
+    Knowledge gaps and items scoring 9 or more get one requirement each. Ids are derived
+    from the item id and metric, so deriving again yields the same requirements.
     """
+
+    __test__ = False  # not a pytest test class
 
     def derive(self, items: list[RiskItem]) -> list[TestRequirement]:
         """Generate test requirements for a list of risk items."""
         requirements: list[TestRequirement] = []
         for item in items:
+            if not (item.knowledge_gap or item.risk_score >= 9):
+                continue
             hints = DIMENSION_METRIC_HINTS.get(item.dimension, [])
-            for hint in hints:
-                # Prioritise knowledge gaps and high-scoring items
-                if item.knowledge_gap or item.risk_score >= 9:
-                    requirements.append(
-                        TestRequirement(
-                            risk_item_id=item.id,
-                            description=(
-                                f"Validate '{item.title}' via {hint['metric_type']} measurement. "
-                                f"Target: {hint['threshold_range']}."
-                            ),
-                            metric_type=hint["metric_type"],
-                            threshold_range=hint["threshold_range"],
-                            article_ref=hint["article_ref"],
-                        )
-                    )
-                    break  # one primary test requirement per risk item
+            if not hints:
+                continue
+            hint = hints[0]
+            requirements.append(
+                TestRequirement(
+                    id=uuid5(TEST_ID_NAMESPACE, f"{item.id}:{hint['metric_type']}"),
+                    risk_item_id=item.id,
+                    description=(
+                        f"Validate '{item.title}' via {hint['metric_type']} measurement. "
+                        f"Target: {hint['threshold_range']}."
+                    ),
+                    metric_type=hint["metric_type"],
+                    threshold_range=hint["threshold_range"],
+                    article_ref=hint["article_ref"],
+                )
+            )
         return requirements

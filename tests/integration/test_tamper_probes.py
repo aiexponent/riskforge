@@ -173,6 +173,16 @@ def _last_line_corrupted(project: Path, sid: str) -> None:
     _log(project).write_text("".join(lines), encoding="utf-8")
 
 
+def _last_line_nested_too_deeply(project: Path, sid: str) -> None:
+    """A payload nested deeper than the hashing recursion reaches (about 300 levels)."""
+    lines = _log(project).read_text(encoding="utf-8").splitlines(keepends=True)
+    entry = json.loads(lines[-1])
+    entry["payload"] = {"x": None}
+    lines[-1] = json.dumps(entry, separators=(",", ":")).replace("null", "[" * 300 + "]" * 300)
+    lines[-1] += "\n"
+    _log(project).write_text("".join(lines), encoding="utf-8")
+
+
 def _register_deleted(project: Path, sid: str) -> None:
     _register_path(project, sid).unlink()
 
@@ -223,6 +233,7 @@ COMMAND_PROBES: dict[str, Callable[[Path, str], None]] = {
     "last entry cut off": _last_entry_cut_off,
     "register edited": _register_edited,
     "last line corrupted": _last_line_corrupted,
+    "last line nested too deeply": _last_line_nested_too_deeply,
     "register deleted": _register_deleted,
     "system.yaml corrupted": _system_yaml_corrupted,
     "head file deleted": _head_file_deleted,
@@ -312,6 +323,21 @@ def test_corrupt_last_line_exits_2_in_one_line(pristine, tmp_path: Path, command
     assert "entry_hash mismatch" in result.output
 
 
+def test_entry_nested_too_deeply_is_a_finding(pristine, tmp_path: Path) -> None:
+    project, sid = _copy(pristine, tmp_path)
+    _last_line_nested_too_deeply(project, sid)
+    last = len(_log(project).read_bytes().splitlines())
+    result = _rf(project, ["verify"])
+    assert result.returncode == 2, result.output
+    assert "Traceback" not in result.output
+    findings = [line for line in result.stderr.splitlines() if line.strip().startswith("•")]
+    assert findings, result.stderr
+    assert findings[0].strip() == (
+        f"• Line {last}: holds an array or object nested more than 64 levels deep, "
+        "which RiskForge never writes."
+    ), result.stderr
+
+
 @pytest.mark.parametrize("command", ["risk accept", "assess"])
 def test_untouched_v113_project_still_accepts_changes(tmp_path: Path, command: str) -> None:
     project, sid = materialise_v113(tmp_path / "v113")
@@ -335,7 +361,7 @@ def test_untouched_v113_project_still_accepts_changes(tmp_path: Path, command: s
     assert "not covered by a fingerprint yet" not in verified.output
 
 
-READ_ONLY_COMMANDS = ("validate", "tests generate")
+READ_ONLY_COMMANDS = ("validate",)
 
 
 def _set_writable(root: Path, writable: bool) -> None:
@@ -414,8 +440,8 @@ real_check = integrity.check_integrity
 swapped = []
 
 
-async def check_then_swap(storage):
-    report = await real_check(storage)
+async def check_then_swap(storage, **kwargs):
+    report = await real_check(storage, **kwargs)
     if not swapped:
         shutil.copyfile(edited, target + ".swap")
         os.replace(target + ".swap", target)
@@ -454,7 +480,7 @@ def _run_with_swap(tmp_path: Path, edited: Path, target: Path, args: list[str]):
 @pytest.mark.parametrize(
     "command",
     ["risk accept", "risk mitigate", "system classify", "export", "export --force", "import"]
-    + ["assess"],
+    + ["assess", "tests generate"],
 )
 def test_register_swapped_after_the_check_is_refused(
     pristine, tmp_path: Path, command: str
@@ -552,5 +578,4 @@ def test_read_only_command_refuses_a_register_swapped_after_the_check(
     assert "Traceback" not in result.output
     assert "changed after" in result.output, result.output
     assert "All gates passed" not in result.output
-    assert "Derived" not in result.output
     assert _log(project).read_bytes() == log_before

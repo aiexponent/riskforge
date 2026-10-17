@@ -15,8 +15,9 @@
 
 EU AI Act **Article 12** (Record-keeping) requires high-risk AI systems to
 "technically allow for the automatic recording of events (logs)" over the
-lifetime of the system. **Annex IV(2)(g)** requires the technical documentation
-to describe the risk management system per Article 9. Together, they create a
+lifetime of the system. **Annex IV, point 5** requires the technical
+documentation to include "A detailed description of the risk management system
+in accordance with Article 9". Together, they create a
 demand for *traceable, tamper-evident evidence* that a particular risk
 assessment was made by a particular person at a particular time, and that
 nothing was retroactively altered to make the system look more compliant than
