@@ -40,6 +40,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ### Changed
 
+- Docs: the user guide covers keygen, signed exports and receipts, its answers-file example uses a real question id (`DI-001`), and its CI recipe no longer tells you to commit `.riskforge/` to any repository. `docs/audit-chain-design.md` describes the 2.0 design (register fingerprints, units of work, receipts, signatures) and its limits, and the Article 9 mapping corrects its penalty, Article 60, Annex VI and US state-law statements.
 - README: the Quick Start follows the signed 2.0 flow (keygen, `export --sign`, receipt, `verify --file --trusted-key`, `verify --receipt`), the `system.yaml` and `rmf.json` samples are a real system record and a real signed export that a test verifies, the command reference lists every command, and the comparison table no longer quotes prices.
 - `pip install riskforge` no longer installs `keyring`, `python-dotenv` or `pydantic-settings`, which RiskForge no longer imports (`pydantic-settings` was used only by the removed server), along with the packages `keyring` pulled in. Code that relied on RiskForge to bring these in must declare them itself (PRD-329).
 - The license compatibility scan now fails the build on a license violation instead of only warning, and the release workflow waives the same `pip-audit` advisories as CI, without the stale `PYSEC-2026-3412` waiver (PRD-329).

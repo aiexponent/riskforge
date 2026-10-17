@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import subprocess
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -29,3 +31,52 @@ def _hits(paths: list[Path]) -> list[str]:
 def test_no_em_dashes_in_user_facing_source() -> None:
     hits = _hits(SCANNED_PATHS)
     assert hits == [], "em-dashes found:\n" + "\n".join(hits)
+
+
+AVOID = (
+    "delve", "leverage", "seamless", "seamlessly", "robust", "underscore", "testament",
+    "tapestry", "realm", "navigate", "pivotal", "harness", "unlock", "elevate", "embark",
+    "intricate", "multifaceted", "holistic", "myriad", "plethora", "paradigm", "synergy",
+    "game-changer", "cutting-edge", "ever-evolving", "fast-paced", "utilize",
+    "groundbreaking", "unparalleled", "meticulous",
+)  # fmt: skip
+DOC_PATHS = [
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "docs/",
+    "examples/README.md",
+    "benchmarks/README.md",
+]
+# Code is not prose: a keyword such as `unlock` in a pattern's exclude list is data.
+CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+
+
+def _public_docs() -> list[Path]:
+    """Git-tracked public Markdown. CHANGELOG.md keeps its history as written."""
+    out = subprocess.run(
+        ["git", "-C", str(REPO), "ls-files", *DOC_PATHS],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return [REPO / line for line in out.splitlines() if line.endswith(".md")]
+
+
+def test_no_em_dashes_in_public_docs() -> None:
+    docs = _public_docs()
+    assert docs, "no public docs found"
+    hits = _hits(docs)
+    assert hits == [], "em-dashes found:\n" + "\n".join(hits)
+
+
+def test_public_docs_avoid_the_house_word_list() -> None:
+    pattern = re.compile(r"\b(" + "|".join(re.escape(word) for word in AVOID) + r")\b", re.I)
+    hits = []
+    for path in _public_docs():
+        prose = CODE.sub(lambda m: "\n" * m.group(0).count("\n"), path.read_text(encoding="utf-8"))
+        for number, line in enumerate(prose.splitlines(), start=1):
+            hits += [
+                f"{path.relative_to(REPO)}:{number}: {m.group(0)}" for m in pattern.finditer(line)
+            ]
+    assert hits == [], "avoid-list words found:\n" + "\n".join(hits)

@@ -24,7 +24,7 @@ The engine layer has zero imports from CLI or server. The server has zero import
 
 ## Consequence
 
-Engine code that needs information from configuration must accept it as constructor arguments. No environment variable reads in engine modules — those happen in CLI and are passed in.
+Engine code that needs information from configuration must accept it as constructor arguments. No environment variable reads in engine modules: those happen in the CLI and are passed in.
 
 ## Update (2.0.0)
 

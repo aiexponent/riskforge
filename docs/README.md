@@ -6,7 +6,7 @@ Reference documentation for RiskForge, the open-source EU AI Act Article 9 risk-
 
 - **[User guide](user-guide.md)**: installation and system dependencies, a worked quickstart, the full command reference with exit codes, the non-interactive answers-file format, a CI-integration recipe, plugin authoring, how to read the Risk Management File, limitations, and an FAQ.
 - **[Article 9 mapping](article-9-mapping.md)**: how each RiskForge capability maps to EU AI Act Article 9(1) through 9(10), the cross-references to NIST AI RMF and ISO/IEC 42001, and the tool's non-goals (what it does and does not decide).
-- **[Audit-chain design](audit-chain-design.md)**: the SHA-256 hash-chained audit log, its on-disk format, integrity guarantees, verification path, and concurrency model.
+- **[Audit-chain design](audit-chain-design.md)**: the hash-chained audit log, register fingerprints, receipts and signatures, what `riskforge verify` checks, and what it cannot prove.
 
 ## Also useful
 

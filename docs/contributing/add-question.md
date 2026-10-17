@@ -6,14 +6,14 @@ This is the easiest contribution to RiskForge. **No Python required.**
 
 Question banks live in `src/riskforge/_data/question_bank/`. There is one YAML file per risk dimension:
 
-- `health_safety.yaml` — physical harm, safety-critical decisions
-- `fundamental_rights.yaml` — EU Charter rights
-- `discrimination.yaml` — bias, protected characteristics
-- `privacy.yaml` — PII, GDPR, DPIA
-- `transparency.yaml` — explainability, user notification
-- `human_oversight.yaml` — override mechanisms, review processes
-- `robustness.yaml` — accuracy, adversarial testing
-- `data_governance.yaml` — dataset provenance, licenses
+- `health_safety.yaml`: physical harm, safety-critical decisions
+- `fundamental_rights.yaml`: EU Charter rights
+- `discrimination.yaml`: bias, protected characteristics
+- `privacy.yaml`: PII, GDPR, DPIA
+- `transparency.yaml`: explainability, user notification
+- `human_oversight.yaml`: override mechanisms, review processes
+- `robustness.yaml`: accuracy, adversarial testing
+- `data_governance.yaml`: dataset provenance, licenses
 
 ## Step 2: Add your question
 
@@ -21,7 +21,7 @@ Open the appropriate YAML file and add a block:
 
 ```yaml
 - id: HS-007          # Prefix = dimension code. Use next available number.
-  text: "Your question here — must be answerable with yes/no/unknown."
+  text: "Your question here. It must be answerable with yes, no or unknown."
   guidance: "Help text for the assessor. Cite Article numbers and explain what to look for."
   annex_iii_categories: [essential_services, employment]   # Where this question applies
   default_likelihood_hint: 3    # 1-5, or null if not applicable

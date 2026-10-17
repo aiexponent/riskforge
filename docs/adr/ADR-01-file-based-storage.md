@@ -16,13 +16,13 @@ Project state lives in `.riskforge/` (YAML + JSONL files). Not SQLite. Not Postg
 
 - **Git-diff-friendly.** A compliance team can review a PR that modifies a risk register, reading the YAML diff in GitHub. A SQLite binary blob is opaque.
 - **Regulator-readable.** A competent authority can read `register.yaml` and `audit.jsonl` with a text editor and `sha256sum`. No RiskForge installation required.
-- **Merge-conflict-resolvable.** Two assessors working on different sections can merge their YAML changes. Binary databases cannot be merged.
+- **Reviewable.** A change to a register shows up as a readable YAML diff. Merging two branches that both changed `.riskforge/` is not supported: the merged audit log is no longer one chain, and `riskforge verify` exits 2.
 - **Zero additional dependencies.** The FileStore uses only `pyyaml` and Python stdlib.
 
 ## Trade-offs Accepted
 
-No concurrent writes in CLI mode. Concurrent multi-user access is not supported. The `StorageBackend` ABC leaves room for a concurrent backend (for example a relational database) in a future release, but none ships yet.
+Since 2.0.0, writers on one machine are serialized by a file lock, and each change is committed together with its audit entry through `StorageBackend.unit_of_work()`. Several people editing one project from different machines or git branches is not supported. The `StorageBackend` ABC leaves room for a backend that supports it (for example a relational database); none ships in this package.
 
 ## Enforcement
 
-The `StorageBackend` ABC defines the interface. All storage implementations must conform to the async method signature. FileStore is the only backend that ships today; the ABC exists so a future backend can be added without changing the engine.
+The `StorageBackend` ABC defines the interface. All storage implementations must conform to the async method signatures. FileStore is the only backend that ships today; the ABC exists so a future backend can be added without changing the engine.

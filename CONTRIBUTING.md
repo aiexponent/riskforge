@@ -29,9 +29,9 @@ Requirements: Python 3.11, 3.12 or 3.13, Git.
 
 ### Dependency Management: Resilient Ranges & Reproducible Lockfiles
 
-Runtime dependencies in `pyproject.toml` use bounded semantic version ranges (`>=`, `<`) rather than hard-pinned exact versions (`==`). This ensures enterprise users can seamlessly install `riskforge` in shared environments without package conflicts (e.g., compatible Pydantic 2.8+, Jinja 3.1.5+, Rich, or Typer).
+Runtime dependencies in `pyproject.toml` use bounded version ranges (`>=`, `<`) rather than exact pins (`==`), so `riskforge` installs next to other packages that need compatible versions of Pydantic, Jinja, Rich, or Typer.
 
-To maintain strict regulatory evidence stability (PRD NFR-6) — ensuring an Article 9 Risk Management File (RMF) generated in May is byte-identical to one generated in August for the same inputs — builds are locked and validated via lockfiles (`uv.lock` and `requirements.lock`):
+Lockfiles pin the exact versions that CI installs, so a new dependency release cannot change RiskForge's behavior without a reviewed lockfile change (`uv.lock` and `requirements.lock`):
 - `uv.lock` provides cross-platform locked dependency resolution for `uv` workflows.
 - `requirements.lock` provides pip-compatible constraints used by CI.
 

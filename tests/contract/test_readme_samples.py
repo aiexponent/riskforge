@@ -83,6 +83,11 @@ def test_every_readme_command_and_flag_exists() -> None:
     assert command_problems(README) == []
 
 
+def test_every_user_guide_command_and_flag_exists() -> None:
+    assert len(readme_commands(USER_GUIDE)) >= 10
+    assert command_problems(USER_GUIDE) == []
+
+
 def test_quick_start_follows_the_signed_flow() -> None:
     text = README.read_text(encoding="utf-8")
     quick_start = text[text.index("## Quick Start") : text.index("## Why RiskForge")]
@@ -136,6 +141,15 @@ def test_exit_code_table_matches_the_cli() -> None:
     text = README.read_text(encoding="utf-8")
     section = text[text.index("### Exit Code Contract") : text.index("## CLI Command Reference")]
     codes = {int(code) for code in re.findall(r"^\| `(\d)` \|", section, flags=re.M)}
+    assert codes == {EXIT_OK, EXIT_FAILED, EXIT_TAMPERED, EXIT_USAGE}
+
+
+def test_user_guide_exit_code_table_matches_the_cli() -> None:
+    text = USER_GUIDE.read_text(encoding="utf-8")
+    section = text[
+        text.index("## Exit codes (for CI)") : text.index("## Continuous integration recipe")
+    ]
+    codes = {int(code) for code in re.findall(r"^\| (\d) \|", section, flags=re.M)}
     assert codes == {EXIT_OK, EXIT_FAILED, EXIT_TAMPERED, EXIT_USAGE}
 
 
