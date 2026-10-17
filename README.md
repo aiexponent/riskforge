@@ -274,7 +274,7 @@ The system record `riskforge init` writes to `.riskforge/systems/<system-id>/sys
 after `riskforge system classify --confirm`.
 
 ```yaml
-id: 4a3cbcd1-0841-46e6-af5a-6f37af068f28
+id: 634ca9f5-b64f-4275-8469-fc4ddc8ddc14
 name: Loan Scoring Model
 version: '2.1'
 purpose: Automated credit scoring for retail loan applications.
@@ -286,7 +286,7 @@ annex_iii_category: essential_services
 annex_iii_self_classification_documented: true
 provider_name: Acme Financial Services
 provider_contact: ''
-created_at: '2026-10-17T19:30:17.266671Z'
+created_at: '2026-10-17T20:47:38.653899Z'
 schema_version: 1.0.0
 ```
 </details>
@@ -301,12 +301,12 @@ its digest, signature, chain proof and receipt verify.
 
 ```json
 {
-  "id": "ad9c2b0f-9df4-4f9b-9a5f-ab66b564105b",
+  "id": "27c60766-0e97-4df0-8b47-6b2600d9e55e",
   "rmf_schema_version": "1.1.0",
   "register": {
-    "id": "8f4988c1-8b20-446f-a643-540e88f657fe",
+    "id": "1452ba9b-7f05-4173-8ca7-46b5d42e5556",
     "system": {
-      "id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+      "id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
       "name": "Loan Scoring Model",
       "version": "2.1",
       "purpose": "Automated credit scoring for retail loan applications.",
@@ -318,12 +318,12 @@ its digest, signature, chain proof and receipt verify.
       "annex_iii_self_classification_documented": true,
       "provider_name": "Acme Financial Services",
       "provider_contact": "",
-      "created_at": "2026-10-17T19:30:17.266671Z",
+      "created_at": "2026-10-17T20:47:38.653899Z",
       "schema_version": "1.0.0"
     },
     "items": [
       {
-        "id": "646bec44-52cb-4507-9f76-9242c70dc5df",
+        "id": "4e5d7138-e939-4a88-97c4-e06a7a0b8f08",
         "dimension": "discrimination",
         "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,",
         "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
@@ -336,7 +336,7 @@ its digest, signature, chain proof and receipt verify.
         "accepted": true,
         "acceptance_rationale": "Residual within appetite after documented controls.",
         "accepted_by": "Alice Chen, AI Governance Lead",
-        "identified_at": "2026-10-17T19:30:17.654252Z",
+        "identified_at": "2026-10-17T20:47:39.000441Z",
         "article_refs": [
           "Art.10(2)(f)",
           "Art.9(2)(a)"
@@ -362,14 +362,14 @@ its digest, signature, chain proof and receipt verify.
     "risk_appetite_threshold": 9,
     "assessor_name": "Alice Chen",
     "assessor_role": "AI Governance Lead",
-    "assessment_date": "2026-10-17T19:30:17.635747Z",
-    "review_date": "2027-10-12T19:30:17.635747Z",
+    "assessment_date": "2026-10-17T20:47:38.982512Z",
+    "review_date": "2027-10-12T20:47:38.982512Z",
     "question_bank_version": "1.0.0",
     "schema_version": "1.0.0",
     "test_requirements": [
       {
-        "id": "24f39919-bd59-5782-a875-29242c400d29",
-        "risk_item_id": "646bec44-52cb-4507-9f76-9242c70dc5df",
+        "id": "36ce0868-6eff-5c10-a6cc-3432fbfcb064",
+        "risk_item_id": "4e5d7138-e939-4a88-97c4-e06a7a0b8f08",
         "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
         "metric_type": "demographic_parity",
         "threshold_range": "<= 0.10",
@@ -380,8 +380,8 @@ its digest, signature, chain proof and receipt verify.
   },
   "test_requirements": [
     {
-      "id": "24f39919-bd59-5782-a875-29242c400d29",
-      "risk_item_id": "646bec44-52cb-4507-9f76-9242c70dc5df",
+      "id": "36ce0868-6eff-5c10-a6cc-3432fbfcb064",
+      "risk_item_id": "4e5d7138-e939-4a88-97c4-e06a7a0b8f08",
       "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
       "metric_type": "demographic_parity",
       "threshold_range": "<= 0.10",
@@ -393,7 +393,7 @@ its digest, signature, chain proof and receipt verify.
     {
       "article_ref": "Art.10(2)(f)",
       "risk_item_ids": [
-        "646bec44-52cb-4507-9f76-9242c70dc5df"
+        "4e5d7138-e939-4a88-97c4-e06a7a0b8f08"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
       "iso42001_ref": "Annex A.7"
@@ -401,29 +401,29 @@ its digest, signature, chain proof and receipt verify.
     {
       "article_ref": "Art.9(2)(a)",
       "risk_item_ids": [
-        "646bec44-52cb-4507-9f76-9242c70dc5df"
+        "4e5d7138-e939-4a88-97c4-e06a7a0b8f08"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
       "iso42001_ref": "Annex A.7"
     }
   ],
-  "generated_at": "2026-10-17T19:30:18.872052Z",
-  "sha256_hash": "36f65e661f59e51abf142ab79f7afa82cd1920a044f98899942fbd702ae310ca",
-  "disclosure": "This document was produced using RiskForge v1.1.3, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
+  "generated_at": "2026-10-17T20:47:39.725511Z",
+  "sha256_hash": "03cbec63a205057eb5a0c43efac12951e7bd70204a9b94c4fcd9a00df5f76e36",
+  "disclosure": "This document was produced using RiskForge v2.0.0, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
   "signoffs": [],
   "signatures": [
     {
-      "key_id": "ed25519:2b84dc1c4fc5f4fa",
+      "key_id": "ed25519:b7b5c4a19a859133",
       "algorithm": "ed25519",
-      "signed_at": "2026-10-17T19:30:18.872619Z",
-      "signature": "4bZFhX3M2hSzWdbZhZKfYAgUPNGzl64aGOsgxa1tdw9eoGjgSLA+HR2K8bw3clVoyrN0+6hkih0yvzyl/BZ3Ag=="
+      "signed_at": "2026-10-17T20:47:39.726225Z",
+      "signature": "p/CVwcq2mcTC8wp3NiJ4En4eeWrvTldbJM+ndkZjeFUUBW7RKPcJlRBqjyJWSmDlNOzM0Y2/bQOWIszDQ83VAA=="
     }
   ],
   "public_keys": [
     {
-      "key_id": "ed25519:2b84dc1c4fc5f4fa",
+      "key_id": "ed25519:b7b5c4a19a859133",
       "algorithm": "ed25519",
-      "public_key": "WWXlvEYFbahA6M6po4k0r82iFviXf5u8K3xr3uPL1XM="
+      "public_key": "MBbJzWXjm7pX/63P8jUIMByQJTMgg8W7yAj9QCciCYQ="
     }
   ],
   "chain_proof": {
@@ -432,122 +432,122 @@ its digest, signature, chain proof and receipt verify.
       {
         "seq": 0,
         "event": "system.created",
-        "timestamp": "2026-10-17T19:30:17.279763Z",
+        "timestamp": "2026-10-17T20:47:38.664225Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
           "name": "Loan Scoring Model",
           "version": "2.1",
           "annex_iii_category": "essential_services"
         },
         "prev_hash": "0000000000",
-        "entry_hash": "e294b375ba95214d3ad27ec29282e3f857ffd6da03114a1c4fd09b14d16891c7"
+        "entry_hash": "96ffca43be322700b3ee97ad1927af4e349adc6ca337c2cc17c104bbf7be300e"
       },
       {
         "seq": 1,
         "event": "system.classified",
-        "timestamp": "2026-10-17T19:30:17.459261Z",
+        "timestamp": "2026-10-17T20:47:38.823841Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
           "annex_iii_self_classification_documented": true,
           "annex_iii_category": "essential_services"
         },
-        "prev_hash": "e294b375ba95214d3ad27ec29282e3f857ffd6da03114a1c4fd09b14d16891c7",
-        "entry_hash": "6d570849dd72ea48f31bfadeea5731ab7e41b9a1ee16ea0b490537b38b74c455"
+        "prev_hash": "96ffca43be322700b3ee97ad1927af4e349adc6ca337c2cc17c104bbf7be300e",
+        "entry_hash": "920f2989222a6e951b06d482931141a50b5a93b0f3e46795938a5fb4cda49fd0"
       },
       {
         "seq": 2,
         "event": "register.created",
-        "timestamp": "2026-10-17T19:30:17.637722Z",
+        "timestamp": "2026-10-17T20:47:38.984641Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
           "assessor_name": "Alice Chen",
           "assessor_role": "AI Governance Lead",
-          "review_date": "2027-10-12T19:30:17.635747+00:00"
+          "review_date": "2027-10-12T20:47:38.982512+00:00"
         },
-        "prev_hash": "6d570849dd72ea48f31bfadeea5731ab7e41b9a1ee16ea0b490537b38b74c455",
-        "entry_hash": "dace235b86b74233ca24f74457c06c818f3738cb24fa491774e491e0f5de18dd",
-        "register_fingerprint": "cf706596118325fbff4f8a84849a0cb332254f47a4586a14a03785dfd47fc903"
+        "prev_hash": "920f2989222a6e951b06d482931141a50b5a93b0f3e46795938a5fb4cda49fd0",
+        "entry_hash": "e3bab0ed097b6956ab6b0f309dbc3a29a0b65153aeff44f6b4befd37a54609d0",
+        "register_fingerprint": "3ec4a2883d344d097c849f6c2da0cdee493f4b111b53fc4f9d927efbffe25dd7"
       },
       {
         "seq": 3,
         "event": "risk_item.created",
-        "timestamp": "2026-10-17T19:30:17.657422Z",
+        "timestamp": "2026-10-17T20:47:39.003418Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
-          "risk_item_id": "646bec44-52cb-4507-9f76-9242c70dc5df",
+          "risk_item_id": "4e5d7138-e939-4a88-97c4-e06a7a0b8f08",
           "dimension": "discrimination",
           "score": 20
         },
-        "prev_hash": "dace235b86b74233ca24f74457c06c818f3738cb24fa491774e491e0f5de18dd",
-        "entry_hash": "f65a8985ec347bc4be35d958383f63c7d885d4188b732e7868d140d36c9b12cf",
-        "register_fingerprint": "20f4bc3c6893249b0c34d9e6c157ac1552a83deb24d239001423f2871025aa89"
+        "prev_hash": "e3bab0ed097b6956ab6b0f309dbc3a29a0b65153aeff44f6b4befd37a54609d0",
+        "entry_hash": "27471302726ce8051f99a5e67d086c05e940002a14ecf229114848dea846b6de",
+        "register_fingerprint": "6eed24a18c7e1634024236f409443743d7f77a48e22e06244dbfb5035191eb2a"
       },
       {
         "seq": 4,
         "event": "risk.accepted",
-        "timestamp": "2026-10-17T19:30:17.865541Z",
+        "timestamp": "2026-10-17T20:47:39.191413Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen, AI Governance Lead"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
-          "risk_item_id": "646bec44-52cb-4507-9f76-9242c70dc5df",
+          "risk_item_id": "4e5d7138-e939-4a88-97c4-e06a7a0b8f08",
           "old_accepted": false,
           "rationale_hash": "72e990650636afae",
           "actor": "Alice Chen, AI Governance Lead"
         },
-        "prev_hash": "f65a8985ec347bc4be35d958383f63c7d885d4188b732e7868d140d36c9b12cf",
-        "entry_hash": "0a5557f8fdc94205ff97175daec77e14669731e05f9ec82b2e13cf61b522825b",
-        "register_fingerprint": "8229a60ffb696fcc49a54b65530116fa3ad40cf1932ff3f3aafdfad89caee02e"
+        "prev_hash": "27471302726ce8051f99a5e67d086c05e940002a14ecf229114848dea846b6de",
+        "entry_hash": "f9cedd0ef74f00f98df9209f3069b5680985059867f47ba2758f6573c3425ef5",
+        "register_fingerprint": "3cdea27d907dc2a1029e376d906910bd2d393a3735b924bff601d3fb6e9f6652"
       },
       {
         "seq": 5,
         "event": "tests.generated",
-        "timestamp": "2026-10-17T19:30:18.046335Z",
+        "timestamp": "2026-10-17T20:47:39.356442Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+        "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
         "payload": {
           "count": 1,
           "risk_item_ids": [
-            "646bec44-52cb-4507-9f76-9242c70dc5df"
+            "4e5d7138-e939-4a88-97c4-e06a7a0b8f08"
           ]
         },
-        "prev_hash": "0a5557f8fdc94205ff97175daec77e14669731e05f9ec82b2e13cf61b522825b",
-        "entry_hash": "8ba3456eb9dd956e47db3a3376b3b231badfe83d29819d335e78265d10214553",
-        "register_fingerprint": "d3a2a7fecdf633cf3e83526122f8393a98a783b343ad356236f80c0be5e70db6"
+        "prev_hash": "f9cedd0ef74f00f98df9209f3069b5680985059867f47ba2758f6573c3425ef5",
+        "entry_hash": "5a4df81458b3e929170150d0c45a47e9d279538f58b3469cb6e502d24e9cc279",
+        "register_fingerprint": "dc93c4b03aa10f1010424b6df2941b31c282e20712036dab15b2973d12e73f06"
       }
     ]
   },
   "receipt": {
     "receipt_version": "1",
-    "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+    "system_id": "634ca9f5-b64f-4275-8469-fc4ddc8ddc14",
     "seq": 5,
-    "entry_hash": "8ba3456eb9dd956e47db3a3376b3b231badfe83d29819d335e78265d10214553",
-    "register_fingerprint": "d3a2a7fecdf633cf3e83526122f8393a98a783b343ad356236f80c0be5e70db6",
-    "issued_at": "2026-10-17T19:30:18.872362Z",
-    "key_id": "ed25519:2b84dc1c4fc5f4fa",
-    "public_key": "WWXlvEYFbahA6M6po4k0r82iFviXf5u8K3xr3uPL1XM=",
-    "signature": "TuOxVMizjt0inM+8fD0NRHPEgxJ0OqlWTdFC+Ib1mPNbNlbxk/KsjxaCn6cqAWsyn0GyzKzmozpdOBbSfpecCg=="
+    "entry_hash": "5a4df81458b3e929170150d0c45a47e9d279538f58b3469cb6e502d24e9cc279",
+    "register_fingerprint": "dc93c4b03aa10f1010424b6df2941b31c282e20712036dab15b2973d12e73f06",
+    "issued_at": "2026-10-17T20:47:39.725779Z",
+    "key_id": "ed25519:b7b5c4a19a859133",
+    "public_key": "MBbJzWXjm7pX/63P8jUIMByQJTMgg8W7yAj9QCciCYQ=",
+    "signature": "LMd7wAVJG28NUwc82b5MRrtc/OYfCxbqnxYAZ5qilSEQOKPJgBJhBf/CUmuW/UuIxZe+MIcQ5k8MxHae0nOHAg=="
   }
 }
 ```
@@ -701,7 +701,7 @@ make lint        # ruff check + format
 RiskForge makes **zero outbound network connections** in CLI mode. Your risk registers, architecture descriptions, mitigation plans, and audit logs remain strictly on your local machine.
 
 ```
-RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
+RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com
 ```
 
 *Zero-network guarantee enforced in automated CI via `pytest-socket --disable-socket`.*
@@ -712,7 +712,8 @@ RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
 
 | Version | Highlights |
 |---|---|
-| **[v1.1.3](https://github.com/aiexponent/riskforge/releases/tag/v1.1.3)** | Resilient dependency ranges, multi-OS CI runner matrix (Ubuntu/macOS) with WeasyPrint test coverage, 5-tool reciprocal ecosystem footer, flat-square badges & Dependabot. |
+| **[v2.0.0](https://github.com/aiexponent/riskforge/releases/tag/v2.0.0)** | Interactive assess works; verify catches edited registers, cut or deleted logs and deleted files; atomic writes under one project lock; Ed25519 signing, receipts and RMF schema 1.1.0; a styled PDF with the full structure; one-line errors with exit code 3; a supported Python API. Breaking: GPG signing, the `serve` command and the Docker image are gone, and RiskForge 1.x cannot verify a project 2.0.0 has changed. |
+| [v1.1.3](https://github.com/aiexponent/riskforge/releases/tag/v1.1.3) | Resilient dependency ranges, multi-OS CI runner matrix (Ubuntu/macOS) with WeasyPrint test coverage, 5-tool reciprocal ecosystem footer, flat-square badges & Dependabot. |
 | [v1.1.2](https://github.com/aiexponent/riskforge/releases/tag/v1.1.2) | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
 | [v1.1.1](https://github.com/aiexponent/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |
 | [v1.1.0](https://github.com/aiexponent/riskforge/releases/tag/v1.1.0) | Release-hardening pass: six correctness fixes, O(n) audit append, worked examples with a determinism check, a full user guide, benchmarks, and single-source versioning. |
