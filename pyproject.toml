@@ -115,7 +115,8 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--strict-markers --disable-socket --allow-unix-socket"
+addopts = "--strict-markers --disable-socket --allow-unix-socket -m 'not release'"
+markers = ["release: needs the network; run only by the release workflow"]
 
 [tool.coverage.run]
 source = ["riskforge"]
