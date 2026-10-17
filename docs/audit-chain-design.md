@@ -343,8 +343,10 @@ These are questions for the provider, not for an algorithm.
 - No key rotation or revocation. RiskForge keeps no list of retired or compromised
   keys, so a signature made with a leaked key still verifies. `--trusted-key`
   trusts exactly the keys you pass: stop passing a compromised key, and sign new
-  exports and receipts with a new key from `riskforge keygen`. The private key
-  file is not encrypted.
+  exports and receipts with a new key from `riskforge keygen`. Entries, exports and
+  receipts signed with a key you no longer pass then fail the trusted-key checks
+  (exit 2), and a key you keep passing keeps its old signatures trusted. The private
+  key file is not encrypted.
 - Concurrent writers are serialized on one machine. A project on a network file system,
   or copied between machines and changed on both, can fork; `verify` then exits 2.
 - A disk that acknowledges writes before they are durable can lose the last change

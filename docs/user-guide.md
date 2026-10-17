@@ -120,7 +120,7 @@ riskforge export <system-id> --format pdf --output rmf.pdf
 # 9. Take a receipt and keep it outside the project
 riskforge receipt <system-id> --output receipt-2026-q4.json
 
-# 10. Verify later (exit 2 on any finding; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
+# 10. Verify later (exit 2 on integrity findings; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
 riskforge verify
 riskforge verify --file rmf.json --trusted-key ~/.config/riskforge/signing.pem.pub
 riskforge verify --receipt receipt-2026-q4.json

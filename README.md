@@ -114,7 +114,7 @@ riskforge export <system-id> --format pdf --output rmf.pdf
 mkdir -p ~/riskforge-receipts
 riskforge receipt <system-id> --output ~/riskforge-receipts/loan-scoring.json
 
-# 10. Verify any time (exit 2 on any finding; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
+# 10. Verify any time (exit 2 on integrity findings; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
 riskforge verify
 riskforge verify --file rmf.json --trusted-key ~/.config/riskforge/signing.pem.pub
 riskforge verify --receipt ~/riskforge-receipts/loan-scoring.json
