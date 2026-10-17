@@ -24,6 +24,10 @@ class GateResult:
     details: str = field(default="")
 
 
+# Re-scoring the residual with `risk mitigate` clears G3; a mitigation alone does not.
+_G3 = "Every risk's residual score at or below the risk-appetite threshold, or accepted"
+
+
 class ValidateEngine:
     """Pre-export readiness checks.
 
@@ -79,12 +83,12 @@ class ValidateEngine:
         if open_items:
             return GateResult(
                 "G3",
-                "All high-scoring risks mitigated or accepted",
+                _G3,
                 GateStatus.FAIL,
-                f"{len(open_items)} risk(s) above threshold not accepted or mitigated: "
-                + ", ".join(str(i.id)[:8] for i in open_items),
+                f"{len(open_items)} risk(s) with a residual score above the risk-appetite "
+                "threshold and not accepted: " + ", ".join(str(i.id)[:8] for i in open_items),
             )
-        return GateResult("G3", "All high-scoring risks mitigated or accepted", GateStatus.PASS)
+        return GateResult("G3", _G3, GateStatus.PASS)
 
     def _gate_knowledge_gaps_have_tests(self, r: RiskRegister) -> GateResult:
         covered = {requirement.risk_item_id for requirement in r.test_requirements}
