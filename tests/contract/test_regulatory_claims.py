@@ -19,6 +19,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 FORBIDDEN: dict[str, str] = {
     "HB 1709": "Texas bill that never became law; the enacted statute is HB 149 (TRAIGA).",
     "HB1709": "Texas bill that never became law; the enacted statute is HB 149 (TRAIGA).",
+    "mathematically prove": "No tool proves compliance; RiskForge produces evidence.",
+    "8 statutory risk dimensions": "The 8 dimensions are RiskForge's structure, not the statute's.",
+    "Provisional Enforcement Deadline": "Superseded wording; the README states the dates as law.",
+    "Signed PDF": "RiskForge signs the JSON export, not the PDF.",
+    "Art. 9(10)<br/>Documentation": "Removed mapping; see docs/article-9-mapping.md.",
 }
 
 
@@ -47,7 +52,7 @@ def test_no_forbidden_citations() -> None:
 
     problems: list[str] = []
     for doc in _doc_files():
-        text = doc.read_text(encoding="utf-8")
+        text = " ".join(doc.read_text(encoding="utf-8").split())
         for bad, reason in FORBIDDEN.items():
             if bad in text:
                 rel = doc.relative_to(REPO_ROOT)
