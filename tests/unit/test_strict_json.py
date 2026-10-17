@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 from riskforge.integrity.strict_json import (
@@ -83,6 +84,16 @@ def test_nesting_up_to_the_limit_reads() -> None:
 def test_brackets_inside_strings_do_not_count_as_nesting() -> None:
     text = json.dumps({"note": "[" * 500 + '{\\"' * 100, "x": ["]]]}}}"]})
     assert loads_strict(text) == json.loads(text)
+
+
+def test_an_unterminated_string_is_scanned_in_linear_time() -> None:
+    """Every quote here opens a string that never closes. Rescanning each one to the
+    end of the text took about a minute; a linear scan takes milliseconds."""
+    text = '"' + '\\"' * 100_000 + "[" * (MAX_DEPTH + 1)
+    started = time.perf_counter()
+    with pytest.raises(ValueError):
+        loads_strict(text)
+    assert time.perf_counter() - started < 2
 
 
 def test_many_shallow_brackets_read() -> None:

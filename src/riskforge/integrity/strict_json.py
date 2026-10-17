@@ -22,8 +22,9 @@ from typing import Any
 MAX_DEPTH = 64
 
 # A JSON string, or one bracket outside strings. Exact for valid JSON, where a quote
-# outside a string always opens one.
-_STRING_OR_BRACKET = re.compile(r'"[^"\\]*(?:\\.[^"\\]*)*"|[\[\]{}]', re.DOTALL)
+# outside a string always opens one. An unterminated string runs to the end of the
+# text, so each quote is scanned once and the scan stays linear.
+_STRING_OR_BRACKET = re.compile(r'"[^"\\]*(?:\\.[^"\\]*)*(?:"|\\?\Z)|[\[\]{}]', re.DOTALL)
 
 
 class StrictJsonError(ValueError):
