@@ -21,13 +21,22 @@ def cmd(
         "--sign",
         help="Ed25519 private key file to sign the export with (create one with riskforge keygen)",
     ),
+    public_key: Optional[list[Path]] = typer.Option(
+        None,
+        "--public-key",
+        help=(
+            "Ed25519 public key file (PEM) of a key that signed audit entries in this "
+            "project, embedded so the chain proof can be checked. Repeatable."
+        ),
+    ),
     force: bool = typer.Option(False, "--force", help="Export even if a validation gate fails"),
 ) -> None:
     """Export the Risk Management File to JSON, PDF or Markdown.
 
     Every format of one register state shows the same content digest (SHA-256). The file
     embeds a chain proof (the project audit log up to the export) and a receipt for its
-    last entry, and with --sign an Ed25519 signature and its public key. The file is
+    last entry, and with --sign an Ed25519 signature and its public key. An audit entry
+    signed outside the CLI needs its public key given with --public-key. The file is
     written in full, with mode 600 on Linux and macOS, before the export is recorded in
     the audit log as rmf.exported. A register last written by an older RiskForge is first
     rewritten in the current format, recorded as register.checkpoint; no value changes.
@@ -39,7 +48,8 @@ def cmd(
       2: the project failed its integrity check; nothing was written
       3: no project or no such system, unknown format, the output directory is missing
          or cannot be written, the output path is a directory or lies inside .riskforge/
-         or is riskforge.yaml, or the --sign key file is refused
+         or is riskforge.yaml, the --sign or --public-key key file is refused, or a
+         signed audit entry has no --public-key
     """
     import asyncio
     import uuid
@@ -49,6 +59,7 @@ def cmd(
     from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
     from riskforge.cli.project import (
         load_signer,
+        load_trusted_keys,
         open_project,
         print_integrity_warnings,
         print_refusal,
@@ -76,6 +87,7 @@ def cmd(
             param_hint="'--format' / '-f'",
         )
     signer = load_signer(sign) if sign is not None else None
+    public_keys = load_trusted_keys(public_key or [])
     store = open_project(project_dir)
     export_id = uuid.uuid4()
     if output is None:
@@ -90,7 +102,13 @@ def cmd(
                 print_integrity_warnings(report)
             await read_register_or_fail(store, system_id)
             return await engine.export(
-                system_id, fmt, output, force=force, signer=signer, export_id=export_id
+                system_id,
+                fmt,
+                output,
+                force=force,
+                signer=signer,
+                export_id=export_id,
+                public_keys=public_keys,
             )
 
     try:

@@ -343,6 +343,44 @@ def test_verify_checks_signed_audit_entries_with_trusted_keys(tmp_path: Path) ->
     assert "not a trusted key" in untrusted.output
 
 
+def test_export_embeds_the_public_keys_of_signed_audit_entries(tmp_path: Path) -> None:
+    """A project with entries signed through the engine exports once their keys are given."""
+    from riskforge.engine.audit import AuditEngine
+    from riskforge.engine.risk import RiskEngine
+    from riskforge.engine.system import SystemEngine
+    from riskforge.integrity.signing import Ed25519Signer
+    from riskforge.models.audit import AuditActor
+    from riskforge.models.system import AISystem
+    from riskforge.storage.filesystem import FileStore
+
+    key = _keygen(tmp_path / "k.pem")
+    project = tmp_path / "p"
+
+    async def build() -> str:
+        store = FileStore(project)
+        await store.init_project("p", {})
+        audit = AuditEngine(
+            store, AuditActor(type="api", identity="server"), signer=Ed25519Signer.from_file(key)
+        )
+        system = AISystem(name="S", version="1", purpose="credit scoring", provider_name="P")
+        await SystemEngine(store, audit).create(system)
+        await RiskEngine(store, audit).create_register(str(system.id), "A", "B")
+        return str(system.id)
+
+    sid = asyncio.run(build())
+    out = tmp_path / "rmf.json"
+    refused = _rf(project, "export", sid, "--force", "--output", str(out))
+    assert refused.returncode == 3, refused.output
+    assert "--public-key" in refused.output
+    assert not out.exists()
+    exported = _rf(
+        project, "export", sid, "--force", "--output", str(out), "--public-key", f"{key}.pub"
+    )
+    assert exported.returncode == 0, exported.output
+    checked = _rf(project, "verify", "--file", str(out))
+    assert checked.returncode == 0, checked.output
+
+
 def test_receipt_fingerprint_that_differs_from_the_chain_exits_2(tmp_path: Path) -> None:
     project = tmp_path / "p"
     sid = _seed(project)

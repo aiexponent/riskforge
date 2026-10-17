@@ -175,7 +175,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks and save them on the register. Run it before `export`: the export carries the saved requirements. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
-| `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
+| `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--public-key PUBFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone exported RMF with `--file` (see [Verifying an exported file](#verifying-an-exported-file)). `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
@@ -221,6 +221,11 @@ export carries the signature in `signatures` and the public key in `public_keys`
 receipt is signed with the same key. RiskForge no longer signs with GPG: a value that is
 not a key file, such as a GPG key id, exits 3 and nothing is written. On Linux and macOS
 a key file that its group or other users can read is refused (`chmod 600 FILE`).
+
+The free CLI does not sign audit entries, but a project written through the Python API
+can hold entries signed by another key. The export embeds the public key of every signed
+entry in its chain proof, so give each one with `--public-key PUBFILE` (repeatable). Without
+it the export exits 3, names the entry, and writes nothing.
 
 ### Who accepted a risk or recorded a mitigation
 
@@ -308,7 +313,7 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | 0 | Success or valid |
 | 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
 | 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, a signed audit entry whose key no `--public-key` gives, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.

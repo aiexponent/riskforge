@@ -463,7 +463,8 @@ class ExportEngine:
             if key is None:
                 raise MissingPublicKeyError(
                     f"Audit entry seq {entry.seq} is signed by {entry.key_id}, and the export "
-                    "was not given that public key, so its chain proof could not be checked."
+                    "was not given that public key, so its chain proof could not be checked. "
+                    "Give it with --public-key PUBFILE."
                 )
             if not verify_signature(
                 key, entry_signing_message(entry.entry_hash), entry.signature or ""
