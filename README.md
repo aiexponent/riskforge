@@ -114,7 +114,7 @@ riskforge export <system-id> --format pdf --output rmf.pdf
 mkdir -p ~/riskforge-receipts
 riskforge receipt <system-id> --output ~/riskforge-receipts/loan-scoring.json
 
-# 10. Verify any time (exit 2 if anything was altered)
+# 10. Verify any time (exit 2 on integrity findings; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
 riskforge verify
 riskforge verify --file rmf.json --trusted-key ~/.config/riskforge/signing.pem.pub
 riskforge verify --receipt ~/riskforge-receipts/loan-scoring.json
@@ -130,7 +130,7 @@ riskforge verify --receipt ~/riskforge-receipts/loan-scoring.json
 
 | Evaluation Method | Cost | Deterministic / Repeatable? | Offline / Zero-Telemetry? |
 | :--- | :--- | :--- | :--- |
-| **Big 4 Consulting** | Paid engagement per system | ❌ No (Advisory opinion) | ❌ No (NDAs & data sharing) |
+| **Big 4 Consulting** | Paid engagement per system | ❌ No (Advisory opinion) | ⚠️ Depends on the engagement |
 | **Enterprise GRC Platforms** | Annual license | ⚠️ Partial | ⚠️ Depends on the product and deployment |
 | **Internal Spreadsheets** | "Free" | ❌ No (Human error) | ⚠️ Manual |
 | **RiskForge** | **Free (Apache 2.0)** | **✅ Yes (Deterministic hash)** | **✅ Yes (100% offline, zero network)** |
@@ -626,8 +626,8 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | Feature | Detail |
 |---|---|
 | **Offline-first** | Zero outbound calls after `pip install`, enforced by `pytest-socket` CI gate |
-| **Hash-chained audit** | Every change and its audit entry are committed together under a file lock, with a fingerprint of the register; `riskforge verify` exits 2 when the chain, a register or a file was altered |
-| **Signed exports and receipts** | Ed25519 keys from `riskforge keygen`; `verify --file` checks the digest, signatures and chain proof; a receipt kept outside the project catches a rewritten chain |
+| **Hash-chained audit** | Every change and its audit entry are committed together under a file lock, with a fingerprint of the register; `riskforge verify` exits 2 when the chain, a register or a file was altered, unless the chain and head file were recomputed to match; a receipt catches that for the entries it covers |
+| **Signed exports and receipts** | Ed25519 keys from `riskforge keygen`; `verify --file` checks the digest, signatures and chain proof; a receipt kept outside the project catches a rewrite of any entry up to the receipt's entry |
 | **Schema-validated exports** | Every export is validated against the bundled RMF schema 1.1.0 (`$id` `https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json`) before it is written |
 | **PDF export** | WeasyPrint + Jinja2, no LibreOffice or `wkhtmltopdf` required |
 | **Pattern matching** | 7 pre-built risk patterns, each tied to its high-risk route. Six name the Annex III point they cover: credit scoring (5(b)), recruitment and CV screening (4(a)), remote biometric identification (1(a)), assessment of learning outcomes (3(b)), asylum, visa and residence applications (7(c)), and offending risk assessment (6(d)). One covers medical diagnosis and clinical decision support, high-risk under Art. 6(1) where the AI system is, or is a safety component of, a medical device covered by Annex I that must undergo a third-party conformity assessment |
@@ -712,7 +712,7 @@ RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com
 
 | Version | Highlights |
 |---|---|
-| **[v2.0.0](https://github.com/aiexponent/riskforge/releases/tag/v2.0.0)** | Interactive assess works; verify catches edited registers, cut or deleted logs and deleted files; atomic writes under one project lock; Ed25519 signing, receipts and RMF schema 1.1.0; a styled PDF with the full structure; one-line errors with exit code 3; a supported Python API and storage contract suite. Breaking: GPG signing, the `serve` command and the Docker image are gone, and RiskForge 1.x cannot verify a project 2.0.0 has changed. |
+| **[v2.0.0](https://github.com/aiexponent/riskforge/releases/tag/v2.0.0)** | Interactive assess works; verify catches edited registers, cut or deleted logs and deleted files; atomic writes under one project lock; Ed25519 signing, receipts and RMF schema 1.1.0; a styled PDF with the full structure; one-line errors with exit code 3; a supported Python API and storage contract suite. Breaking: GPG signing, the `serve` command and the Docker image are gone. RiskForge 1.x reports a project 2.0.0 has changed as tampered (exit 2), and `verify --file` in 1.1.x reports a 2.0.0 JSON export the same way: upgrade every machine and every reviewer together, do not downgrade, and see the upgrade note in CHANGELOG.md. |
 | [v1.1.3](https://github.com/aiexponent/riskforge/releases/tag/v1.1.3) | Resilient dependency ranges, multi-OS CI runner matrix (Ubuntu/macOS) with WeasyPrint test coverage, 5-tool reciprocal ecosystem footer, flat-square badges & Dependabot. |
 | [v1.1.2](https://github.com/aiexponent/riskforge/releases/tag/v1.1.2) | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
 | [v1.1.1](https://github.com/aiexponent/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |

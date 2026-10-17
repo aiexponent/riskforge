@@ -8,7 +8,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [2.0.0] - 2026-10-18
 
-Upgrade note: do not downgrade a project. Once RiskForge 2.0.0 has changed a project, `riskforge verify` in RiskForge 1.1.3 reports its audit log as corrupt (exit 2, `entry_hash mismatch` from the first entry that carries `register_fingerprint`), and so do releases 1.0.0 to 1.1.2. Upgrade every machine that works on a project at the same time. Projects and RMF files written by 1.1.3 keep verifying under 2.0.0.
+Upgrade note: do not downgrade a project. Once RiskForge 2.0.0 has changed a project, `riskforge verify` in RiskForge 1.1.3 reports its audit log as corrupt (exit 2, `entry_hash mismatch` from the first entry that carries `register_fingerprint`), and so do releases 1.0.0 to 1.1.2. Upgrade every machine that works on a project at the same time. Back up `.riskforge/` before the first 2.0.0 command. Projects and RMF files written by 1.1.3 keep verifying under 2.0.0.
 
 ### Breaking changes
 
