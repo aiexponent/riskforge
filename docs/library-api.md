@@ -257,7 +257,8 @@ payload of the second stored audit entry and leaves everything else as it was, a
 `drop_last_audit_entry` deletes the last audit entry and leaves the head as it was. The
 suite reads the data back to confirm each hook changed what it should.
 `make_second_handle` opens a second store on the same data, as another worker would. It is
-optional: without it, the test of writers on two handles is skipped and says why.
+optional: without it, both checks that need a second handle (writers on two handles, and
+a head kept per handle) are skipped and say why.
 
 Each test uses one system and drives the store through `SystemEngine`, `RiskEngine`,
 `AuditEngine` and `check_integrity`. The suite checks that:
@@ -280,7 +281,10 @@ Each test uses one system and drives the store through `SystemEngine`, `RiskEngi
 - `check_integrity` fails after `tamper_register` with a finding that the register "was
   changed outside RiskForge", after `tamper_audit` with an `entry_hash mismatch` finding
   for seq 1, and after `drop_last_audit_entry` with a finding that "entries were removed
-  from the end".
+  from the end";
+- when `make_second_handle` is given, a second handle opened after `drop_last_audit_entry`
+  also reports that "entries were removed from the end", so a head kept only in one
+  handle's memory fails.
 
 `check_integrity` recomputes the audit chain from the entries `read_audit` returns, as well
 as calling the backend's `verify_chain()`, so the suite's chain findings do not depend on

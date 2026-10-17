@@ -112,11 +112,14 @@ class StorageContract:
     async def make_second_handle(self, storage: StorageBackend) -> StorageBackend:
         """Open a second store on the data of ``storage``, as another worker would.
 
-        Optional. Without it the test of writers on two handles is skipped.
+        Optional. Without it two checks are skipped: writers on two handles of one store,
+        and a head kept per handle instead of with the stored data (a second handle must
+        see entries removed from the end of the log).
         """
         pytest.skip(
-            "make_second_handle is not implemented, so writers on two handles of one store "
-            "were not tested"
+            "make_second_handle is not implemented, so both second-handle checks were "
+            "skipped: writers on two handles of one store, and a head kept per handle "
+            "(a second handle must see entries removed from the end)"
         )
 
     async def _seeded(

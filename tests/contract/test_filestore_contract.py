@@ -63,8 +63,14 @@ async def test_a_backend_that_skips_a_hook_fails_loudly(hook: str, tmp_path: Pat
         await getattr(contract, hook)(*arguments)
 
 
-async def test_a_backend_without_a_second_handle_skips_that_test_and_says_why() -> None:
-    with pytest.raises(pytest.skip.Exception, match="make_second_handle"):
+async def test_a_backend_without_a_second_handle_skips_both_checks_and_says_why() -> None:
+    with pytest.raises(
+        pytest.skip.Exception,
+        match=(
+            r"make_second_handle is not implemented, so both second-handle checks were "
+            r"skipped: writers on two handles of one store, and a head kept per handle"
+        ),
+    ):
         await StorageContract().make_second_handle(None)
 
 
