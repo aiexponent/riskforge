@@ -139,8 +139,11 @@ to be set up, run, written down, and kept up to date.
   is diffable and reviewable in git rather than living inside a Word document
   no one re-opens.
 - Stamps every state mutation into an append-only audit log
-  (`audit.jsonl`), together with a fingerprint of the register it produced;
-  see `docs/audit-chain-design.md`.
+  (`audit.jsonl`). An entry written while the system has a register carries a
+  fingerprint of that register after the change. An entry written before the
+  system has one, such as the `system.created` entry, carries none. See
+  `docs/audit-chain-design.md` and
+  [ADR-03](adr/ADR-03-register-fingerprints-and-integrity-check.md).
 - Produces a **Risk Management File (RMF)** as JSON, Markdown, and PDF via
   `riskforge export`. The RMF is the "documented" artefact Article 9(1)
   refers to.

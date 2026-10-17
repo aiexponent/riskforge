@@ -69,7 +69,8 @@ characters):
   CLI does not authenticate it.
 - `register_fingerprint` is the SHA-256 of the canonical JSON (section 2.3) of the
   system's stored `register.yaml` after the change, read back with `yaml.safe_load`.
-  Entries written by RiskForge 1.1 do not have it.
+  Entries written by RiskForge 1.1 do not have it, and neither do entries written
+  before the system has a register, such as `system.created`.
 - `key_id` and `signature` appear only on entries signed by a program that gives
   `AuditEngine` a signing key (section 2.6). The CLI does not sign entries.
 
