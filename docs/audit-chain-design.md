@@ -340,8 +340,15 @@ These are questions for the provider, not for an algorithm.
   engine from Python can give `AuditEngine` a signing key and an authenticated identity;
   `verify --trusted-key` then checks those signatures, and `export --public-key` embeds
   their public keys in the export's `public_keys` block.
+- No key rotation or revocation. RiskForge keeps no list of retired or compromised
+  keys, so a signature made with a leaked key still verifies. `--trusted-key`
+  trusts exactly the keys you pass: stop passing a compromised key, and sign new
+  exports and receipts with a new key from `riskforge keygen`. The private key
+  file is not encrypted.
 - Concurrent writers are serialized on one machine. A project on a network file system,
   or copied between machines and changed on both, can fork; `verify` then exits 2.
+- A disk that acknowledges writes before they are durable can lose the last change
+  on power loss.
 
 ---
 

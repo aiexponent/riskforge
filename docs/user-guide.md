@@ -120,7 +120,7 @@ riskforge export <system-id> --format pdf --output rmf.pdf
 # 9. Take a receipt and keep it outside the project
 riskforge receipt <system-id> --output receipt-2026-q4.json
 
-# 10. Verify later (exit 2 if anything was altered)
+# 10. Verify later (exit 2 on any finding; plain verify misses a log rewritten to match its head file, --receipt catches it up to the receipt)
 riskforge verify
 riskforge verify --file rmf.json --trusted-key ~/.config/riskforge/signing.pem.pub
 riskforge verify --receipt receipt-2026-q4.json
@@ -132,6 +132,10 @@ The Annex III category is one of: `biometric`, `critical_infrastructure`,
 pattern (for example, `employment` + "hiring/resume/screening" triggers the hiring
 pattern), whose risk items are added for your confirmation. A keyword matches the
 start of a word or phrase in the purpose, so "credit" matches "Creditworthiness".
+Keywords are English, with accents folded, so a purpose written in another
+language may match no pattern. A missing pattern says nothing about whether the
+system is high-risk: every question is asked whatever the category, and the
+Article 6 classification stays yours.
 The medical diagnosis pattern follows the Article 6(1) route (an AI system that
 is, or is a safety component of, a product covered by the Annex I legislation and
 that is required to undergo a third-party conformity assessment: Art.6(1)(a) and
@@ -488,6 +492,8 @@ rely on a file, check it with `--trusted-key` or `--receipt`.
 Only the JSON export can be checked this way. To check a PDF or Markdown export,
 compare the digest it shows with a verified JSON export of the same register, or hash
 the file and compare with `file_sha256` in the audit log.
+The PDF is not tagged for accessibility, and text in a script that no installed
+font covers may not render; the JSON export is the file to rely on.
 
 The PDF renders the same data in seven parts: a cover with a three-number summary
 and the content digest, an executive summary ending with the disclosure, the
