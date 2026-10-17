@@ -251,6 +251,27 @@ async def test_ok_without_a_trusted_key_means_internally_consistent_only(tmp_pat
     assert rf.check_rmf_document(rf.read_rmf_file(genuine), trusted_keys=trusted).verified
 
 
+async def test_a_1_0_0_file_is_never_verified_even_when_trust_is_not_required(
+    tmp_path: Path,
+) -> None:
+    # A 1.0.0 file carries no signature, so no trusted key can have signed it. An edited
+    # one with a recomputed digest is consistent, and must still not count as verified.
+    owner = tmp_path / "owner" / "signing.pem"
+    owner.parent.mkdir()
+    rf.write_key_pair(owner)
+    trusted = [rf.load_public_key_b64(_public_key_file(owner))]
+    document = rf.read_rmf_file(REPO / "tests" / "fixtures" / "v1_1_3_project" / "rmf.json")
+    assert document["rmf_schema_version"] == "1.0.0"
+    document["register"]["items"][0]["severity"] = 1
+    document["sha256_hash"] = rf.content_digest(document)
+
+    lax = rf.check_rmf_document(document, trusted_keys=trusted, trust_required=False)
+    assert lax.ok, lax.findings
+    assert not lax.trusted_key_checked
+    assert not lax.verified
+    assert not rf.check_rmf_document(document, trusted_keys=trusted).verified
+
+
 async def test_the_strict_readers_refuse_a_duplicate_key(tmp_path: Path) -> None:
     key = tmp_path / "signing.pem"
     rf.write_key_pair(key)

@@ -60,6 +60,8 @@ def read_private_key_file(path: Path) -> bytes:
     ``KeyFileError`` when the file is missing (``KeyFileNotFoundError``), unreadable or
     not a regular file, and on POSIX systems when it is a symbolic link or its group or
     other users have any access to it. A FIFO is refused without waiting for a writer.
+    The symbolic-link check covers the last part of the path only, and Windows gets
+    neither the link nor the mode check.
     """
     # One open: the mode check and the read use the same descriptor, so the file cannot be
     # swapped in between. O_NOFOLLOW refuses a symlink; O_NONBLOCK keeps a FIFO from
@@ -164,7 +166,7 @@ def write_key_pair(private_path: Path) -> str:
     for path in (private_path, public_path):
         if path.exists() or path.is_symlink():
             raise KeyFileError(
-                f"{path} already exists. RiskForge never overwrites a key; choose another --output."
+                f"{path} already exists. RiskForge never overwrites a key; choose another path."
             )
     private_pem, public_pem, public_b64 = _new_key_pair()
     created: list[Path] = []
@@ -188,7 +190,7 @@ def write_key_pair(private_path: Path) -> str:
         if isinstance(exc, FileExistsError):
             raise KeyFileError(
                 f"{exc.filename} already exists. RiskForge never overwrites a key; "
-                "choose another --output."
+                "choose another path."
             ) from exc
         if isinstance(exc, OSError):
             raise KeyFileError(f"Cannot write key file: {exc.strerror or exc}") from exc

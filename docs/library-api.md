@@ -102,8 +102,9 @@ every change in the audit chain inside one unit of work.
   `check_rmf_document` with the same keys and receipts is the check `riskforge verify
   --file FILE --trusted-key PUBFILE --receipt RECEIPT` runs.
 - `RmfCheck`: `findings` lists each failure and `notes` say what a pass proves.
-  `verified` is True when nothing failed and trusted keys were given, so a trusted key
-  signed the file. This is when `riskforge verify --file` prints "RMF integrity
+  `verified` is True when nothing failed and a schema 1.1.0 file was checked against
+  trusted keys, so a trusted key signed it. A schema 1.0.0 file carries no signature
+  and is never `verified`. This is when `riskforge verify --file` prints "RMF integrity
   verified". `ok` is True when nothing failed. Without trusted keys, `ok` means only
   that the file is internally consistent: anyone can build a file with its own chain
   proof, receipt and signatures from a key of their own, and it passes. Check

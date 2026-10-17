@@ -164,8 +164,9 @@ class RmfCheck:
     """What ``check_rmf_document`` found; ``findings`` empty means the file passed.
 
     ``notes`` say what was checked and what a pass proves, such as a signature verified
-    only with the key embedded in the file. ``trusted_key_checked`` is whether trusted
-    keys were given; a pass then means a trusted key signed the file. Without them a
+    only with the key embedded in the file. ``trusted_key_checked`` is whether a 1.1.0
+    file was checked against trusted keys; a pass then means a trusted key signed it.
+    A 1.0.0 file carries no signature, so it is never checked against a trusted key. Without them a
     pass shows only that the file is consistent with itself, and the last note says so.
     ``verified`` is the rule ``riskforge verify --file`` uses to print "RMF integrity
     verified" rather than "RMF file is internally consistent".
@@ -272,7 +273,8 @@ def check_rmf_document(
         schema_errors=invalid,
         findings=findings,
         notes=notes,
-        trusted_key_checked=bool(trusted),
+        # A 1.0.0 file carries no signature, so no trusted key can have signed it.
+        trusted_key_checked=bool(trusted) and version != "1.0.0",
     )
 
 
