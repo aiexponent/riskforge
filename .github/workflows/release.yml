@@ -49,6 +49,10 @@ jobs:
       - name: Run the full test suite
         run: pytest --cov
 
+      - name: Check the schemas published on aiexponent.com
+        # The schemas' $id values are these URLs; the hosted files must match the package byte for byte.
+        run: pytest -m release tests/release -p no:cacheprovider
+
       - name: Build wheel + sdist
         run: python -m build
 
