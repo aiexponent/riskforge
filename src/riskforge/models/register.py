@@ -17,7 +17,7 @@ class RiskRegister(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     system: AISystem
     items: list[RiskItem] = Field(default_factory=list)
-    risk_appetite_threshold: int = 9  # scores > threshold require mitigation/acceptance
+    risk_appetite_threshold: int = 9  # a residual score above it must be lowered or accepted
     assessor_name: str
     assessor_role: str
     assessment_date: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -39,7 +39,11 @@ class RiskRegister(BaseModel):
         return {item.dimension for item in self.items}
 
     def open_items(self) -> list[RiskItem]:
-        """Risk items above appetite threshold that are neither mitigated nor accepted."""
+        """Risk items whose residual score is above the appetite threshold, not accepted.
+
+        Adding a mitigation does not remove an item; re-scoring its residual at or below
+        the threshold does.
+        """
         return [
             i
             for i in self.items

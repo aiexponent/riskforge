@@ -6,7 +6,8 @@ dimensions, score and treat each risk, and export a tamper-evident **Risk
 Management File** (RMF) shaped for an Annex IV technical documentation pack.
 
 RiskForge is not legal advice and not a notified-body conformity assessment. Every
-export carries a non-removable disclosure to that effect.
+export carries a disclosure to that effect that RiskForge always includes and no option
+removes; it is part of the content digest.
 
 ---
 
@@ -59,7 +60,12 @@ test suite with `pytest-socket`.
 - **Risk Management File (RMF).** The export artefact, in JSON, PDF, or Markdown,
   carrying a SHA-256 self-verifying digest and a link to the audit chain.
 - **Audit chain.** Every state change is written to an append-only, SHA-256
-  hash-chained log, so tampering is detectable with `riskforge verify`.
+  hash-chained log together with a fingerprint of the register it produced, so an
+  edit to the log or to the register is detectable with `riskforge verify`, unless
+  the editor also recomputes the chain and the head file (see Receipts).
+- **Signing key and receipt.** `riskforge keygen` creates an Ed25519 key that signs
+  JSON exports and receipts. A receipt names the last audit entry; kept outside the
+  project, it shows later that the log up to that entry was not cut back or rewritten.
 
 The 8 dimensions and their shipped question counts (37 total): health_safety (6),
 privacy (5), robustness (5), data_governance (5), discrimination (4),
@@ -97,15 +103,27 @@ riskforge risk mitigate <system-id> <risk-id> \
 riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
   --by "Dr. Lena Fischer, AI Governance Lead"
 
-# 5. Check readiness (exit 1 if a FAIL gate is unmet)
+# 5. Save test requirements for knowledge-gap risks and risks scoring 9 or more (clears gate G4)
+riskforge tests generate <system-id>
+
+# 6. Check readiness (exit 1 if a FAIL gate is unmet)
 riskforge validate <system-id>
 
-# 6. Export the RMF
-riskforge export <system-id> --format pdf --output rmf.pdf
-riskforge export <system-id> --format json --output rmf.json
+# 7. Create a signing key once, outside the project (keygen never overwrites a file)
+mkdir -p ~/.config/riskforge
+riskforge keygen --output ~/.config/riskforge/signing.pem
 
-# 7. Verify integrity later (exit 2 if tampered)
-riskforge verify --file rmf.json
+# 8. Export the RMF, signing the JSON
+riskforge export <system-id> --format json --output rmf.json --sign ~/.config/riskforge/signing.pem
+riskforge export <system-id> --format pdf --output rmf.pdf
+
+# 9. Take a receipt and keep it outside the project
+riskforge receipt <system-id> --output receipt-2026-q4.json
+
+# 10. Verify later (exit 2 if anything was altered)
+riskforge verify
+riskforge verify --file rmf.json --trusted-key ~/.config/riskforge/signing.pem.pub
+riskforge verify --receipt receipt-2026-q4.json
 ```
 
 The Annex III category is one of: `biometric`, `critical_infrastructure`,
@@ -139,7 +157,7 @@ add_patterns: true          # inject matched Annex III patterns (default true)
 answers:
   PR-001: { applies: yes, likelihood: 4, severity: 5 }   # yes | no | unknown | skip
   HS-001: { applies: unknown }        # knowledge gap (uses the question's hints)
-  DISC-001: { applies: no }           # not applicable
+  DI-001: { applies: no }             # not applicable
   # questions omitted from the file default to "skip"
 ```
 
@@ -173,10 +191,11 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
-| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from open and knowledge-gap risks and save them on the register. Run it before `export`: the export carries the saved requirements. |
+| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register. Run it before `export`: the export carries the saved requirements. |
 | `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--public-key PUBFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone exported RMF with `--file` (see [Verifying an exported file](#verifying-an-exported-file)). `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
+| `riskforge keygen --output KEYFILE` | Create an Ed25519 key pair: `KEYFILE` (mode 600 on Linux and macOS, not encrypted) and `KEYFILE.pub`. Never overwrites a file. |
 | `riskforge receipt <id> [-o FILE] [--sign KEYFILE]` | Take a receipt for the last audit entry, to keep outside the project. |
 | `riskforge diff <id> BASELINE.json COMPARISON.json` | Show the items added, removed and changed between two exported RMFs, with each changed field. |
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
@@ -207,8 +226,8 @@ An export holds the project lock from start to finish and runs in this order:
 
 If anything fails before step 6, such as a missing output directory, no file is written
 and nothing is recorded, not even the checkpoint. A temporary file left by an
-interrupted export (its name starts with `.riskforge-export-`) is removed by the next
-export to the same directory.
+interrupted export (its name starts with `.riskforge-export-`) is removed by a later
+export to the same directory if it is older than that export's hold on the project lock.
 
 The JSON, PDF and Markdown exports of one register state show the same content digest,
 and two exports of an unchanged register share it, so a PDF can be matched to the JSON
@@ -222,9 +241,9 @@ receipt is signed with the same key. RiskForge no longer signs with GPG: a value
 not a key file, such as a GPG key id, exits 3 and nothing is written. On Linux and macOS
 a key file that its group or other users can read is refused (`chmod 600 FILE`).
 
-The free CLI does not sign audit entries, but a project written through the Python API
+The `riskforge` CLI does not sign audit entries, but a project written through the Python API
 can hold entries signed by another key. The export embeds the public key of every signed
-entry in its chain proof, so give each one with `--public-key PUBFILE` (repeatable). Without
+entry in its `public_keys` block, so give each one with `--public-key PUBFILE` (repeatable). Without
 it the export exits 3, names the entry, and writes nothing.
 
 ### Who accepted a risk or recorded a mitigation
@@ -233,8 +252,8 @@ it the export exits 3, names the entry, and writes nothing.
 In CI you can set the `RISKFORGE_ACTOR` environment variable instead; when both
 are set, `--by` wins. With neither, or with a blank value, the command changes
 nothing and exits 3. The name must be plain text on one line: line breaks, control
-characters, bidirectional controls and invisible characters other than zero-width
-joiners are refused with exit 3.
+characters, bidirectional controls, zero-width space, LRM, RLM and BOM are refused
+with exit 3.
 
 The name is self-declared. RiskForge records it as given and does not check who
 ran the command. It becomes the audit entry's actor and is stored on the risk item
@@ -295,7 +314,7 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
 |---|---|---|
 | G1 | All 8 dimensions have at least one entry | FAIL |
 | G2 | Article 6(2) self-classification documented | FAIL |
-| G3 | Above-threshold risks mitigated or accepted | FAIL |
+| G3 | Residual score above the risk-appetite threshold must be reduced (re-scored with `risk mitigate --residual-likelihood`/`--residual-severity`) or accepted; adding a mitigation without re-scoring does not clear it | FAIL |
 | G4 | Knowledge gaps have test requirements | WARN |
 | G5 | System metadata complete | FAIL |
 | G6 | Assessor identity recorded | FAIL |
@@ -311,35 +330,52 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | Code | Meaning |
 |---|---|
 | 0 | Success or valid |
-| 1 | A validation FAIL gate without `--force`; `verify` or `validate` finding a change in progress or unfinished; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
-| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
+| 1 | A validation gate that fails without `--force`; `validate` finding a change in progress or unfinished; `verify` finding a change in progress (`txn.json`) whose recovered state has no finding; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
+| 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, a change in progress whose recovered state has a finding, a `txn.json` that RiskForge did not write, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
 | 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export of a project with a signed audit entry whose public key was not given with `--public-key`, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
-`verify` returns 2 on any tamper, which makes it usable as a CI gate. A typo in a flag
+`verify` returns 2 on any integrity finding, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
 
 ---
 
 ## Continuous integration recipe
 
-Store the `.riskforge/` directory and the exported `rmf.json` in your repository,
-then fail the build if either the audit chain or the exported file has been altered:
+The files in `.riskforge/` hold your risk assessment: risk descriptions, rationales
+and assessor names. Inside a git repository, `riskforge init` warns when
+`riskforge.yaml` is not git-ignored; add `.riskforge/` and `riskforge.yaml` to
+`.gitignore`. If your repository is private and you want CI to check the project,
+commit them and the exported `rmf.json` on purpose; never do this in a public
+repository. Then fail the build if the project or the export was altered:
 
 ```yaml
 - run: pip install riskforge
-- run: riskforge verify                 # audit chain intact (exit 2 on tamper)
-- run: riskforge verify --file rmf.json  # exported RMF matches its digest
+- run: riskforge verify --strict        # project intact (exit 2 on tamper or warning)
+- run: riskforge verify --file rmf.json --trusted-key signing.pem.pub  # export signed by your key
 ```
 
+Commit only the public key (`signing.pem.pub`); the private key never goes into a
+repository.
+
 To re-run an assessment on a model change without a human at the terminal, keep an
-`answers.yaml` in the repo and run `riskforge assess <id> --answers answers.yaml`
-followed by `riskforge validate <id>`.
+`answers.yaml` next to the project and run
+`riskforge assess <id> -a NAME -r ROLE --answers answers.yaml`, then
+`riskforge tests generate <id>` and `riskforge validate <id>`. The re-run updates
+the items it created earlier and adds none twice; an accepted item whose answer
+changed stays accepted and is listed for review (see
+[Non-interactive assessment](#non-interactive-assessment)).
+
+Only one process or person should change a project at a time. RiskForge serializes
+writers on one machine with a file lock, but two git branches that both changed
+`.riskforge/` cannot be merged: the merged audit log no longer forms one chain, and
+`riskforge verify` exits 2.
 
 A project last written by RiskForge 1.1.3 passes `riskforge verify` with a warning on
 stderr until its next change, because its registers are not yet covered by a
 fingerprint and it has no `.riskforge/audit.head.json` yet. To fail the build on that, or on any other integrity warning, run
 `riskforge verify --strict`: it exits 2 and lists each warning as a finding on its own
-line. A change in progress still exits 1. A file check has no warnings, so `--strict`
+line. A change in progress exits 1 when the project, as the next command would recover
+it, is clean, and 2 when that view has a finding. A file check has no warnings, so `--strict`
 with `--file` exits 3.
 
 If your CI pipeline exports PDF reports (`riskforge export -f pdf`), install the
@@ -354,7 +390,9 @@ system dependencies prior to running `riskforge`:
 The JSON RMF declares RMF schema 1.1.0 and has these top-level fields: `id`,
 `rmf_schema_version`, `register`, `test_requirements`, `cross_references`,
 `generated_at`, `sha256_hash`, `disclosure`, `signoffs`, `signatures`,
-`public_keys`, `chain_proof` and `receipt`. The `register` holds the system record, the risk items, the assessor,
+`public_keys`, `chain_proof` and `receipt` (schema `$id`
+`https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json`). The `register` holds
+the system record, the risk items, the saved test requirements, the assessor,
 dates, and the risk-appetite threshold. Each risk item carries its dimension,
 scoring, mitigations, residual scoring, acceptance, and Article/NIST/ISO references,
 with `accepted_by` and `recorded_by` when a name was recorded.
@@ -366,7 +404,7 @@ with `accepted_by` and `recorded_by` when a name was recorded.
 `chain_proof` holds every entry of the project audit log up to the export (the export's
 own `rmf.exported` entry is recorded after the file is written, so it is never in the
 file), and `receipt` names the last of those entries. `signatures` and `public_keys` are
-filled when the export is signed with `--sign`. The free CLI writes `signoffs` as an
+filled when the export is signed with `--sign`. The `riskforge` CLI writes `signoffs` as an
 empty list.
 
 A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
@@ -451,8 +489,10 @@ Only the JSON export can be checked this way. To check a PDF or Markdown export,
 compare the digest it shows with a verified JSON export of the same register, or hash
 the file and compare with `file_sha256` in the audit log.
 
-The PDF renders the same data as a filing-ready document: cover, executive summary,
-risk register, test requirements, audit trail, and the mandatory disclosure.
+The PDF renders the same data in seven parts: a cover with a three-number summary
+and the content digest, an executive summary ending with the disclosure, the
+methodology, the full register, a residual-risk summary, the test requirements,
+and the audit metadata with a change log.
 
 ---
 
@@ -461,7 +501,8 @@ risk register, test requirements, audit trail, and the mandatory disclosure.
 RiskForge discovers question banks, exporters, and adapters through Python
 entry points, so you extend it by `pip install`-ing a package, with no config edit.
 
-- **Question banks:** entry-point group `riskforge.question_banks`. The simplest
+- **Question banks:** entry-point group `riskforge.question_banks`, loaded but not used
+  by `assess` yet: `assess` asks only the bundled questions. The simplest
   contribution needs zero Python: add a question to a YAML file under
   `src/riskforge/_data/question_bank/` and open a PR. See
   [`docs/contributing/add-question.md`](contributing/add-question.md).
@@ -482,7 +523,8 @@ entry points, so you extend it by `pip install`-ing a package, with no config ed
 - It does not decide whether a system is high-risk under Annex III. It records the
   provider's Article 6(2) self-classification (gate G2); it does not make it.
 
-Every export carries this non-removable disclosure: the document was produced using
+Every export carries this disclosure, which RiskForge always includes and no option
+removes (it is part of the content digest): the document was produced using
 RiskForge, represents the team's documented risk assessment, has not been reviewed
 by a qualified legal professional, and does not constitute legal advice.
 
@@ -494,7 +536,9 @@ by a qualified legal professional, and does not constitute legal advice.
 
 **Can I edit the state files by hand?** They are plain YAML and JSONL, readable and
 diff-able. Editing the `.riskforge/audit.jsonl` chain, a register or a system file
-by hand is detected by `riskforge verify` (exit 2), and every command that changes or
+by hand is detected by `riskforge verify` (exit 2) unless the chain and head file are
+recomputed to match; a receipt kept elsewhere catches that for the entries it covers.
+Once detected, every command that changes or
 exports data then refuses the project with exit 2 and changes nothing. Make changes
 through the CLI.
 
@@ -506,4 +550,18 @@ category but not the self-classification confirmation. Run
 `rmf-<id-prefix>-<export-id>.<ext>`, unless you pass `--output`.
 
 **How do I re-assess on a model change?** Keep an `answers.yaml` and run
-`riskforge assess <id> --answers answers.yaml`, then `validate` and `export`.
+`riskforge assess <id> -a NAME -r ROLE --answers answers.yaml`, then
+`tests generate`, `validate` and `export`. The re-run updates the existing items
+instead of adding them again, and never removes one: review the items it lists,
+and the accepted items whose scores changed, before you export.
+
+**How do I show later that the history was not rewritten?** Run
+`riskforge receipt <id> --output FILE` after an export and keep the file somewhere
+the project's editors cannot change, for example with your client or auditor.
+`riskforge verify --receipt FILE` exits 2 if the log no longer holds that entry,
+even when every file in the project was rewritten to match. Entries written after
+the receipt are not covered, so take a new receipt after each export.
+
+**Where do I keep the signing key?** Outside the project and out of version
+control, for example in `~/.config/riskforge/`. Give the `.pub` file to whoever
+checks your exports; they pass it to `verify --file --trusted-key`.

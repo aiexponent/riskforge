@@ -27,9 +27,9 @@ We follow coordinated disclosure: we will work with you to understand and fix th
 ## Scope
 
 In scope:
-- `riskforge` CLI — arbitrary code execution, path traversal, file permission bypasses
-- Audit chain integrity — hash chain bypass or forgery
-- Supply chain — dependency vulnerabilities in published wheels
+- `riskforge` CLI: arbitrary code execution, path traversal, file permission bypasses
+- Integrity: a change to a project, an export, a signature or a receipt that `riskforge verify` does not detect
+- Supply chain: dependency vulnerabilities in published wheels
 
 Out of scope:
 - Vulnerabilities in the user's AI system being assessed (not our code)
@@ -40,13 +40,14 @@ Out of scope:
 
 RiskForge is designed with security in mind:
 
-- **Zero outbound calls in CLI mode** — enforced by `pytest-socket` CI gate
-- **File permissions** — project files written with `chmod 600`; `.riskforge/` directory with `chmod 700`
+- **Zero outbound calls in CLI mode**: enforced by the `pytest-socket` CI gate, including the CLI processes the tests start
+- **File permissions**: project files written with `chmod 600`; `.riskforge/` directory with `chmod 700`; private keys from `riskforge keygen` with `chmod 600` (Linux and macOS)
 - **No secrets in project files**: RiskForge does not read or store API keys or other credentials
-- **Audit trail integrity** — SHA-256 hash chain; `riskforge verify` exits code 2 on tampering
-- **Git protection** — `riskforge init` auto-adds `.riskforge/` to `.gitignore`
-- **Supply chain** — `pip-audit` gate on every release; CycloneDX SBOM and Sigstore attestation attached to every release
+- **Audit trail integrity**: SHA-256 hash chain with register fingerprints; `riskforge verify` exits 2 when the log, the head file and the registers disagree, and every command that changes data refuses such a project; a full rewrite is caught only by a receipt kept outside the project (see docs/audit-chain-design.md section 3.2)
+- **Git warning**: inside a git repository, `riskforge init` warns when `riskforge.yaml` is not git-ignored; it does not edit `.gitignore`
+- **Supply chain**: `pip-audit` gate on every release; CycloneDX SBOM and a GitHub build-provenance attestation (Sigstore) with every release
 
 ## Known Limitations
 
-- Risk management files contain sensitive system architecture information. Do not commit `.riskforge/` to public repositories. RiskForge adds this to `.gitignore` automatically on `init`.
+- Risk management files contain sensitive system architecture information. Do not commit `.riskforge/` to public repositories; add `.riskforge/` and `riskforge.yaml` to `.gitignore`. `riskforge init` warns inside a git repository when the manifest is not git-ignored.
+- Signing keys from `riskforge keygen` are not encrypted. Keep them outside the project and out of version control; RiskForge refuses a private key file that other users can read.

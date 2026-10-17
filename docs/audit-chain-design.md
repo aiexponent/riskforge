@@ -1,536 +1,360 @@
 # Audit Chain Design
 
-> Design notes, threat model, and evidentiary value of the SHA-256 hash-chained
-> audit log (`audit.jsonl`) produced by RiskForge. Primary references:
-> `src/riskforge/engine/audit.py`, `src/riskforge/storage/filesystem.py`
-> (verify_chain, lines 380-445), `src/riskforge/models/audit.py`.
+> How RiskForge records every change to a project, how `riskforge verify` checks the
+> record, and what that check can and cannot prove. Source of truth:
+> `src/riskforge/integrity/` (hashing, signing, RMF checks), `src/riskforge/engine/integrity.py`
+> (the project check) and `src/riskforge/storage/filesystem.py` (how files are written).
+> The decisions behind this design are recorded in
+> [ADR-03](adr/ADR-03-register-fingerprints-and-integrity-check.md) and
+> [ADR-04](adr/ADR-04-rmf-content-digest-and-signatures.md).
 >
-> Audience: security architects, security engineers, regulator's technical
-> reviewers. Read this before relying on a RiskForge audit chain as evidence
-> in a notified-body conformity dossier.
+> Audience: security architects, engineers, and the technical reviewers of a
+> conformity assessment. Read this before relying on a RiskForge project as evidence.
 
 ---
 
-## 1. Why an audit chain at all
+## 1. Why an audit chain
 
-EU AI Act **Article 12** (Record-keeping) requires high-risk AI systems to
-"technically allow for the automatic recording of events (logs)" over the
-lifetime of the system. **Annex IV, point 5** requires the technical
-documentation to include "A detailed description of the risk management system
-in accordance with Article 9". Together, they create a
-demand for *traceable, tamper-evident evidence* that a particular risk
-assessment was made by a particular person at a particular time, and that
-nothing was retroactively altered to make the system look more compliant than
-it was.
+Article 9(1) of the EU AI Act requires that a risk management system "shall be
+established, implemented, documented and maintained", and Annex IV point 5 asks for "A
+detailed description of the risk management system in accordance with Article 9". A
+reviewer looking at that documentation needs to know that the risk register in front of
+them is the one the assessment produced, who changed it, and when.
 
-A naïve approach — append rows to a YAML file, commit to git — gets you
-chronology but not tamper-evidence inside the running deployment. Anyone with
-write access can rewrite history before the next commit. A regulator who is
-handed a `.riskforge/` tree at month 14 has no way to tell whether seq=42 was
-written on day 14 or day 138 with the timestamp lied about.
+RiskForge answers this with a hash chain. Every change appends one entry to
+`.riskforge/audit.jsonl`; each entry carries the SHA-256 hash of the entry before it and a
+fingerprint of the register after the change. Changing any entry breaks every hash after
+it, and changing a register without RiskForge breaks the link between the register and
+the last entry that describes it. A reviewer needs the files and the published algorithm,
+nothing else.
 
-A SHA-256 hash chain is a small structural addition that closes that gap
-**without** requiring the regulator to trust the deployer or RiskForge. Each
-entry references the cryptographic hash of the previous entry; flipping any
-byte anywhere in the file breaks the chain at every subsequent entry. The
-verifier needs nothing other than the file itself and the SHA-256 algorithm.
-
-This is a deliberately modest cryptographic primitive. It is not a digital
-signature, not a Merkle tree with public anchors, not a blockchain. It is the
-right level for the threat we are addressing — see §3.
+The audit chain records the risk management process. It is not the automatic recording
+of events (logs) that Article 12(1) requires a high-risk AI system to allow; those logs
+belong to the AI system, not to RiskForge.
 
 ---
 
 ## 2. Design
 
-### 2.1 File format
+### 2.1 Files
 
-The audit log is `audit.jsonl` inside the project's `.riskforge/` directory.
-JSONL: one JSON object per line, UTF-8 encoded, newline-terminated. The file
-is created with mode `0600` and the parent directory with `0700` —
-`src/riskforge/storage/filesystem.py:322-336`. Permissions are reapplied on
-every append, defending against `chmod` drift.
+```
+.riskforge/
+├── audit.jsonl        one JSON entry per line, append-only (mode 600)
+├── audit.head.json    {"seq": ..., "entry_hash": ...} of the last entry RiskForge wrote
+├── audit.lock         serializes writers across processes
+├── txn.json           exists only while a change is being committed
+└── systems/<system-id>/system.yaml, register.yaml, mitigations.yaml
+```
 
-A canonical line looks like this (formatted for legibility; on disk it is one
-line):
+An entry, formatted for reading (on disk it is one line, and the hashes are 64 hex
+characters):
 
 ```json
 {
-  "seq": 0,
-  "event": "system.created",
-  "timestamp": "2026-05-10T14:22:01.123456+00:00",
-  "actor": {"type": "human", "identity": "alice@example.com"},
-  "system_id": "9f8b1c2d-...-...",
-  "payload": {"name": "ExampleScreener", "version": "1.0"},
-  "prev_hash": "0000000000",
-  "entry_hash": "9c4f...e2b1"
+  "seq": 3,
+  "event": "risk_item.created",
+  "timestamp": "2026-10-17T19:30:17.912345Z",
+  "actor": {"type": "human", "identity": "Alice Chen"},
+  "system_id": "4a3cbcd1-0841-46e6-af5a-6f37af068f28",
+  "payload": {"risk_item_id": "646bec44-...", "dimension": "discrimination", "score": 20},
+  "prev_hash": "dace...18dd",
+  "entry_hash": "9c4f...a7d0",
+  "register_fingerprint": "e3b0...b855"
 }
 ```
 
-Field semantics live in `src/riskforge/models/audit.py`:
+- `seq` counts from 0 with no gaps. The first entry's `prev_hash` is `"0000000000"`.
+- `actor.identity` is what the user typed (`--assessor-name` or `--by`, for example). The
+  CLI does not authenticate it.
+- `register_fingerprint` is the SHA-256 of the canonical JSON (section 2.3) of the
+  system's stored `register.yaml` after the change, read back with `yaml.safe_load`.
+  Entries written by RiskForge 1.1 do not have it.
+- `key_id` and `signature` appear only on entries signed by a program that gives
+  `AuditEngine` a signing key (section 2.6). The CLI does not sign entries.
 
-- `seq: int` — monotonically increasing from `0`. Gaps fail verification.
-- `event: str` — opaque string naming the state mutation
-  (`system.created`, `register.updated`, `risk.added`, `rmf.exported`, …).
-- `timestamp: datetime` — UTC, ISO-8601 with microseconds, set at record
-  time by the engine — see `AuditEngine.record` at
-  `src/riskforge/engine/audit.py:54`.
-- `actor: AuditActor` — `{type: "human" | "ci" | "api", identity: str}`.
-  The identity is an email, CI job name, or API key fingerprint — set at
-  engine construction (`AuditEngine.__init__` at
-  `src/riskforge/engine/audit.py:25-27`).
-- `system_id: str` — the UUID string of the AI system the event relates to,
-  or `""` for project-level events.
-- `payload: dict` — event-specific structured data. Free-form by design;
-  the contract is "human-readable enough to explain the event in a regulator
-  conversation."
-- `prev_hash: str` — the `entry_hash` of the previous entry. For the
-  genesis entry (`seq=0`) the value is `"0000000000"` (ten zeros) — see §2.3.
-- `entry_hash: str` — `SHA-256(canonical_json({prev_hash, ...entry_with_entry_hash_set_to_empty_string}))`.
+### 2.2 One change, one entry, together
 
-### 2.2 Append-only contract
+Before a command changes or exports anything, it runs the integrity check (section 2.4)
+and stops with exit code 2 if the check fails. The change itself then runs inside
+`StorageBackend.unit_of_work()`, which for the file backend:
 
-Every state mutation in RiskForge that touches the project tree must go
-through `AuditEngine.record()`. The engine:
+1. takes the lock (`audit.lock`) and finishes or discards any change a crash left behind;
+2. writes each changed file next to its target as `<name>.pending`;
+3. writes `txn.json`, which lists the pending files and the length of the log;
+4. appends the audit entry and flushes it to disk;
+5. renames each pending file into place, writes `audit.head.json`, and deletes `txn.json`.
 
-1. Calls `storage.verify_chain()` first, **before** writing
-   (`src/riskforge/engine/audit.py:43`). If the existing chain is corrupt, a
-   new entry is *not* appended — `AuditChainCorruptError` is raised with the
-   list of violations. This is "fail loud" by design: silently appending a
-   new entry on top of a corrupted chain would camouflage tampering.
-2. Computes `seq = (last_entry.seq) + 1`, or `0` if the file is empty
-   (`_next_seq` at `src/riskforge/engine/audit.py:35-39`).
-3. Computes `prev_hash = last_entry.entry_hash`, or `"0000000000"` if the
-   file is empty (`_last_entry_hash` at
-   `src/riskforge/engine/audit.py:29-33`).
-4. Builds the entry, computes `entry_hash`, and appends a single line.
+If the process stops before step 4 finishes, the next command discards the pending files
+and cuts off a partly written entry. If it stops after step 4, the next command finishes
+the renames. Either way the register on disk is one the chain describes, so a mismatch
+found later means someone changed the files outside RiskForge, not that a command
+crashed. Four processes adding 25 risk items each to one register leave exactly 100
+items and an intact chain (`tests/integration/test_concurrent_writers.py`).
 
-Every change runs inside `StorageBackend.unit_of_work()`, which holds an
-OS-level file lock (`.riskforge/audit.lock`), so writers in separate processes
-take turns and none of them loses another's update (PRD-331). Inside the unit
-of work, `FileStore` stages register and system writes as `<name>.pending`
-files, writes a journal (`.riskforge/txn.json`), appends and fsyncs the audit
-line, renames the staged files into place, records the last entry in
-`.riskforge/audit.head.json` and deletes the journal. If a process stops part
-way, the next unit of work reads the journal: when the whole entry reached the
-log the staged files are renamed into place, otherwise any torn part of the
-line is cut off and the staged files are deleted. A change is therefore never
-kept without the audit entry that records it. A writer that waits more than
-120 seconds for the lock gives up with one line and exit code 1. Network
-filesystems (NFS, SMB), whose locking and fsync behaviour differ, are not
-covered.
-
-### 2.3 Genesis entry handling
-
-The genesis entry (`seq=0`) has no predecessor. Its `prev_hash` is set to
-the literal string `"0000000000"` (ten zero ASCII characters). This is a
-sentinel chosen for two properties: (a) it is not a valid SHA-256 hex digest
-(which is 64 characters), so it cannot collide with a real prev_hash; (b)
-it is a constant that both writer and verifier can hard-code without
-ambiguity.
-
-**Why genesis is special — historical bug.** Three audit-chain bugs were
-fixed in v0.1.1 (CHANGELOG lines 92-103). One of them was a genesis-handling
-mismatch: `AuditEngine` initialised genesis with one sentinel value; the
-file-store `verify_chain` reconstructed it with a different one. Both worked
-in isolation; but a chain written by the engine failed verification by the
-store. The fix aligned both ends on `"0000000000"`. The relevant code lines
-today:
-
-- `AuditEngine._last_entry_hash` returns `"0000000000"` when the file is
-  empty — `src/riskforge/engine/audit.py:29-33`.
-- `FileStore.verify_chain` initialises `prev_hash = "0000000000"` before
-  the loop — `src/riskforge/storage/filesystem.py:399`.
-
-The comment on line 399 of `filesystem.py` explicitly notes: *"genesis value
-— must match AuditEngine._last_entry_hash"*. Two call sites, one constant,
-one comment connecting them. If you ever change one, change the other and
-the test in the same commit. There is a regression test specifically for
-this in the v0.1.1 test additions.
-
-The same release also fixed two related bugs:
-
-- `read_audit` was a coroutine returning a list; rewritten as a true async
-  generator. This matters for `verify_chain` and `_last_entry_hash` because
-  both iterate.
-- `_compute_hash` now consistently sets `entry_hash=""` on the dict before
-  hashing, instead of `pop`ping the key. `pop` would mutate the entry
-  during hashing and produce different hashes on re-hash; the `=""`
-  approach is idempotent. See `_compute_hash` at
-  `src/riskforge/engine/audit.py:65-72`.
-
-### 2.4 Canonical JSON for hashing
-
-The hash is computed over a canonical JSON serialisation of the entry. The
-implementation at `src/riskforge/engine/audit.py:65-72`:
+### 2.3 Hashing
 
 ```python
-@staticmethod
-def _compute_hash(prev_hash: str, entry: AuditEntry) -> str:
-    data = entry.model_dump(mode="json")
+import hashlib, json
+
+def canonical_json(value) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+def entry_hash(entry: dict) -> str:
+    data = {k: v for k, v in entry.items() if k != "signature"}
     data["entry_hash"] = ""
-    canonical = json.dumps(
-        {"prev_hash": prev_hash, **data}, sort_keys=True, separators=(",", ":")
-    )
-    return hashlib.sha256(canonical.encode()).hexdigest()
+    return hashlib.sha256(canonical_json(data)).hexdigest()
 ```
 
-Properties of the canonicalisation:
+- `entry` is the line as stored, `prev_hash` included. Optional fields that are absent
+  stay absent, so entries written by RiskForge 1.1 hash exactly as they did then.
+- The signature is left out because it signs the hash.
+- `sort_keys` and the compact separators make the bytes independent of formatting.
+  Non-ASCII text is escaped (`ü` becomes `\u00fc`), as `json.dumps` does by default.
 
-- `entry_hash` is replaced with `""` before hashing (otherwise the hash would
-  cover itself, making it self-referential and impossible to compute).
-- `prev_hash` is **prepended** as a separate top-level key — not just read
-  from the entry — so the hash explicitly covers the chain link.
-- `sort_keys=True` ensures deterministic ordering across Python versions and
-  platforms.
-- `separators=(",", ":")` strips whitespace, eliminating
-  formatting-dependent hash drift.
-- Pydantic's `model_dump(mode="json")` handles datetime → ISO-8601 string
-  and UUID → string conversions deterministically.
+This is not RFC 8785 (JCS). A verifier written in another language must reproduce
+Python's `json.dumps` output for these settings.
 
-This is *not* a JCS (RFC 8785) implementation. The format is sufficient for
-internal verification but is not interoperable with non-Python verifiers
-that expect JCS exactly. The verification recipe in §5 uses only this same
-algorithm.
+### 2.4 What `riskforge verify` checks
 
-### 2.5 The `riskforge verify` command
+`riskforge verify` opens the project read-only and takes no lock, so it also works on a
+read-only copy or an archive mount. It reports every finding, not only the first, and
+exits 2 if any of these fail:
 
-`riskforge verify` re-reads `audit.jsonl` and replays the chain
-(`FileStore.verify_chain` at
-`src/riskforge/storage/filesystem.py:380-445`). The replay:
+| Check | Catches |
+| --- | --- |
+| Each entry's `seq`, `prev_hash` and `entry_hash` | Edited, inserted, deleted or reordered entries |
+| The last entry against `audit.head.json` | A log cut back to an earlier entry, or entries added outside RiskForge (unless the head file was rewritten too) |
+| Each system's stored register against the latest `register_fingerprint` for that system | A register edited, replaced or deleted outside RiskForge |
+| Each `system.yaml` against the copy of the system in its register | A system file edited outside RiskForge |
+| A project with systems but no audit log, and systems named in the log against the files on disk | A deleted log or a deleted system directory |
+| Entry signatures, when `--trusted-key` names the signing key | Entries forged without the key |
+| `--receipt FILE` against the chain | A log cut back below the receipt's entry, or any entry up to and including it rewritten (section 2.5) |
 
-1. Reads the file line by line.
-2. Tracks `expected_seq` (starting at 0) and `prev_hash` (starting at
-   `"0000000000"`).
-3. For each entry: validates JSON, validates the Pydantic model, checks
-   `entry.seq == expected_seq`, checks `entry.prev_hash == prev_hash`,
-   recomputes `entry_hash` via `_compute_hash` and checks equality with
-   the stored value.
-4. Does **not** stop on first error — it reports *all* violations, so
-   one verification run gives you the full picture rather than a bisect
-   chase.
+Every command that changes or exports data runs the same check first, so nothing is
+added on top of a project that was altered. A project last written by RiskForge 1.1 has
+no fingerprints and no head file yet: `verify` passes with a warning, the next change or
+export records them, and `verify --strict` exits 2 until then. A change in progress
+(`txn.json` exists) makes `verify` retry briefly, then check the project as the next
+command would recover it: exit 1 if that view is clean, exit 2 if it has a finding or
+the journal is not one RiskForge wrote.
 
-**Exit codes (CI-detectable contract).**
+### 2.5 Receipts
 
-- `0` — chain intact.
-- `2` — chain corrupt. CI runners can pin `riskforge verify` as a
-  required check; any tamper attempt bursts CI.
-- `3`: no RiskForge project in the directory, or another usage error.
-  Nothing was checked; this is never reported as tampering.
+A receipt is a small JSON file that names the `seq` and `entry_hash` of the last entry
+of the audit log, and the latest register fingerprint the log records for one system:
 
-The `2` exit code is documented in the v0.1.0 release notes (CHANGELOG
-line 131) and in the `AuditEngine` class docstring at
-`src/riskforge/engine/audit.py:18-23`. Treat it as a stable contract;
-downstream CI runners depend on it.
-
-```mermaid
-sequenceDiagram
-    participant CLI as riskforge CLI
-    participant Eng as AuditEngine
-    participant Store as FileStore
-    participant FS as audit.jsonl
-    CLI->>Eng: record(event, system_id, payload)
-    Eng->>Store: verify_chain()
-    Store->>FS: read all lines
-    FS-->>Store: lines
-    Store-->>Eng: (ok, errors)
-    alt chain corrupt
-        Eng-->>CLI: raise AuditChainCorruptError
-    else chain intact
-        Eng->>Store: read_audit() (find last seq + hash)
-        Store-->>Eng: last entry
-        Eng->>Eng: build entry, compute SHA-256
-        Eng->>Store: append_audit(entry)
-        Store->>FS: open("a"), write JSONL line
-        Eng-->>CLI: AuditEntry
-    end
+```bash
+riskforge receipt <system-id> --output ~/riskforge-receipts/loan-scoring.json
+riskforge receipt <system-id> --output ~/riskforge-receipts/loan-scoring-signed.json --sign KEY
+riskforge verify --receipt ~/riskforge-receipts/loan-scoring.json
 ```
+
+Keep it where the project's editors cannot change it: with your client, your auditor, or
+in a separate repository. `verify --receipt` exits 2 when the log no longer holds that
+entry with that hash at that position, or when the receipt's fingerprint is not the last
+one the log records for its system up to that entry. This is the check that catches
+someone who rewrote the log and the head file with the public algorithm, for every
+entry up to the one the receipt names (section 3.2). Entries written after the receipt
+are not covered. Every JSON export also carries a receipt, so a saved export works as one:
+`riskforge verify --receipt rmf.json`.
+
+### 2.6 Signatures
+
+`riskforge keygen --output KEY` creates an Ed25519 key pair: `KEY` (PKCS8 PEM, not
+encrypted, mode 600 on Linux and macOS) and `KEY.pub`. A key is named by its `key_id`,
+`ed25519:` followed by the first 16 hex characters of the SHA-256 of the raw public key;
+trust always compares the full key. RiskForge refuses a private key file that other
+users can read.
+
+Each signature covers a fixed prefix plus the signed value, so a signature made for one
+purpose cannot be reused for another:
+
+| What is signed | Message |
+| --- | --- |
+| An export | `riskforge.rmf.v1\n` + the content digest |
+| A receipt | `riskforge.receipt.v1\n` + the canonical JSON of the receipt without `public_key` and `signature` |
+| An audit entry | `riskforge.audit-entry.v1\n` + the entry hash |
+| An approver's sign-off | `riskforge.signoff.v1\n` + the canonical JSON of the sign-off without `signature` |
+
+The JSON export embeds the public keys it was signed with. `verify --file` checks every
+signature against them; `--trusted-key KEY.pub` also requires that the signer is a key
+you expected. The audit log holds no public keys, so a signed audit entry is checked
+only with `--trusted-key`.
+
+### 2.7 What an export carries
+
+A JSON export (RMF schema 1.1.0) carries a content digest (`sha256_hash`), the
+signatures, the public keys, a chain proof (every entry of the audit log up to the
+export) and a receipt for the last of those entries. The digest leaves out `id`,
+`generated_at`, `sha256_hash` and those four provenance blocks, so the JSON, PDF and
+Markdown exports of one register show the same digest. `riskforge verify --file`
+checks the schema, recomputes the digest, checks every signature and sign-off, re-links
+the chain proof, and checks that the proof's last fingerprint for the system matches the
+register in the file. It needs only the file. The `rmf.exported` entry that records the
+export is written after the file and stores the SHA-256 of the file's bytes
+(`file_sha256`). If the export fails before the checkpoint, if any, is committed,
+neither a file nor an entry is left. If the rename then fails, no file is written, but a
+committed checkpoint entry stays. If it fails after the rename, while flushing the directory or
+recording `rmf.exported`, the file stays without an `rmf.exported` entry; a failed flush
+says the export was not recorded. A file written
+by RiskForge 1.1 (RMF schema 1.0.0) gets the schema and digest check only.
 
 ---
 
 ## 3. Threat model
 
-This is the section that decides whether the audit chain is useful to your
-organisation. Be honest with yourself before borrowing the chain as
-evidence.
+### 3.1 What RiskForge detects
 
-### 3.1 What the chain protects against
+| Threat | Detected by |
+| --- | --- |
+| Editing any audit entry (for example backdating an acceptance) | `verify`: hash mismatch from that entry on |
+| Inserting, deleting or reordering entries | `verify`: sequence and `prev_hash` errors |
+| Cutting the last entries off the log | `verify`: the log no longer reaches `audit.head.json` (unless `audit.head.json` is edited to match) |
+| Editing a register (scores, acceptances, deleted items) | `verify`: fingerprint mismatch; every changing command refuses to run |
+| Deleting the log or a system directory | `verify`: missing log or missing files |
+| Rewriting entries up to a receipt's `seq`, head file included | `verify --receipt` with that receipt |
+| Altering an exported file (content, signatures, sign-offs, chain proof, receipt) | `verify --file`, and with `--trusted-key` also a file re-signed with another key |
+| Two writers at once on one machine | Prevented by the lock; no lost updates |
+| A crash in the middle of a change | Finished or discarded by the next command |
 
-| Threat | Protection mechanism | Detection method |
+### 3.2 What RiskForge does not detect
+
+| Out-of-scope threat | Why | Where it is handled |
 | --- | --- | --- |
-| Silent edit of a previously-written entry (e.g. backdating an acceptance) | `entry_hash` covers the entry's contents; recomputation will mismatch | `riskforge verify` exits 2; the offending line and field are listed |
-| Insertion of a fabricated entry between two real entries | Inserted entry's `prev_hash` cannot match the preceding entry's `entry_hash` AND the next real entry's `prev_hash` cannot match the inserted entry's `entry_hash` | `riskforge verify` reports prev_hash mismatches at both ends |
-| Deletion of an entry | `seq` gap is detected (`expected_seq` mismatch) and subsequent `prev_hash` values mismatch | `riskforge verify` reports both "sequence gap" and "prev_hash mismatch" |
-| Re-ordering of entries | `prev_hash` linkage and `seq` ordering both break | `riskforge verify` reports both classes |
-| Corruption from disk error / partial write | JSON parse error or hash mismatch | `riskforge verify` reports parse error or recompute mismatch |
+| The assessment does not describe the deployed system | The chain shows what was recorded, not that it is true | Provider's quality management; independent review |
+| The assessor was not competent, or an acceptance was unreasonable | Judgements are recorded, not graded | Competence controls; independent review |
+| Someone with write access recomputes the entries from a change onward and the head file (cutting entries off the end needs only a matching head-file edit), and no receipt covers those entries | The algorithm is public and holds no secret, so a consistent rewrite verifies (ADR-03) | Take a receipt after each export or review and keep it outside the project; sign exports with a key the project's editors do not hold |
+| A wrong clock | Timestamps come from the local clock; `seq` orders entries, not wall time | Trusted timestamping (not built) |
+| A claimed identity is false | `actor.identity` is typed by the user in the CLI | A program that authenticates users and signs entries |
+| Two git branches that both changed `.riskforge/` are merged | The merged log is no longer one chain, so `verify` exits 2; it cannot be repaired automatically | One writer per project; do not merge `.riskforge/` |
+| A host that was compromised before any entry was written | Every entry is the attacker's | Host security |
 
-The chain provides chronological integrity of the file. That is its
-contract.
-
-### 3.2 What the chain does NOT protect against
-
-This list is longer than the previous one and that is the correct ratio.
-The contrarian-challenger panel from the audit (Domain Expert persona)
-specifically flagged the conflation of "the audit chain is intact" with
-"the assessment is sound." They are different claims; only the first is
-machine-checkable.
-
-| Out-of-scope threat | Why the chain doesn't help | Mitigation lives elsewhere |
-| --- | --- | --- |
-| The assessment does not reflect the deployed system. The chain is intact, but the assessor described last year's model. | The chain attests *that* an entry was written and not subsequently altered — not *whether* the entry's claims about the AI system are true. | Provider's QMS; notified-body verification; customer due diligence |
-| The assessor was not competent to make the judgements recorded. | The chain records who wrote (G6 captures identity) but not whether they were qualified. | HR competency framework; ISO/IEC 42001 Clause 7.2; Article 4 (AI literacy) controls |
-| The residual-risk acceptance was unreasonable. | Acceptance is recorded; reasonableness is a human judgement. | Independent review; notified body |
-| Two parties collude — assessor records what verifier wants to see. | An intact chain is consistent with a colluded narrative. The chain does not provide attestation by an independent third party. | Independent audit; multi-party signing (roadmap, see §6) |
-| The host filesystem was compromised before any entry was written. | If the attacker controls writes from `seq=0`, they construct a fully valid chain that is internally consistent. The chain cannot detect a self-consistent forgery built from the start. | Build provenance attestation; signed snapshots to a third-party WORM store (roadmap) |
-| The whole `.riskforge/` directory is replaced with a different one. | Both directories may verify cleanly. There is no project-level fingerprint anchored externally. | Anchor a `riskforge.yaml` fingerprint in a third-party log (roadmap) |
-| Truncation of the tail (delete the last *N* entries). | Truncating the tail leaves a *prefix* that verifies cleanly. Without an external anchor of "the latest known seq", the verifier cannot tell. | External anchor (Sigstore Rekor / git tag, roadmap §6) |
-| Timestamp is wrong (clock-skew or deliberate). | Timestamps are written by the local engine using the local clock. The chain enforces *order* via `seq`, not wall-clock truthfulness. | Trusted timestamping (RFC 3161 / Sigstore Rekor inclusion proofs, roadmap) |
-| The signing identity is impersonated. | RiskForge does **not** currently sign audit entries with a private key. The `actor.identity` field is a self-attestation, no different from typing a name into a form. | Signed entries (roadmap §6) |
-
-**The honest summary.** The chain is a tamper-evidence layer for a single
-file in a single project on a single machine. It is not a substitute for
-independent attestation, signed identity, or external time-stamping. We
-would rather you understand this on day 1 than be surprised by a notified
-body on day 90.
+The chain makes changes outside RiskForge detectable unless the person making them
+recomputes the chain and the head file. Receipts kept outside the project extend
+detection to every entry they cover. Neither makes an assessment correct or replaces
+independent review.
 
 ---
 
-## 4. Evidentiary value to a notified body
+## 4. Evidentiary value
 
-What kinds of audit-chain claims survive a 15-minute conversation with a
-notified body (BSI, TÜV SÜD, DEKRA, etc.)? Framed pragmatically:
+Claims that hold up:
 
-**Likely accepted.**
+- "This is the recorded history of the assessment; `riskforge verify` passes on it." The
+  reviewer can run the check on a read-only copy and reproduce the result.
+- "This export is the register the chain recorded last, signed with this key." `verify
+  --file --trusted-key` checks both.
+- "The log still holds, unchanged, every entry up to the one in this receipt."
+  `verify --receipt` checks it.
 
-- *"This is the recorded history of the assessment. The chain verifies; no
-  silent edits."* — Defensible. The reviewer can run `riskforge verify`
-  themselves and reproduce the result.
-- *"Each event is attributed to a recorded actor (G6 enforces this for the
-  RMF)."* — Defensible, with the caveat that actor identity is
-  self-attested; it is no weaker than the rest of the technical
-  documentation, which is also self-attested by the provider.
-- *"The exported RMF is one input to your conformity assessment, alongside
-  the rest of the Annex IV pack."* — This is the correct framing.
+Claims that do not:
 
-**Likely pushed back on.**
-
-- *"The audit chain proves the assessment is correct."* — No. It proves
-  the file has not been edited since each entry was written. Different
-  claim.
-- *"The audit chain provides cryptographic non-repudiation."* — No, not
-  currently. Non-repudiation requires a signing identity. Without signing
-  (roadmap §6), the chain is tamper-evident, not non-repudiable.
-- *"This replaces the need for an independent third-party attestation."*
-  — No, see §3.2.
-
-**Almost certainly probed.**
-
-- *"How do we know the entries weren't all written yesterday with backdated
-  timestamps before you handed us the directory?"* — The honest answer:
-  with the current design, you cannot tell from the file alone. Either
-  the deployer commits to git and you anchor on commit timestamps, or you
-  wait for the v1.x Sigstore inclusion proofs (roadmap §6).
-- *"What stops a developer from running `rm audit.jsonl` and starting
-  fresh?"* — Nothing in the tool. The `.nodelete` sentinel
-  (`src/riskforge/storage/filesystem.py:13-22`) is a *footgun guard*
-  against accidental `rm -rf`, not a malicious-actor control. Operational
-  controls (filesystem permissions, git pre-commit hooks, off-host backup)
-  must do that work.
-
-The right framing is: RiskForge produces *one* of several evidentiary
-artefacts the notified body will examine. It is the artefact that
-specifically demonstrates the Article 9 risk-management process was run
-and documented. It is not the artefact that demonstrates the system is
-safe, fair, robust, or transparent — those are demonstrated by the
-underlying engineering evidence the RMF *points at*.
+- "The audit chain shows the assessment is correct." It shows the files are consistent
+  with each other and, for the entries a receipt covers, unchanged since the receipt.
+- "The actor names are verified identities." In the CLI they are typed by the user.
+- "This replaces independent attestation." It is one input to it.
 
 ---
 
 ## 5. Verification recipe
 
-Exact commands a regulator (or a paranoid deployer) would run to validate
-a submitted RMF + `audit.jsonl` pair.
+### 5.1 With RiskForge
 
-### 5.1 Full automated verification
-
-Inside an isolated environment (conda env or Docker — RiskForge installs
-must not pollute the host; see project conventions):
+In an isolated environment:
 
 ```bash
-# Receive the project tree from the provider
-unzip provider-submission.zip -d submission/
-cd submission/
-
-# Install RiskForge in an isolated env
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && . .venv/bin/activate
 pip install riskforge
-
-# Run the verifier
-riskforge verify
-echo "Exit code: $?"   # 0 = chain intact; 2 = corrupt
+riskforge verify --project-dir submission/
+riskforge verify --file submission/rmf.json --trusted-key provider-signing.pem.pub
+riskforge verify --project-dir submission/ --receipt receipt-from-the-provider.json
 ```
 
-If the chain verifies, the next step is to verify the **content** matches
-the exported RMF.
+Each command exits 0 when the check passes and 2 when it finds a problem.
 
-### 5.2 Manual hash spot-check
+### 5.2 Without RiskForge
 
-For one entry, reproduce the hash by hand to satisfy yourself the algorithm
-is what it claims to be. The canonical algorithm:
+The chain, the head file and the register fingerprints can be checked with Python and
+PyYAML only:
 
 ```python
 import hashlib, json
 from pathlib import Path
 
-lines = Path(".riskforge/audit.jsonl").read_text().splitlines()
-prev_hash = "0000000000"
-for i, line in enumerate(lines):
+import yaml
+
+root = Path("submission/.riskforge")
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+prev = "0000000000"
+latest = {}
+lines = (root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+for seq, line in enumerate(lines):
     entry = json.loads(line)
-    stored_hash = entry["entry_hash"]
-    entry_for_hash = dict(entry)
-    entry_for_hash["entry_hash"] = ""
-    canonical = json.dumps(
-        {"prev_hash": prev_hash, **entry_for_hash},
-        sort_keys=True, separators=(",", ":")
-    )
-    computed = hashlib.sha256(canonical.encode()).hexdigest()
-    assert computed == stored_hash, f"Mismatch at seq={entry['seq']}"
-    assert entry["prev_hash"] == prev_hash, f"prev_hash mismatch at seq={entry['seq']}"
-    prev_hash = stored_hash
-print(f"Verified {len(lines)} entries.")
+    data = {k: v for k, v in entry.items() if k != "signature"}
+    data["entry_hash"] = ""
+    assert entry["seq"] == seq, f"sequence gap at line {seq}"
+    assert entry["prev_hash"] == prev, f"broken link at seq {seq}"
+    assert hashlib.sha256(canonical(data)).hexdigest() == entry["entry_hash"], f"hash mismatch at seq {seq}"
+    if entry.get("register_fingerprint"):
+        latest[entry["system_id"]] = entry["register_fingerprint"]
+    prev = entry["entry_hash"]
+
+head_file = root / "audit.head.json"  # absent in a project last written by RiskForge 1.1
+if head_file.exists():
+    head = json.loads(head_file.read_text(encoding="utf-8"))
+    assert head == {"seq": len(lines) - 1, "entry_hash": prev}, "the log does not end at the head file"
+for system_id, fingerprint in latest.items():
+    register = yaml.safe_load((root / "systems" / system_id / "register.yaml").read_text(encoding="utf-8"))
+    assert hashlib.sha256(canonical(register)).hexdigest() == fingerprint, f"register of {system_id} was changed"
+print(f"Verified {len(lines)} entries and {len(latest)} register(s).")
 ```
 
-If this script and `riskforge verify` agree on the result, the verification
-is robust against a tampered RiskForge binary — the script depends only
-on the Python standard library.
+If this script and `riskforge verify` agree, the result does not depend on trusting the
+RiskForge package. The script does not check `system.yaml`, signatures or receipts;
+`riskforge verify` does.
 
-### 5.3 Cross-check against the RMF export
+### 5.3 Questions the check cannot answer
 
-The exported RMF (`json` or `pdf`) is generated by an `rmf.exported`
-audit event. Find that event in `audit.jsonl`:
+- Is the assessor plausible for this provider?
+- Are the timestamps paced like real work? Eighty entries in ninety seconds came from a
+  script, even if the chain verifies.
+- Does the `system_id` match the AI system under review?
+- Are the changes you would expect present, for example a reassessment after a major
+  model change?
 
-```bash
-grep '"event":"rmf.exported"' .riskforge/audit.jsonl | tail -n 1
-```
-
-The payload should contain a hash or reference to the export artefact.
-Compare to the SHA-256 of the file you were handed:
-
-```bash
-sha256sum exports/<export_id>.json
-```
-
-If the hashes diverge, the RMF you were handed is not the one whose
-export was recorded.
-
-### 5.4 Reasonableness checks (human, not algorithmic)
-
-These are the checks the chain *cannot* do for you:
-
-- Is the assessor identity (`actor.identity`) plausible? Does the email
-  domain match the provider's domain?
-- Are timestamps in chronological order *and* paced realistically? An RMF
-  with 80 entries written within 90 seconds is suspicious — even if the
-  chain verifies.
-- Does the `system_id` match the AI system you are actually evaluating?
-- Are there long gaps suggesting the deployer abandoned the assessment
-  for months and then resumed?
-- Are events that should appear (e.g. `register.updated` events between a
-  significant model retrain and the next RMF export) actually present?
-
-These are interview questions for the provider, not algorithm outputs.
+These are questions for the provider, not for an algorithm.
 
 ---
 
-## 6. Roadmap
+## 6. Limits that remain
 
-Each item below is **planned**, not current. Do not rely on these in any
-evidentiary claim until the corresponding feature ships.
-
-### 6.1 Sigstore signing of audit entries (PRD NFR-4)
-
-**Goal.** Convert the chain from tamper-evident to non-repudiable. Each
-audit entry would be co-signed by a Sigstore-issued ephemeral key bound to
-the actor's OIDC identity (Google Workspace, GitHub, etc.), with the
-signature published to the Rekor transparency log.
-
-**What this would unlock.**
-
-- Notified-body conversation: *"The actor identity on each entry is bound
-  to a verified OIDC token at the time of signing, recorded in a public
-  transparency log. You can verify it without trusting RiskForge or the
-  deployer."*
-- External anchoring: Rekor inclusion proofs give a third-party
-  timestamp, defeating the backdating threat in §3.2.
-
-**Reference.** PRD NFR-4 (RiskForge product spec). Sigstore is already
-used for **release** signing (CHANGELOG line 134: *"Sigstore OIDC signing
-on all PyPI releases"*). Extending the same identity model to runtime
-audit entries is the planned move.
-
-### 6.2 Key custody story
-
-The current design has no private keys to custody — actor identity is
-self-attested. Once §6.1 lands, key custody becomes:
-
-- **Default (recommended).** Sigstore ephemeral keys. No long-lived key
-  material on the deployer's machine. Identity proven via OIDC at sign
-  time; key destroyed after.
-- **Air-gapped fallback.** For deployers whose Article 9 process runs in
-  air-gapped environments, a hardware-backed signing key (YubiKey or
-  equivalent) with a local attestation record. Trades transparency-log
-  anchoring for offline operation.
-
-Either path requires a documented operational runbook before release. The
-runbook does not exist yet.
-
-### 6.3 Key rotation procedure
-
-Once signing is enabled, key rotation will be needed for:
-
-- Personnel changes (assessor leaves the organisation).
-- Compromise of the OIDC identity provider for the relevant tenant.
-- Routine rotation cadence (recommendation: align with the provider's
-  existing certificate-management policy).
-
-The chain itself does not break across a key-rotation boundary because the
-hash linkage is independent of identity. What changes is the verifier's
-willingness to accept an entry signed under the new key — that requires a
-rotation event recorded in-chain, plus updated key trust policy at the
-verifier.
-
-This procedure will be documented in `docs/operations/key-rotation.md`
-**when** signing ships. Until then, the question does not arise.
-
-### 6.4 External anchoring without signing
-
-A simpler intermediate step: periodically commit the SHA-256 of the
-*latest* `entry_hash` to a public timestamping service (RFC 3161 TSA, or
-Rekor without a key). This defeats the truncation threat (§3.2 — "delete
-the last N entries") at much lower implementation cost than full signing.
-Status: design discussion only.
+- No trusted timestamps: time order comes from `seq` and the local clock.
+- No public anchoring: a receipt held by someone outside the project is the outside copy.
+- The CLI does not authenticate users or sign audit entries. A program that uses the
+  engine from Python can give `AuditEngine` a signing key and an authenticated identity;
+  `verify --trusted-key` then checks those signatures, and `export --public-key` embeds
+  their public keys in the export's `public_keys` block.
+- Concurrent writers are serialized on one machine. A project on a network file system,
+  or copied between machines and changed on both, can fork; `verify` then exits 2.
 
 ---
 
 ## 7. Summary
 
-- Append-only JSONL with SHA-256 prev-hash linkage. Genesis sentinel:
-  `"0000000000"`.
-- `riskforge verify` exits `0` on intact, `2` on corrupt — CI-detectable.
-- Detects edit, insertion, deletion, reorder, corruption.
-- Does **not** prove the assessment is sound, the assessor was competent,
-  the residual-risk acceptance was reasonable, or the recorded identity
-  is real. Those are different claims requiring different controls.
-- Three v0.1.1 bugs (genesis mismatch, async-generator, hash idempotence)
-  are fixed and pinned by regression tests; if you change the genesis
-  sentinel or the canonical-JSON algorithm, change both call sites and
-  the test in the same commit.
-- Sigstore signing, key custody, key rotation, and external anchoring are
-  **roadmap** — not current capabilities.
+- One JSON line per change, SHA-256 linked, with a fingerprint of the register after the
+  change. Genesis `prev_hash`: `"0000000000"`. Chains written by RiskForge 1.1 still verify.
+- A change and its entry are committed together under a lock; a crash is finished or
+  rolled back by the next command.
+- `riskforge verify` exits 0 when intact and 2 on any finding, and every changing command
+  runs the same check first.
+- Receipts kept outside the project catch a rewrite of any entry up to the receipt.
+  Ed25519 signatures bind exports, receipts and sign-offs to a key.
+- The chain shows the files are consistent and, with a receipt, that the history up to
+  the receipt is unchanged. It does not show the assessment is right.
 
-If you find a discrepancy between this document and the source of truth
-(`src/riskforge/engine/audit.py`, `src/riskforge/storage/filesystem.py`),
-the source of truth wins and this document needs a patch. File an issue at
-<https://github.com/aiexponent/riskforge/issues>.
-
-Last verified against the codebase on **2026-05-10**.
+If this document and the code disagree, the code wins and this document needs a fix. File
+an issue at <https://github.com/aiexponent/riskforge/issues>.

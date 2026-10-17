@@ -29,7 +29,7 @@ riskforge assess "$sid" -a "Example Assessor" -r "AI Governance Lead" \
 riskforge export "$sid" -f pdf -o "$d/rmf.pdf" --force --project-dir "$d"
 ```
 
-## Regression harness
+## Regression check
 
 `scripts/eval.py` runs every example headless and compares the produced RMF against
 its golden. It is wired into CI (`tests/integration/test_examples.py`).
