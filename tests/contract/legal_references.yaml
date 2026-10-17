@@ -104,12 +104,14 @@ references:
   # GDPR
   "GDPR Art.5(1)(e)": {source: gdpr, status: verified}
   "GDPR Art.5(1)(b)": {source: gdpr, status: verified}
+  "GDPR Art.5(1)(c)": {source: gdpr, status: verified}
   "GDPR Art.9": {source: gdpr, status: verified}
   "GDPR Art.13(2)(f)": {source: gdpr, status: verified}
   "GDPR Art.14(2)(g)": {source: gdpr, status: verified}
   "GDPR Art.15(1)(h)": {source: gdpr, status: verified}
   "GDPR Art.22(1)": {source: gdpr, status: verified}
   "GDPR Art.22(2)(a)": {source: gdpr, status: verified}
+  "GDPR Art.22(2)(c)": {source: gdpr, status: verified}
   "GDPR Art.22(3)": {source: gdpr, status: verified}
   "GDPR Art.35": {source: gdpr, status: verified}
   # Charter of Fundamental Rights

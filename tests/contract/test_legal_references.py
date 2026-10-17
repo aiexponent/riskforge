@@ -27,12 +27,34 @@ PATTERNS_FILE = SRC_DIR / "_data" / "patterns" / "patterns.yaml"
 TEXT_SUFFIXES = {".py", ".yaml", ".yml", ".json", ".html", ".css", ".md", ".txt", ".j2"}
 
 # One article number with its paragraphs and points: 9, 4a(1), 6(1c), 13(3)(b)(iv).
-_NUM = r"\d+[a-z]?(?:\((?:\d+[a-z]?|[a-z]+)\))*"
+_GROUPS = r"(?:\((?:\d+[a-z]?|[a-z]+)\))"
+_NUM = rf"\d+[a-z]?{_GROUPS}*"
+# A later item may leave out the article: "Article 9(6) and (8)", "Art.9(2)(a) and (b)".
+_ITEM = rf"(?:{_NUM}|{_GROUPS}+)"
 _ARTICLE = re.compile(
     rf"\b(?:Art\.\s?|Articles?\s)(?P<head>{_NUM})"
-    rf"(?P<tail>(?:(?:,\s|\s(?:and|or|to)\s){_NUM})*)"
+    rf"(?P<tail>(?:(?:,\s|\s(?:and|or|to)\s){_ITEM})*)"
 )
-_TAIL_ITEM = re.compile(_NUM)
+_TAIL_ITEM = re.compile(_ITEM)
+_ARTICLE_NUMBER = re.compile(r"\d+[a-z]?")
+_PARAGRAPH = re.compile(r"\d+[a-z]?\(\d+[a-z]?\)")
+
+
+def _resolve(item: str, head: str) -> str:
+    """Complete an item without an article number from the reference before it.
+
+    "(8)" after "9(6)" is a paragraph, so "9(8)"; "(b)" after "9(2)(a)" is a point,
+    so "9(2)(b)".
+    """
+    if item[0].isdigit():
+        return item
+    paragraph = _PARAGRAPH.match(head)
+    if item[1].isalpha() and paragraph:
+        return paragraph.group() + item
+    number = _ARTICLE_NUMBER.match(head)
+    return (number.group() if number else head) + item
+
+
 _OTHER = [
     re.compile(r"\bAnnex [IVX]+\b(?:,? Section [A-Z])?(?:,? point \d+[a-z]?(?:\([a-z]\))?)?"),
     re.compile(r"\bAnnex A\.\d+\b"),
@@ -73,9 +95,11 @@ def extract_references(text: str) -> Iterator[str]:
     """Yield every reference in *text*, normalised to the repo's ``Art.9(8)`` style."""
     for match in _ARTICLE.finditer(text):
         prefix = _instrument_prefix(text, match.start(), match.end())
-        yield f"{prefix}Art.{match.group('head')}"
+        previous = match.group("head")
+        yield f"{prefix}Art.{previous}"
         for item in _TAIL_ITEM.findall(match.group("tail")):
-            yield f"{prefix}Art.{item}"
+            previous = _resolve(item, previous)
+            yield f"{prefix}Art.{previous}"
     for pattern in _OTHER:
         for match in pattern.finditer(text):
             yield re.sub(r",", "", match.group(0))
@@ -156,6 +180,10 @@ def test_corrected_references_do_not_return(found: dict[str, list[str]]) -> None
         ('article_refs: ["Art.9(2)(a)", "Art.13(3)(b)(iv)"]', ["Art.9(2)(a)", "Art.13(3)(b)(iv)"]),
         ("Article 9(6) to 9(8) Test Requirements", ["Art.9(6)", "Art.9(8)"]),
         ("Art.6(1a) to 6(1c)", ["Art.6(1a)", "Art.6(1c)"]),
+        ("Article 9(6) and (8)", ["Art.9(6)", "Art.9(8)"]),
+        ("Article 9(6) and (7)", ["Art.9(6)", "Art.9(7)"]),
+        ("Art.9(2)(a) and (b)", ["Art.9(2)(a)", "Art.9(2)(b)"]),
+        ("Article 26(1), (2) and (5)", ["Art.26(1)", "Art.26(2)", "Art.26(5)"]),
         (
             "GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require",
             ["GDPR Art.13(2)(f)", "GDPR Art.14(2)(g)", "GDPR Art.15(1)(h)"],
