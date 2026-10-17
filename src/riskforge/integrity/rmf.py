@@ -167,6 +167,8 @@ class RmfCheck:
     only with the key embedded in the file. ``trusted_key_checked`` is whether trusted
     keys were given; a pass then means a trusted key signed the file. Without them a
     pass shows only that the file is consistent with itself, and the last note says so.
+    ``verified`` is the rule ``riskforge verify --file`` uses to print "RMF integrity
+    verified" rather than "RMF file is internally consistent".
     """
 
     version: str
@@ -179,7 +181,18 @@ class RmfCheck:
 
     @property
     def ok(self) -> bool:
+        """True when nothing failed. Without trusted keys, only that the file is consistent."""
         return not self.findings
+
+    @property
+    def verified(self) -> bool:
+        """True when nothing failed and the file was checked against trusted keys.
+
+        A trusted key then signed the file, its sign-offs and its receipt. Without
+        trusted keys this is False even when ``ok`` is True, since anyone can rebuild
+        the chain proof, receipt and signatures of a file with a key of their own.
+        """
+        return self.ok and self.trusted_key_checked
 
 
 def check_rmf_document(

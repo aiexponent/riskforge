@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import riskforge.api as rf
 from rf_testkit import offline_env
 
@@ -25,26 +26,35 @@ PUBLIC = {
     "ValidateEngine",
     # results and errors
     "AmbiguousRiskIdError",
+    "ChangeInProgressError",
+    "ExportError",
     "ExportResult",
     "FieldChange",
     "GateResult",
     "GateStatus",
     "IntegrityError",
     "IntegrityReport",
+    "InvalidReceiptError",
     "ItemChange",
     "KeyFileError",
+    "NumberTooLongError",
+    "ReceiptFileError",
     "RegisterDiff",
     "RiskNotFoundError",
     "RmfCheck",
+    "RmfFileError",
     "SchemaViolationError",
+    "StrictJsonError",
     "UnsupportedRmfVersionError",
     "UpsertOutcome",
+    "UpsertResult",
     "ValidationGateError",
     # functions
     "build_cross_references",
     "build_receipt",
     "canonical_json",
     "check_integrity",
+    "check_integrity_settled",
     "check_receipt",
     "check_rmf_document",
     "content_digest",
@@ -55,12 +65,16 @@ PUBLIC = {
     "keyword_matches",
     "load_public_key_b64",
     "origin_key",
+    "read_receipt_file",
+    "read_rmf_file",
+    "reads_checked_against",
     "receipt_from_document",
     "require_intact",
     "rmf_document",
     "rmf_signing_message",
     "signoff_signing_message",
     "verify_signature",
+    "write_key_pair",
     # signing
     "Ed25519Signer",
     # models
@@ -130,14 +144,14 @@ def test_assess_engine_defaults_to_the_bundled_question_bank() -> None:
     assert len(engine.load_patterns()) > 0
 
 
-async def test_an_embedding_application_runs_the_whole_flow(tmp_path: Path) -> None:
-    key = tmp_path / "signing.pem"
-    private_pem, _public_pem = rf.generate_key_pair_pem()
-    key.write_bytes(private_pem)
-    key.chmod(0o600)
-    signer = rf.Ed25519Signer.from_file(key)
+def _public_key_file(key: Path) -> Path:
+    return key.with_name(key.name + ".pub")
 
-    store = rf.FileStore(tmp_path / "project")
+
+async def _signed_export(directory: Path, key: Path, title: str = "workshop") -> Path:
+    """A project in ``directory`` with one risk per dimension, exported signed by ``key``."""
+    signer = rf.Ed25519Signer.from_file(key)
+    store = rf.FileStore(directory / "project")
     await store.init_project("embedded", {"created_by": "library api test"})
     audit = rf.AuditEngine(store, rf.AuditActor(type="api", identity="consultant@example.com"))
     system = rf.AISystem(
@@ -157,7 +171,7 @@ async def test_an_embedding_application_runs_the_whole_flow(tmp_path: Path) -> N
             system_id,
             rf.RiskItem(
                 dimension=dimension,
-                title=f"{dimension.value} risk from the workshop",
+                title=f"{dimension.value} risk from the {title}",
                 description="Recorded during the assessment workshop.",
                 likelihood=rf.Likelihood(3),
                 severity=rf.Severity(3),
@@ -165,9 +179,9 @@ async def test_an_embedding_application_runs_the_whole_flow(tmp_path: Path) -> N
                 residual_severity=rf.Severity(3),
             ),
         )
-    register = await store.read_register(system_id)
+    register = await audit.read_register(system_id)
     await risks.set_test_requirements(system_id, rf.TestDerivationEngine().derive(register.items))
-    gates = rf.ValidateEngine().run(await store.read_register(system_id))
+    gates = rf.ValidateEngine().run(await audit.read_register(system_id))
     assert not rf.ValidateEngine().has_failures(gates), [
         g for g in gates if g.status == rf.GateStatus.FAIL
     ]
@@ -175,18 +189,122 @@ async def test_an_embedding_application_runs_the_whole_flow(tmp_path: Path) -> N
     registry = rf.PluginRegistry()
     registry.load_all()
     result = await rf.ExportEngine(registry, audit, store).export(
-        system_id, "json", tmp_path / "rmf.json", signer=signer
+        system_id, "json", directory / "rmf.json", signer=signer
     )
-    document = json.loads(result.path.read_text(encoding="utf-8"))
-    check = rf.check_rmf_document(document, trusted_keys=[signer.public_key_b64])
+    assert result.path == directory / "rmf.json"
+    return result.path
+
+
+async def test_an_embedding_application_runs_the_whole_flow(tmp_path: Path) -> None:
+    key = tmp_path / "signing.pem"
+    public_b64 = rf.write_key_pair(key)
+    trusted = [rf.load_public_key_b64(_public_key_file(key))]
+    assert trusted == [public_b64]
+    path = await _signed_export(tmp_path, key)
+
+    # What `riskforge verify --file rmf.json --trusted-key signing.pem.pub` runs.
+    document = rf.read_rmf_file(path)
+    check = rf.check_rmf_document(document, trusted_keys=trusted)
     assert check.ok, check.findings
     assert check.trusted_key_checked
-    assert document["sha256_hash"] == result.content_digest == rf.content_digest(document)
+    assert check.verified
+    assert document["sha256_hash"] == rf.content_digest(document)
+    store = rf.FileStore(tmp_path / "project", read_only=True)
+    report = await rf.check_integrity_settled(store)
+    assert report.ok, report.errors
+    assert report.strict().ok
     assert (await rf.check_integrity(store)).ok
+    assert rf.read_receipt_file(path) == rf.receipt_from_document(document)
 
-    # A changed file fails the same check the CLI's `verify --file` runs.
+    # A changed file fails the same check.
     document["register"]["items"][0]["title"] = "Edited after export"
-    assert not rf.check_rmf_document(document, trusted_keys=[signer.public_key_b64]).ok
+    edited = rf.check_rmf_document(document, trusted_keys=trusted)
+    assert not edited.ok
+    assert not edited.verified
+
+
+async def test_ok_without_a_trusted_key_means_internally_consistent_only(tmp_path: Path) -> None:
+    owner = tmp_path / "owner" / "signing.pem"
+    owner.parent.mkdir()
+    rf.write_key_pair(owner)
+    genuine = await _signed_export(owner.parent, owner)
+    # Anyone can build a whole file with their own key: chain proof, receipt, signature.
+    forger = tmp_path / "forger" / "signing.pem"
+    forger.parent.mkdir()
+    rf.write_key_pair(forger)
+    forged = await _signed_export(forger.parent, forger, title="forger's desk")
+    trusted = [rf.load_public_key_b64(_public_key_file(owner))]
+
+    self_signed = rf.check_rmf_document(rf.read_rmf_file(forged))
+    assert self_signed.ok, self_signed.findings
+    assert not self_signed.trusted_key_checked
+    assert not self_signed.verified
+    assert "anyone can rebuild" in self_signed.notes[-1]
+
+    against_owner = rf.check_rmf_document(rf.read_rmf_file(forged), trusted_keys=trusted)
+    assert not against_owner.ok
+    assert not against_owner.verified
+
+    unchecked = rf.check_rmf_document(rf.read_rmf_file(genuine))
+    assert unchecked.ok
+    assert not unchecked.verified
+    assert rf.check_rmf_document(rf.read_rmf_file(genuine), trusted_keys=trusted).verified
+
+
+async def test_the_strict_readers_refuse_a_duplicate_key(tmp_path: Path) -> None:
+    key = tmp_path / "signing.pem"
+    rf.write_key_pair(key)
+    path = await _signed_export(tmp_path, key)
+    trusted = [rf.load_public_key_b64(_public_key_file(key))]
+    text = path.read_text(encoding="utf-8")
+    assert text.startswith("{")
+    # A second sha256_hash before the real one: json.loads keeps the last, so the edit
+    # passes a check that skips the strict reader.
+    duplicated = tmp_path / "duplicated.json"
+    duplicated.write_text('{"sha256_hash": "' + "0" * 64 + '",' + text[1:], encoding="utf-8")
+    lenient = json.loads(duplicated.read_text(encoding="utf-8"))
+    assert rf.check_rmf_document(lenient, trusted_keys=trusted).verified
+
+    with pytest.raises(rf.StrictJsonError, match="duplicate"):
+        rf.read_rmf_file(duplicated)
+    with pytest.raises(rf.InvalidReceiptError):
+        rf.read_receipt_file(duplicated)
+    not_json = tmp_path / "not.json"
+    not_json.write_text("[]", encoding="utf-8")
+    with pytest.raises(rf.RmfFileError):
+        rf.read_rmf_file(not_json)
+    with pytest.raises(rf.ReceiptFileError):
+        rf.read_receipt_file(not_json)
+    too_long = tmp_path / "too-long.json"
+    too_long.write_text('{"n": ' + "9" * 5000 + "}", encoding="utf-8")
+    with pytest.raises(rf.NumberTooLongError):
+        rf.read_rmf_file(too_long)
+
+
+async def test_reads_after_a_settled_check_are_compared_with_it(tmp_path: Path) -> None:
+    key = tmp_path / "signing.pem"
+    rf.write_key_pair(key)
+    await _signed_export(tmp_path, key)
+    store = rf.FileStore(tmp_path / "project", read_only=True)
+    audit = rf.AuditEngine(store, rf.AuditActor(type="api", identity="reader"))
+    report = await rf.check_integrity_settled(store)
+    assert report.ok, report.errors
+    (register_file,) = (tmp_path / "project" / ".riskforge").rglob("register.yaml")
+    system_id = register_file.parent.name
+    with rf.reads_checked_against(store, report):
+        assert (await audit.read_register(system_id)).items
+        # Changed outside RiskForge after the check, as a tamper test.
+        text = register_file.read_text(encoding="utf-8")
+        register_file.write_text(text.replace("from the workshop", "edited"), encoding="utf-8")
+        with pytest.raises(rf.IntegrityError):
+            await audit.read_register(system_id)
+
+
+def test_the_error_and_result_types_are_the_engine_ones() -> None:
+    assert issubclass(rf.ValidationGateError, rf.ExportError)
+    assert issubclass(rf.SchemaViolationError, rf.ExportError)
+    assert issubclass(rf.ChangeInProgressError, RuntimeError)
+    assert rf.UpsertResult._fields == ("outcome", "item", "previous", "matches")
 
 
 def _doc_example() -> str:
@@ -202,8 +320,12 @@ def test_the_documented_example_runs(tmp_path: Path) -> None:
     # would record statement data the suite's branch data cannot be combined with. The
     # in-process flow test above covers the same code.
     env = {k: v for k, v in offline_env().items() if not k.startswith("COV_CORE_")}
+    loaded = (
+        "import sys\n"
+        "print(sorted(m for m in ('typer', 'weasyprint', 'riskforge.cli') if m in sys.modules))\n"
+    )
     result = subprocess.run(
-        [sys.executable, "-c", _doc_example()],
+        [sys.executable, "-c", _doc_example() + loaded],
         capture_output=True,
         text=True,
         timeout=120,
@@ -214,6 +336,7 @@ def test_the_documented_example_runs(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == [
         "Gates passed: True",
-        "Signed RMF verified: True",
+        "RMF verified with the trusted key: True",
         "Audit chain intact: True",
+        "[]",
     ]

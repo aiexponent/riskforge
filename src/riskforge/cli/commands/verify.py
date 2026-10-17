@@ -220,11 +220,7 @@ def _verify_rmf_file(
     if not findings:
         stored = escape(printable(str(result.stored_digest)))
         # Without a trusted key every block can be rebuilt, so claim only consistency.
-        claim = (
-            "RMF integrity verified"
-            if result.trusted_key_checked
-            else "RMF file is internally consistent"
-        )
+        claim = "RMF integrity verified" if result.verified else "RMF file is internally consistent"
         console.print(
             f"[green]✓[/green] {claim}. It validates against RMF schema "
             f"{result.version} and its SHA-256 matches ({stored[:12]}...).",

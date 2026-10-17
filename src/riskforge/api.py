@@ -15,15 +15,19 @@ from riskforge.engine.audit import AuditEngine
 from riskforge.engine.diff import FieldChange, ItemChange, RegisterDiff, diff_registers
 from riskforge.engine.export import (
     ExportEngine,
+    ExportError,
     ExportResult,
     SchemaViolationError,
     ValidationGateError,
     build_cross_references,
 )
 from riskforge.engine.integrity import (
+    ChangeInProgressError,
     IntegrityError,
     IntegrityReport,
     check_integrity,
+    check_integrity_settled,
+    reads_checked_against,
     require_intact,
 )
 from riskforge.engine.risk import (
@@ -31,18 +35,28 @@ from riskforge.engine.risk import (
     RiskEngine,
     RiskNotFoundError,
     UpsertOutcome,
+    UpsertResult,
     origin_key,
 )
 from riskforge.engine.system import SystemEngine
 from riskforge.engine.tests import TestDerivationEngine
 from riskforge.engine.validate import GateResult, GateStatus, ValidateEngine
 from riskforge.integrity.canonical import canonical_json, document_fingerprint
-from riskforge.integrity.receipts import build_receipt, check_receipt, receipt_from_document
+from riskforge.integrity.receipts import (
+    InvalidReceiptError,
+    ReceiptFileError,
+    build_receipt,
+    check_receipt,
+    read_receipt_file,
+    receipt_from_document,
+)
 from riskforge.integrity.rmf import (
     RmfCheck,
+    RmfFileError,
     UnsupportedRmfVersionError,
     check_rmf_document,
     content_digest,
+    read_rmf_file,
     rmf_signing_message,
     signoff_signing_message,
 )
@@ -53,7 +67,9 @@ from riskforge.integrity.signing import (
     key_id_for,
     load_public_key_b64,
     verify_signature,
+    write_key_pair,
 )
+from riskforge.integrity.strict_json import NumberTooLongError, StrictJsonError
 from riskforge.models.audit import AuditActor, AuditEntry
 from riskforge.models.receipt import Receipt
 from riskforge.models.register import RiskRegister
@@ -91,9 +107,11 @@ __all__ = [
     "AuditEntry",
     "AuditLogCorruptError",
     "ChainProof",
+    "ChangeInProgressError",
     "CrossReference",
     "Ed25519Signer",
     "ExportEngine",
+    "ExportError",
     "ExportResult",
     "FieldChange",
     "FileStore",
@@ -101,16 +119,19 @@ __all__ = [
     "GateStatus",
     "IntegrityError",
     "IntegrityReport",
+    "InvalidReceiptError",
     "ItemChange",
     "KeyFileError",
     "Likelihood",
     "Mitigation",
+    "NumberTooLongError",
     "PendingChangeError",
     "PluginRegistry",
     "ProjectExistsError",
     "ProjectNotFoundError",
     "PublicKeyRecord",
     "Receipt",
+    "ReceiptFileError",
     "RegisterDiff",
     "RegisterNotFoundError",
     "RiskDimension",
@@ -120,23 +141,27 @@ __all__ = [
     "RiskNotFoundError",
     "RiskRegister",
     "RmfCheck",
+    "RmfFileError",
     "RmfSignature",
     "SchemaViolationError",
     "Severity",
     "SignOff",
     "StorageBackend",
+    "StrictJsonError",
     "SystemEngine",
     "SystemNotFoundError",
     "TestDerivationEngine",
     "TestRequirement",
     "UnsupportedRmfVersionError",
     "UpsertOutcome",
+    "UpsertResult",
     "ValidateEngine",
     "ValidationGateError",
     "build_cross_references",
     "build_receipt",
     "canonical_json",
     "check_integrity",
+    "check_integrity_settled",
     "check_receipt",
     "check_rmf_document",
     "content_digest",
@@ -147,10 +172,14 @@ __all__ = [
     "keyword_matches",
     "load_public_key_b64",
     "origin_key",
+    "read_receipt_file",
+    "read_rmf_file",
+    "reads_checked_against",
     "receipt_from_document",
     "require_intact",
     "rmf_document",
     "rmf_signing_message",
     "signoff_signing_message",
     "verify_signature",
+    "write_key_pair",
 ]
