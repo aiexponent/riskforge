@@ -306,7 +306,8 @@ async def check_integrity(
     The chain is checked twice: by the backend's ``verify_chain``, which can also check
     the stored lines, and again here from the entries ``read_audit`` returns, with the
     same rules (``verify_links``), so a backend whose own check misses an edited entry
-    still fails. Entry ``n`` is labelled ``Line n``, its line in FileStore's log, and a
+    still fails. Entry ``n`` is labelled ``Line n``: its line in FileStore's log, and its
+    position in the list ``read_audit`` returns for any other backend. A
     finding both checks report is listed once.
     """
     _chain_ok, chain_errors = await storage.verify_chain()

@@ -343,3 +343,16 @@ class StorageContract:
         assert any(
             "entries were removed from the end" in error for error in report.errors
         ), f"check_integrity did not report entries removed from the end: {report.errors}"
+
+    async def test_a_second_handle_sees_entries_removed_from_the_end(self, tmp_path: Path) -> None:
+        # A head kept only in memory on one handle would pass the test above; a fresh
+        # handle on the same data must still see that the log lost its last entry.
+        storage, audit, system_id = await self._seeded(tmp_path)
+        await RiskEngine(storage, audit).add_risk(system_id, _item("one"))
+        await self.drop_last_audit_entry(storage)
+        other = await self.make_second_handle(storage)
+        report = await check_integrity(other)
+        assert not report.ok
+        assert any(
+            "entries were removed from the end" in error for error in report.errors
+        ), f"a second handle did not report entries removed from the end: {report.errors}"

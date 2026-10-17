@@ -296,6 +296,12 @@ Passing the suite is necessary, not sufficient. It does not cover:
   cannot pass, but not every way a head and a log can be lost together;
 - a `system.yaml` changed outside RiskForge;
 - rollback after a crash part way through a commit, and backup and restore.
+- what the backend actually stores. `check_integrity` checks what `read_audit`,
+  `read_audit_head` and the register reads return, so a backend that returns something
+  other than what it stores, or that rewrites the log and the head together, still
+  passes. Only a record kept outside the project, such as a receipt or a signed export,
+  catches that (see the Trade-offs Accepted section of
+  [ADR-03](adr/ADR-03-register-fingerprints-and-integrity-check.md)).
 
 RiskForge runs the same suite against `FileStore` in its own CI
 (`tests/contract/test_filestore_contract.py`), and runs it against `FileStore` subclasses
