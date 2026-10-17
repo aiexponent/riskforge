@@ -106,7 +106,7 @@ def _load(path: Path) -> dict:
         fail(f"{path} is not a JSON RMF file: {exc}")
     if not isinstance(data, dict) or not isinstance(data.get("register"), dict):
         fail(f"{path} is not an RMF file: it has no 'register' block.")
-    items = data["register"].get("items", [])
+    items = data["register"].get("items")
     if not isinstance(items, list) or not all(
         isinstance(item, dict) and isinstance(item.get("id"), str) for item in items
     ):

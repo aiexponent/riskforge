@@ -7,6 +7,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 from rf_testkit import run_rf
 
 REPO = Path(__file__).resolve().parents[2]
@@ -93,9 +94,13 @@ def test_diff_refuses_files_from_another_system() -> None:
     assert "Traceback" not in result.output
 
 
-def test_diff_refuses_a_register_without_an_item_list(tmp_path: Path) -> None:
+@pytest.mark.parametrize("missing", [False, True])
+def test_diff_refuses_a_register_without_an_item_list(tmp_path: Path, missing: bool) -> None:
     broken = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    broken["register"]["items"] = {"not": "a list"}
+    if missing:
+        del broken["register"]["items"]
+    else:
+        broken["register"]["items"] = {"not": "a list"}
     path = tmp_path / "broken.json"
     path.write_text(json.dumps(broken), encoding="utf-8")
     result = run_rf(["diff", broken["register"]["system"]["id"], str(path), str(FIXTURE)])
