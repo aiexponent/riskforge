@@ -28,4 +28,4 @@ Engine code that needs information from configuration must accept it as construc
 
 ## Update (2.0.0)
 
-The experimental server layer and its optional install extra were removed in 2.0.0 (PRD-354). The rule that the engine never imports the CLI still applies, and the boundary test now checks only that rule.
+The experimental server layer and its optional install extra were removed in 2.0.0. The rule that the engine never imports the CLI still applies, and the boundary test now checks only that rule.

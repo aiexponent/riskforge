@@ -6,7 +6,7 @@
 
 ## Context
 
-Up to 1.1.3 the audit chain hashes only its own entries. Nothing ties an entry to the register it produced, nothing records where the log should end, and an empty or missing log counts as valid. As a result `riskforge verify` exits 0 after a register is edited by hand, after the last entries of `audit.jsonl` are cut off, after the log is deleted, and after the whole chain is rebuilt (PRD-332). Commands that change data also write new entries on top of a chain that is already corrupt (PRD-333).
+Up to 1.1.3 the audit chain hashes only its own entries. Nothing ties an entry to the register it produced, nothing records where the log should end, and an empty or missing log counts as valid. As a result `riskforge verify` exits 0 after a register is edited by hand, after the last entries of `audit.jsonl` are cut off, after the log is deleted, and after the whole chain is rebuilt. Commands that change data also write new entries on top of a chain that is already corrupt.
 
 AGENTS.md hard rule 5 says any change to the audit chain hash needs an ADR before the code. This ADR is that record. It adds fields to what an entry hash covers, adds a head file, and defines the one check that `verify` and every changing command run. It keeps every hash written by 1.1.3 valid.
 
@@ -52,7 +52,7 @@ def entry_hash(entry: dict) -> str:
 
 If `register.yaml` does not parse, or parses to a value `canonical_json` cannot encode (a YAML date, timestamp, `!!binary` or `!!set` value, or a mapping with keys of mixed types), the check reports the register as not matching its fingerprint. It does not raise.
 
-Every entry written for a system that has a register carries the fingerprint of that register after the change. Every register write, including the first one `assess` makes, records an entry in the same storage unit of work (PRD-331). No command writes a register without one. A crash during a change therefore does not by itself leave a register that fails to match the latest fingerprint. A mismatch means the register changed after RiskForge wrote it, whether by a person, another tool, a restored backup or disk damage. The check cannot tell which.
+Every entry written for a system that has a register carries the fingerprint of that register after the change. Every register write, including the first one `assess` makes, records an entry in the same storage unit of work. No command writes a register without one. A crash during a change therefore does not by itself leave a register that fails to match the latest fingerprint. A mismatch means the register changed after RiskForge wrote it, whether by a person, another tool, a restored backup or disk damage. The check cannot tell which.
 
 ### 4. Head file and unit of work
 
@@ -66,7 +66,7 @@ A changing command takes the audit lock, completes or rolls back any unfinished 
 
 ### 5. One integrity check
 
-`check_integrity()` in `riskforge.engine.integrity` is the only verification path. `riskforge verify` runs it, and every command that changes or exports data runs it first and stops with exit code 2 when it fails (PRD-333). The engine enforces the same rule: `AuditEngine` opens every change through `checked_unit_of_work()`, which runs the check once per outermost unit of work, after the lock and recovery and before anything is staged, and raises `IntegrityError` when it fails. So nothing is appended to a project that fails the check, and no `register.baselined` entry is recorded unless the check passed. The lock keeps other RiskForge commands out between the check and the change, but not other programs, so the engine keeps a digest of each register and system file the check read. A file changed outside RiskForge after the check is detected when the change reads it or records an entry for it, and the change is refused with `IntegrityError` instead of recording the edited file. The check reports every finding, not only the first. It fails on the rows below. Each row catches its change only when the other files were not rewritten to agree with it (see Trade-offs Accepted).
+`check_integrity()` in `riskforge.engine.integrity` is the only verification path. `riskforge verify` runs it, and every command that changes or exports data runs it first and stops with exit code 2 when it fails. The engine enforces the same rule: `AuditEngine` opens every change through `checked_unit_of_work()`, which runs the check once per outermost unit of work, after the lock and recovery and before anything is staged, and raises `IntegrityError` when it fails. So nothing is appended to a project that fails the check, and no `register.baselined` entry is recorded unless the check passed. The lock keeps other RiskForge commands out between the check and the change, but not other programs, so the engine keeps a digest of each register and system file the check read. A file changed outside RiskForge after the check is detected when the change reads it or records an entry for it, and the change is refused with `IntegrityError` instead of recording the edited file. The check reports every finding, not only the first. It fails on the rows below. Each row catches its change only when the other files were not rewritten to agree with it (see Trade-offs Accepted).
 
 | Check | Catches |
 | --- | --- |

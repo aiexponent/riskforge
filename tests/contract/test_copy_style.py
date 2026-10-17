@@ -1,4 +1,7 @@
-"""User-facing text carries no em-dashes (house style; issue #52, PRD-327)."""
+"""User-facing text carries no em-dashes (house style; issue #52).
+
+The public docs also avoid the house word list and name no internal ticket ids.
+"""
 
 from __future__ import annotations
 
@@ -80,3 +83,16 @@ def test_public_docs_avoid_the_house_word_list() -> None:
                 f"{path.relative_to(REPO)}:{number}: {m.group(0)}" for m in pattern.finditer(line)
             ]
     assert hits == [], "avoid-list words found:\n" + "\n".join(hits)
+
+
+INTERNAL_TICKET = re.compile(r"\bPRD-\d+")
+
+
+def test_public_docs_name_no_internal_tickets() -> None:
+    hits = [
+        f"{path.relative_to(REPO)}:{number}: {m.group(0)}"
+        for path in _public_docs()
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+        for m in INTERNAL_TICKET.finditer(line)
+    ]
+    assert hits == [], "internal ticket ids found:\n" + "\n".join(hits)
