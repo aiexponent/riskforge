@@ -239,8 +239,8 @@ under both intended-use and foreseeable-misuse conditions.
 - Annex III scenario tagging: each question carries
   `annex_iii_categories` (employment, education, law_enforcement,
   essential_services, biometric, justice, migration, health,
-  critical_infrastructure). Patterns use the category to decide which pre-built
-  risks to add; every question is asked whatever the category. The `health` tag in
+  critical_infrastructure). Patterns use the system's Annex III category to decide
+  which pre-built risks to add; every question is asked whatever the category. The `health` tag in
   privacy.yaml is not an Annex III category.
 
 **What RiskForge does NOT do.**
@@ -503,8 +503,8 @@ requirement from `riskforge tests generate`, WARN).
 **Plain English.** Testing may include testing in real-world conditions under
 Article 60, which sets its own conditions (Article 60(4)) for such testing outside
 AI regulatory sandboxes. Article 9(7) does not require it. Since Regulation (EU)
-2026/1744, Article 60 covers systems listed in Annex III or covered by Annex I,
-Section A, and a new Article 60a lets Member States allow real-world testing
+2026/1744, Article 60 covers systems listed in Annex III or covered by the
+legislation in Annex I, Section A, and a new Article 60a lets Member States allow real-world testing
 outside sandboxes for AI-enabled products covered by the legislation in Annex I,
 Section B.
 

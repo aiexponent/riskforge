@@ -193,8 +193,9 @@ checks the schema, recomputes the digest, checks every signature and sign-off, r
 the chain proof, and checks that the proof's last fingerprint for the system matches the
 register in the file. It needs only the file. The `rmf.exported` entry that records the
 export is written after the file and stores the SHA-256 of the file's bytes
-(`file_sha256`). If the export fails before the file is renamed into place, neither a
-file nor an entry is left. If it fails after the rename, while flushing the directory or
+(`file_sha256`). If the export fails before the checkpoint, if any, is committed,
+neither a file nor an entry is left. If the rename then fails, no file is written, but a
+committed checkpoint entry stays. If it fails after the rename, while flushing the directory or
 recording `rmf.exported`, the file stays without an `rmf.exported` entry; a failed flush
 says the export was not recorded. A file written
 by RiskForge 1.1 (RMF schema 1.0.0) gets the schema and digest check only.
