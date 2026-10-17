@@ -66,7 +66,7 @@ patterns:
     triggers:
       annex_iii_categories: [biometric, law_enforcement]
       purpose_keywords: ["facial recognition", "face recognition", "biometric", "facial identification", "face identification", "surveillance", "face matching", "facial matching", "identification of persons", "identification of natural persons", "identification of suspects", "identify people", "identify persons", "identify individuals", "identify suspects", "person identification", "re-identification", "fingerprint", "iris recognition", "voice identification", "gait recognition", "watchlist"]
-      exclude_keywords: ["face unlock", "phone unlock", "own phone", "own device"]
+      exclude_keywords: ["face unlock", "phone unlock", "device unlock", "unlocks the owner", "unlock the owner", "unlocks their own", "unlock their own"]
     risks:
       - dimension: fundamental_rights
         title: "Chilling effect on freedom of assembly and expression"

@@ -226,6 +226,11 @@ def test_purpose_outside_the_pattern_does_not_get_it(purpose: str, wrong_pattern
         ),
         ("essential_services", "Credit risk decisions on card applications", "CREDIT_SCORING_BIAS"),
         ("employment", "CV screening for job applicants", "HIRING_SCREENING"),
+        (
+            "law_enforcement",
+            "Police facial recognition to identify suspects using their own device",
+            "LAW_ENFORCEMENT_BIOMETRIC",
+        ),
         ("employment", "Scores recorded job interviews of graduates", "HIRING_SCREENING"),
         (
             "biometric",
