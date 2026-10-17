@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
 import pytest
 import yaml
+from rf_testkit import RELEASE_ENV
 
 
 @pytest.fixture
@@ -38,3 +40,17 @@ def materialise_v113(dest: Path) -> tuple[Path, str]:
 @pytest.fixture
 def v113_project(tmp_path: Path) -> tuple[Path, str]:
     return materialise_v113(tmp_path / "v113")
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """With RISKFORGE_RELEASE_CHECK set, a run that selects no release test is an error.
+
+    Runs after the -m deselection, so a release workflow step whose command drops
+    `-m release` or `tests/release` fails instead of passing without the check.
+    """
+    if os.environ.get(RELEASE_ENV) and not any(i.get_closest_marker("release") for i in items):
+        raise pytest.UsageError(
+            f"{RELEASE_ENV} is set but no release test is selected: "
+            "run pytest -m release tests/release"
+        )

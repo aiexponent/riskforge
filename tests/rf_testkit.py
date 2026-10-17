@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 NETBLOCK_DIR = Path(__file__).resolve().parent / "netblock"
+# Set only by the release workflow: the published-schema check must then run (tests/release).
+RELEASE_ENV = "RISKFORGE_RELEASE_CHECK"
 
 RF_BIN = str(Path(sys.executable).parent / "riskforge")
 if not Path(RF_BIN).exists():
