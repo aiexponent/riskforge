@@ -50,4 +50,4 @@ RiskForge is designed with security in mind:
 ## Known Limitations
 
 - Risk management files contain sensitive system architecture information. Do not commit `.riskforge/` to public repositories; add `.riskforge/` and `riskforge.yaml` to `.gitignore`. `riskforge init` warns inside a git repository when the manifest is not git-ignored.
-- Signing keys from `riskforge keygen` are not encrypted. Keep them outside the project and out of version control; RiskForge refuses a private key file that other users can read.
+- Signing keys from `riskforge keygen` are not encrypted. Keep them outside the project and out of version control. On Linux and macOS, RiskForge refuses a private key file that other users can read, and one passed as a symbolic link. On Windows it makes neither check and does not read the file's access control list (ACL), so restrict the key file's ACL yourself so that only your user account can read it.

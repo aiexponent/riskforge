@@ -165,8 +165,9 @@ are not covered. Every JSON export also carries a receipt, so a saved export wor
 `riskforge keygen --output KEY` creates an Ed25519 key pair: `KEY` (PKCS8 PEM, not
 encrypted, mode 600 on Linux and macOS) and `KEY.pub`. A key is named by its `key_id`,
 `ed25519:` followed by the first 16 hex characters of the SHA-256 of the raw public key;
-trust always compares the full key. RiskForge refuses a private key file that other
-users can read.
+trust always compares the full key. On Linux and macOS, RiskForge refuses a private key
+file that other users can read. On Windows it does not check the file's access control
+list, so restrict that list yourself to your own user account.
 
 Each signature covers a fixed prefix plus the signed value, so a signature made for one
 purpose cannot be reused for another:
