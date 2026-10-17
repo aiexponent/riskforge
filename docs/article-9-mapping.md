@@ -38,11 +38,17 @@ high-risk AI systems under Chapter III, Section 2 of the EU AI Act. It requires:
 
 Article 9 obligations for high-risk AI systems apply from **2 December 2027** for
 systems classified as high-risk under Article 6(2) and Annex III, and **2 August 2028**
-for systems classified as high-risk under Article 6(1) and Annex I. These dates are set by Article 113, third paragraph,
+for systems classified as high-risk under Article 6(1) and Annex I, Section A. These dates are set by Article 113, third paragraph,
 point (c), as amended by Regulation (EU) 2026/1744, which was published in the
 Official Journal on 24 July 2026 and has been in force since 27 July 2026. The
 original dates were 2 August 2026 (the general date, which covered Annex III)
 and 2 August 2027 (Article 6(1)).
+
+Article 9 does not apply to systems classified as high-risk under Article 6(1)
+that are related to products covered by the legislation in Annex I, Section B.
+For those systems Article 2(2), as replaced by Regulation (EU) 2026/1744, provides
+that "only Article 6(1), Article 60a and Articles 102 to 112 shall apply". The
+original Article 2(2) also left Article 9 out for these systems.
 
 For the avoidance of doubt:
 
@@ -54,8 +60,10 @@ For the avoidance of doubt:
   2 December 2026.
 - The high-risk requirements and obligations in Chapter III, Sections 1 to 3
   (including Article 9) apply from
-  2 December 2027 (Annex III) or 2 August 2028 (Annex I) under Article 113,
-  third paragraph, point (c), as amended by Regulation (EU) 2026/1744.
+  2 December 2027 (Annex III) or 2 August 2028 (Annex I, Section A) under Article 113,
+  third paragraph, point (c), as amended by Regulation (EU) 2026/1744. Systems
+  related to products covered by Annex I, Section B are outside Article 9
+  (Article 2(2)).
 - Some general-purpose AI model obligations have a different timeline and are not
   in scope for this document.
 
@@ -506,7 +514,8 @@ AI regulatory sandboxes. Article 9(7) does not require it. Since Regulation (EU)
 2026/1744, Article 60 covers systems listed in Annex III or covered by the
 legislation in Annex I, Section A, and a new Article 60a lets Member States allow real-world testing
 outside sandboxes for AI-enabled products covered by the legislation in Annex I,
-Section B.
+Section B. Article 60a testing is not Article 9(7) testing: Article 9 does not
+apply to high-risk systems related to Annex I, Section B products (Article 2(2)).
 
 **What RiskForge does.** Out of scope. RiskForge does not orchestrate Art. 60
 real-world testing or its supervisory notifications. The mitigation-and-testing
