@@ -29,7 +29,10 @@ def _is_unit_of_work(with_node: ast.AsyncWith) -> bool:
 def _violations() -> list[str]:
     found: list[str] = []
     for path in sorted(SRC.rglob("*.py")):
-        if "storage" in path.relative_to(SRC).parts:
+        parts = path.relative_to(SRC).parts
+        # riskforge.testing is the storage contract suite: it writes without an entry
+        # on purpose, to prove a backend discards such a write.
+        if "storage" in parts or parts[0] == "testing":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         parents: dict[ast.AST, ast.AST] = {}

@@ -229,3 +229,49 @@ Audit chain intact: True
 Keep the private key out of version control. In a real check, trust the public key file
 you received from the signer, not one read from the file being checked. A test in the
 repository runs this example on every change, so it stays in step with the API.
+
+## Testing a storage backend
+
+`riskforge.testing.StorageContract` is the test suite every `StorageBackend` must pass. It
+is a separate module, not part of `riskforge.api`, and needs pytest and pytest-asyncio.
+Install `riskforge[testing]`, then subclass it in a test module under a name that starts
+with `Test`:
+
+```python
+from riskforge.testing import StorageContract
+
+
+class TestMyBackend(StorageContract):
+    async def make_storage(self, tmp_path, system_id): ...
+    async def tamper_register(self, storage, system_id): ...
+    async def tamper_audit(self, storage): ...
+```
+
+`make_storage` returns an empty, ready store that will hold the AI system `system_id`, so a
+backend scoped to one system can bind to it. `tamper_register` changes the stored register
+of that system, and `tamper_audit` changes the payload of the second stored audit entry,
+both without going through RiskForge, so the suite can check that `check_integrity`
+notices.
+
+Each test uses one system and drives the store through `SystemEngine`, `RiskEngine`,
+`AuditEngine` and `check_integrity`. The suite checks that:
+
+- a change and its audit entry become visible together, and a change that no entry records
+  is discarded;
+- `append_audit` outside a unit of work raises `RuntimeError`;
+- reads inside a unit of work see its own writes, and a nested unit of work joins the open
+  one;
+- 20 concurrent writers on one event loop lose no update and leave an unbroken audit
+  sequence;
+- awkward text (`Müller GmbH`, a description with line breaks, a title that is literally
+  `yes` or `null`) reads back exactly, and the register's fingerprint matches the one its
+  last audit entry recorded;
+- a missing system raises `SystemNotFoundError` and a missing register raises
+  `RegisterNotFoundError`;
+- `read_audit` filters by system and position;
+- `check_integrity` fails after `tamper_register`, with a finding that the register "was
+  changed outside RiskForge", and after `tamper_audit`.
+
+Writers in separate processes depend on how each backend locks, so the suite does not
+cover them: test that with your backend. RiskForge runs the same suite against `FileStore`
+in its own CI (`tests/contract/test_filestore_contract.py`).
