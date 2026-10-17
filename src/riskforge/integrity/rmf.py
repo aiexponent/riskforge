@@ -234,7 +234,10 @@ def check_rmf_document(
     if trust_required is None:
         trust_required = bool(trusted or receipts)
     if version == "1.0.0":
-        notes.append("The file declares RMF schema 1.0.0, so only its content digest was checked.")
+        notes.append(
+            "The file declares RMF schema 1.0.0, so only its schema and content digest "
+            "were checked."
+        )
         if trust_required:
             findings.append(RMF_1_0_0_CANNOT_BE_TRUSTED)
     elif invalid:

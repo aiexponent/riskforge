@@ -153,7 +153,7 @@ A 1.1.0 export embeds `chain_proof`: `scope` and `entries`. The chain is one per
 
 Any failure exits 2. A document that is not JSON, or declares a version this RiskForge does not read, exits 3.
 
-A 1.0.0 document cannot carry a signature, a chain proof or a receipt. Plain `verify --file` gives it step 1 only, as in 1.1.3, and says that only the content digest was checked and that the file declares RMF schema 1.0.0. With `--trusted-key` or `--receipt`, a 1.0.0 document fails with exit code 2 and the message "RMF schema 1.0.0 cannot carry a signature". Without this rule, someone could set `rmf_schema_version` to `1.0.0`, drop the 1.1.0 blocks, edit the register, recompute the 1.0.0 digest and pass a check the caller meant to require a trusted signature.
+A 1.0.0 document cannot carry a signature, a chain proof or a receipt. Plain `verify --file` gives it step 1 only, as in 1.1.3, and says that only its schema and content digest were checked and that the file declares RMF schema 1.0.0. With `--trusted-key` or `--receipt`, a 1.0.0 document fails with exit code 2 and the message "RMF schema 1.0.0 cannot carry a signature". Without this rule, someone could set `rmf_schema_version` to `1.0.0`, drop the 1.1.0 blocks, edit the register, recompute the 1.0.0 digest and pass a check the caller meant to require a trusted signature.
 
 Step 5 compares a fingerprint of the register block with fingerprints the chain took from the stored `register.yaml` (ADR-03 section 3). The two agree because the register block is the register as the current model serialises it (section 1), and the export makes the stored register match that form before it builds the chain proof (section 7).
 
