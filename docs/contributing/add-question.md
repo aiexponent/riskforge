@@ -36,8 +36,12 @@ Open the appropriate YAML file and add a block:
 
 ```bash
 make dev-setup
-pytest tests/ -k "test_schema"
+make test
 ```
+
+No test checks the question's fields (id, hints, categories, references), so compare
+them by hand with an existing question. `tests/contract/test_legal_references.py`
+fails if your question cites an article that is not on its checked list.
 
 ## Step 4: Submit a PR
 

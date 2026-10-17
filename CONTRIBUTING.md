@@ -63,7 +63,7 @@ Edit `src/riskforge/_data/question_bank/<dimension>.yaml` and add a question blo
   regulatory_status: settled  # or pending_implementing_act
 ```
 
-Run `make test` to verify the YAML is valid. See full guide: [`docs/contributing/add-question.md`](docs/contributing/add-question.md).
+No test checks the question's fields, so compare them with an existing question; `make test` fails if the question cites an article that is not on the checked list in `tests/contract/legal_references.yaml`. See full guide: [`docs/contributing/add-question.md`](docs/contributing/add-question.md).
 
 **Note:** Question-bank changes carry regulatory weight. Flag them clearly in your PR so a maintainer can arrange an EU AI Act counsel review before merge. This is a maintainer review policy, not an automated CI gate.
 
@@ -110,7 +110,7 @@ Implement the `Exporter` ABC and register via entry point. See [`docs/contributi
 
 ## Architecture
 
-RiskForge has three strictly-decoupled layers. **Never import across boundaries:**
+RiskForge has three layers:
 
 ```
 CLI (riskforge/cli/):       thin commands; calls engine functions only
@@ -118,9 +118,7 @@ Engine (riskforge/engine/): all business logic; no CLI imports
 Storage (riskforge/storage/): FileStore and StorageBackend ABC
 ```
 
-The CI pipeline enforces this with AST-based import boundary tests (ADR-02).
-
-Key rule: if your change adds a `from riskforge.cli import ...` in engine code, the CI will fail.
+CI enforces one boundary (ADR-02): the engine must not import the CLI. If your change adds a `from riskforge.cli import ...` in engine code, the boundary tests fail. Keep the other layers apart by convention: CLI commands call the engine, and the engine reads and writes project state through the storage backend.
 
 ---
 

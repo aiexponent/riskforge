@@ -43,7 +43,7 @@ RiskForge is designed with security in mind:
 - **Zero outbound calls in CLI mode**: enforced by the `pytest-socket` CI gate, including the CLI processes the tests start
 - **File permissions**: project files written with `chmod 600`; `.riskforge/` directory with `chmod 700`; private keys from `riskforge keygen` with `chmod 600` (Linux and macOS)
 - **No secrets in project files**: RiskForge does not read or store API keys or other credentials
-- **Audit trail integrity**: SHA-256 hash chain with register fingerprints; `riskforge verify` exits 2 on tampering, and every command that changes data refuses a tampered project
+- **Audit trail integrity**: SHA-256 hash chain with register fingerprints; `riskforge verify` exits 2 when the log, the head file and the registers disagree, and every command that changes data refuses such a project; a full rewrite is caught only by a receipt kept outside the project (see docs/audit-chain-design.md section 3.2)
 - **Git warning**: inside a git repository, `riskforge init` warns when `riskforge.yaml` is not git-ignored; it does not edit `.gitignore`
 - **Supply chain**: `pip-audit` gate on every release; CycloneDX SBOM and a GitHub build-provenance attestation (Sigstore) with every release
 

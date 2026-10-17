@@ -21,7 +21,7 @@ implemented, the section will say so plainly and point at the planned milestone.
 
 ## 1. Article 9 overview
 
-Article 9 (Risk management system) is the cornerstone obligation for providers of
+Article 9 (Risk management system) is a core obligation for providers of
 high-risk AI systems under Chapter III, Section 2 of the EU AI Act. It requires:
 
 - a documented, **lifecycle-long** risk management system, not a one-off
@@ -31,14 +31,14 @@ high-risk AI systems under Chapter III, Section 2 of the EU AI Act. It requires:
 - estimation and evaluation of those risks under the system's intended purpose
   and under reasonably foreseeable misuse;
 - targeted **mitigation measures** with residual-risk acceptance;
-- testing evidence sufficient to demonstrate that mitigations actually work;
-- explicit consideration of impacts on **children and other vulnerable groups**.
+- testing to identify the most appropriate and targeted risk management measures and to ensure the system performs consistently for its intended purpose (Article 9(6) to (8));
+- consideration of whether the system is likely to have an adverse impact on **persons under 18** and, as appropriate, other vulnerable groups.
 
 ### When it applies
 
 Article 9 obligations for high-risk AI systems apply from **2 December 2027** for
-standalone Annex III systems and **2 August 2028** for high-risk AI embedded in
-products under Annex I. These dates are set by Article 113, third paragraph,
+systems classified as high-risk under Article 6(2) and Annex III, and **2 August 2028**
+for systems classified as high-risk under Article 6(1) and Annex I. These dates are set by Article 113, third paragraph,
 point (c), as amended by Regulation (EU) 2026/1744, which was published in the
 Official Journal on 24 July 2026 and has been in force since 27 July 2026. The
 original dates were 2 August 2026 (the general date, which covered Annex III)
@@ -92,14 +92,14 @@ paragraph:
 5. **Validation gate(s)**: which of the eight readiness gates in
    `src/riskforge/engine/validate.py` enforce the paragraph before export.
 
-The eight gates (`G1`–`G8`) are documented inline so the cross-references make
+The eight gates (`G1` to `G8`) are documented inline so the cross-references make
 sense without flipping files:
 
 | Gate | Purpose | Severity |
 | --- | --- | --- |
 | G1 | All 8 risk dimensions have at least one risk item | FAIL |
 | G2 | Article 6(2) self-classification documented | FAIL |
-| G3 | All high-scoring risks mitigated or accepted | FAIL |
+| G3 | Residual score above the risk-appetite threshold must be reduced or accepted | FAIL |
 | G4 | Knowledge gaps have saved test requirements | WARN |
 | G5 | System metadata complete (name, version, purpose, provider) | FAIL |
 | G6 | Assessor identity recorded | FAIL |
@@ -239,8 +239,9 @@ under both intended-use and foreseeable-misuse conditions.
 - Annex III scenario tagging: each question carries
   `annex_iii_categories` (employment, education, law_enforcement,
   essential_services, biometric, justice, migration, health,
-  critical_infrastructure). The assess engine surfaces questions relevant to
-  the deployment context.
+  critical_infrastructure). Patterns use the category to decide which pre-built
+  risks to add; every question is asked whatever the category. The `health` tag in
+  privacy.yaml is not an Annex III category.
 
 **What RiskForge does NOT do.**
 
@@ -253,11 +254,11 @@ under both intended-use and foreseeable-misuse conditions.
   safety component of, a medical device covered by Annex I that must undergo a
   third-party conformity assessment. New patterns arrive through
   `docs/contributing/add-pattern.md`.
-- It does not run automated stress tests against the system; the deployer must
-  provide the misuse-scenario reasoning.
+- It does not run automated stress tests against the system; the assessor must
+  supply the misuse-scenario reasoning.
 
-**Validation gate(s).** **G3** (high-scoring risks must be mitigated or
-explicitly accepted), **G7** (catches the "everything scored low" pattern that
+**Validation gate(s).** **G3** (residual score above threshold must be reduced
+or explicitly accepted), **G7** (catches the "everything scored low" pattern that
 neuters Article 9(2)(b)).
 
 ---
@@ -323,7 +324,7 @@ mitigation. Not "we'll do our best", but a targeted control.
   AI RMF MANAGE controls or ISO/IEC 42001 Annex A controls as starting points;
   this is roadmap, not current.
 - It does not test that a mitigation actually reduces residual risk. The
-  acceptance is a self-attestation by the assessor (whose identity G6 records).
+  acceptance is a self-attestation by the person named with `--by` (`accepted_by`).
 
 **Validation gate(s).** **G3** (FAIL), **G8** (WARN).
 
@@ -382,8 +383,8 @@ self-cancelling mitigations.
 > as the overall residual risk of the high-risk AI systems is judged to be
 > acceptable."*
 
-**Plain English.** After mitigations, residual risk has to be defensible, for
-each hazard *and* for the system as a whole.
+**Plain English.** After mitigation, the residual risk of each hazard, and the
+overall residual risk of the system, must be judged acceptable.
 
 **What RiskForge does.**
 
@@ -402,9 +403,9 @@ each hazard *and* for the system as a whole.
   deliberately has no "below 12 is acceptable" rule; the register's risk
   appetite threshold (9 by default) only decides which items gate G3 checks.
 
-**Validation gate(s).** **G3** (acceptance status required), **G6**
-(assessor attached to the acceptance), **G7** (catches the all-acceptable
-pattern that hides a whitewash).
+**Validation gate(s).** **G3** (residual score above threshold must be reduced or
+accepted), **G6** (assessor name and role on the register), **G7** (warns when
+every inherent score is 4 or below).
 
 ---
 
@@ -419,12 +420,15 @@ pattern that hides a whitewash).
 > information required pursuant to Article 13 and, where appropriate,
 > training to deployers."*
 
-**Plain English.** Hierarchy of controls: design-out first, mitigate second,
-inform/train the deployer third.
+**Plain English.** In choosing measures: eliminate or reduce risks as far as
+technically feasible through design and development; where appropriate, add
+mitigation and control measures for risks that cannot be eliminated; and give
+deployers the information Article 13 requires and, where appropriate, training.
 
-**What RiskForge does.** The risk model accepts mitigations of either type
-and the export distinguishes them, but the *hierarchy of controls* itself is
-not enforced as a gate: the assessor records what they did. Transparency
+**What RiskForge does.** Each mitigation records a control type (preventive,
+detective or corrective) and a status; RiskForge does not record whether a
+measure is a design change, a control or information, and the hierarchy is not
+enforced. Transparency
 questions TR-001 through TR-004 cover the deployer-information surface: the
 Article 13 information that Article 9(5)(c) refers to.
 
@@ -447,15 +451,17 @@ and warn on imbalance. Not currently shipped.
 > and that they are in compliance with the requirements set out in this
 > Section."*
 
-**Plain English.** You must test. Testing is not optional and is not
-"whatever the data scientist had time for last Friday."
+**Plain English.** High-risk systems must be tested, both to find the most
+appropriate and targeted risk management measures and to ensure the system
+performs consistently for its intended purpose and meets the Section 2
+requirements.
 
 **What RiskForge does.**
 
 - `riskforge tests generate` derives Article 9(6) to 9(8) test requirements
   and saves them on the register as an audited change; the export carries
-  the saved requirements. It derives them from risk items, including knowledge-gap risks (any risk item flagged as
-  "evidence not yet collected").
+  the saved requirements. It derives them from knowledge-gap risks and from
+  risks whose inherent score is 9 or more, one requirement per item.
 - Robustness questions RO-001 through RO-005 force the assessor to record
   which tests have been run: out-of-distribution testing, slice-level metrics,
   performance floors, drift response procedures, adversarial robustness
@@ -473,7 +479,7 @@ and warn on imbalance. Not currently shipped.
 - It does not execute tests. This is a documentation scaffold, not a test
   runner. The runner-of-tests question (does the AI system actually pass) is
   answered by tools like `rag-benchmarking` (RAG eval), `litmusai` (portfolio
-  screening / fairness), or a deployer's own test suite. RiskForge records
+  screening / fairness), or the provider's own test suite. RiskForge records
   the test plan and the result claim; the underlying execution is out of scope.
 - It does not validate that an attached test artefact actually demonstrates
   what the assessor claims it demonstrates.
@@ -494,10 +500,13 @@ requirement from `riskforge tests generate`, WARN).
 > *"Testing procedures may include testing in real-world conditions in
 > accordance with Article 60."*
 
-**Plain English.** You may run real-world testing under Art. 60, which
-sets its own conditions (Article 60(4)) and applies outside AI regulatory
-sandboxes. You don't have to: synthetic and lab
-testing are still acceptable. But if you do, the Art. 60 regime applies.
+**Plain English.** Testing may include testing in real-world conditions under
+Article 60, which sets its own conditions (Article 60(4)) for such testing outside
+AI regulatory sandboxes. Article 9(7) does not require it. Since Regulation (EU)
+2026/1744, Article 60 covers systems listed in Annex III or covered by Annex I,
+Section A, and a new Article 60a lets Member States allow real-world testing
+outside sandboxes for AI-enabled products covered by the legislation in Annex I,
+Section B.
 
 **What RiskForge does.** Out of scope. RiskForge does not orchestrate Art. 60
 real-world testing or its supervisory notifications. The mitigation-and-testing
@@ -546,12 +555,13 @@ RiskForge, not the underlying engineering activity.
 > impact on persons under the age of 18 and, as appropriate, other vulnerable
 > groups."*
 
-**Plain English.** Children and vulnerable groups get explicit consideration.
-Not implicit, not assumed-covered-by-the-fairness-section. Explicit.
+**Plain English.** Providers must consider whether, given its intended purpose,
+the system is likely to have an adverse impact on people under 18 and, as
+appropriate, other vulnerable groups.
 
 **What RiskForge does.** Question **HS-006** *("Could vulnerable populations
 (elderly, children, people with disabilities) be disproportionately harmed by
-system errors?")* exists exclusively to satisfy this paragraph. Its
+system errors?")* is the question that addresses this paragraph. Its
 `article_refs` field cites Art. 9(9), which matches the Official Journal text
 (checked 2026-10-17).
 
@@ -559,8 +569,8 @@ system errors?")* exists exclusively to satisfy this paragraph. Its
 vulnerable-group register. The single hazard question is the only forced
 touchpoint.
 
-**Validation gate(s).** **G1** (forces health_safety dimension to be answered,
-which surfaces HS-006).
+**Validation gate(s).** **G1** (requires an item in the health_safety dimension;
+it does not require HS-006 to be answered).
 
 ---
 
@@ -592,9 +602,12 @@ Article 9 is one obligation. **Annex IV** lists the technical documentation
 that Article 11(1) requires, the pack a provider hands to a notified body or
 competent authority on request.
 
-**The relationship.** A RiskForge RMF covers Annex IV, point 5 ("A detailed
-description of the risk management system in accordance with Article 9"). It
-does **not** constitute the full Annex IV pack. The table below names every
+**The relationship.** A RiskForge RMF is built to be the detailed description of
+the risk management system that Annex IV point 5 asks for ("A detailed
+description of the risk management system in accordance with Article 9"). How
+complete it is depends on what the provider records: it does not describe your
+review cadence or the post-market feedback of Article 9(2)(c). It does **not**
+constitute the full Annex IV pack. The table below names every
 Annex IV point and where RiskForge output sits.
 
 | Annex IV section | Subject | RiskForge coverage | Where the rest comes from |
@@ -602,15 +615,15 @@ Annex IV point and where RiskForge output sits.
 | IV(1) | General description of the system | Partial: `system.yaml` (name, version, purpose, provider) | Architecture diagrams, deployment topology: out of scope |
 | IV(2)(a) | Methods and steps performed for development | None | Engineering process docs, source control history |
 | IV(2)(b) | Design specifications | None | Design docs |
-| IV(2)(c) | System architecture, computational resources | Partial: surfaced through robustness Qs (RO-001/003) | Architecture diagrams, infrastructure inventory |
+| IV(2)(c) | System architecture, computational resources | None | Architecture diagrams, infrastructure inventory |
 | IV(2)(d) | Data requirements (datasheets, provenance) | Partial: DG-001 to DG-005 capture the *attestation*, not the data itself | Datasheets for the training data |
 | IV(2)(e) | Human oversight assessment | Partial: HO-001 to HO-004 and FR-004 record the assessment | Oversight design and procedures |
 | IV(2)(f) | Pre-determined changes & continuous learning | None | Change-management policy |
 | IV(2)(g) | Validation and testing procedures used | Partial: saved test requirements (metric and threshold per risk); not the test runs or the signed reports | Test reports, for example from rag-benchmarking or litmusai |
 | IV(2)(h) | Cybersecurity measures put in place | None | Security design docs |
 | IV(3) | Detailed information about monitoring, functioning, control | Partial via transparency Qs (TR-001 to TR-004) | Operations runbooks |
-| IV(4) | Performance metrics description | Partial via RO-002, RO-003 | Test reports |
-| IV(5) | **Risk management system in accordance with Article 9** | **Yes: this is the primary RMF artefact** | n/a |
+| IV(4) | Appropriateness of the performance metrics | Partial via RO-002, RO-003 | Test reports |
+| IV(5) | **Risk management system in accordance with Article 9** | **Primary: the RMF is built for this point; add your review cadence and post-market feedback process** | n/a |
 | IV(6) | Relevant changes made by the provider to the system through its lifecycle | Partial: the audit chain (`audit.jsonl`) records changes to the RMF itself, not to the AI system | Engineering change log |
 | IV(7) | Harmonised standards applied | None | Conformity-assessment evidence |
 | IV(8) | Copy of the EU declaration of conformity (Article 47) | None | Legal artefact, post-CA |
@@ -706,7 +719,6 @@ needs are similar.
 | Colorado AI Act (SB 24-205, repealed and reenacted by SB 26-189, signed 14 May 2026; developer documentation duties start 1 January 2027) | SB 26-189 replaced SB 24-205's duties for high-risk AI systems with duties for automated decision-making technology used in consequential decisions: developer documentation for deployers, record keeping, a notice to consumers before use, a plain-language description of the decision and the technology's role within 30 days after an adverse outcome, and, on request, instructions to obtain and correct personal data and meaningful human review and reconsideration | data_governance, discrimination, fundamental_rights, transparency |
 | Texas HB 149 ("TRAIGA", signed 22 June 2025, effective 1 January 2026) | Intent-based prohibitions on certain AI uses, AI-interaction disclosure duties for government agencies and health care providers, enforced by the Attorney General | discrimination, transparency, privacy |
 | New York City Local Law 144 of 2021 (in force) | Bias audits for automated employment decision tools | discrimination |
-| Illinois 820 ILCS 42 (AI Video Interview Act) | Notice + consent for AI-assisted interview analysis | transparency, privacy |
 
 Texas HB 149 and Colorado SB 26-189 were enacted after the EU AI Act; Colorado
 SB 24-205 was approved shortly before it. Colorado's

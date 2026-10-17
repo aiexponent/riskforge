@@ -15,9 +15,9 @@ Project state lives in `.riskforge/` (YAML + JSONL files). Not SQLite. Not Postg
 ## Rationale
 
 - **Git-diff-friendly.** A compliance team can review a PR that modifies a risk register, reading the YAML diff in GitHub. A SQLite binary blob is opaque.
-- **Regulator-readable.** A competent authority can read `register.yaml` and `audit.jsonl` with a text editor and `sha256sum`. No RiskForge installation required.
+- **Regulator-readable.** A competent authority can read `register.yaml` and `audit.jsonl` with a text editor, which shows the changes; checking the hashes needs the script in docs/audit-chain-design.md section 5.2 (Python and PyYAML, no RiskForge installation).
 - **Reviewable.** A change to a register shows up as a readable YAML diff. Merging two branches that both changed `.riskforge/` is not supported: the merged audit log is no longer one chain, and `riskforge verify` exits 2.
-- **Zero additional dependencies.** The FileStore uses only `pyyaml` and Python stdlib.
+- **Few dependencies.** The FileStore uses PyYAML, filelock, Pydantic and the standard library.
 
 ## Trade-offs Accepted
 

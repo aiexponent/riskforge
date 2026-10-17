@@ -90,7 +90,7 @@ and cuts off a partly written entry. If it stops after step 4, the next command 
 the renames. Either way the register on disk is one the chain describes, so a mismatch
 found later means someone changed the files outside RiskForge, not that a command
 crashed. Four processes adding 25 risk items each to one register leave exactly 100
-items, and `riskforge verify` exits 0 (`tests/integration/test_concurrent_writers.py`).
+items and an intact chain (`tests/integration/test_concurrent_writers.py`).
 
 ### 2.3 Hashing
 
@@ -110,7 +110,7 @@ def entry_hash(entry: dict) -> str:
   stay absent, so entries written by RiskForge 1.1 hash exactly as they did then.
 - The signature is left out because it signs the hash.
 - `sort_keys` and the compact separators make the bytes independent of formatting.
-  Non-ASCII text is escaped (`ü` becomes `ü`), as `json.dumps` does by default.
+  Non-ASCII text is escaped (`ü` becomes `\u00fc`), as `json.dumps` does by default.
 
 This is not RFC 8785 (JCS). A verifier written in another language must reproduce
 Python's `json.dumps` output for these settings.
@@ -129,13 +129,15 @@ exits 2 if any of these fail:
 | Each `system.yaml` against the copy of the system in its register | A system file edited outside RiskForge |
 | A project with systems but no audit log, and systems named in the log against the files on disk | A deleted log or a deleted system directory |
 | Entry signatures, when `--trusted-key` names the signing key | Entries forged without the key |
-| `--receipt FILE` against the chain | A chain cut back or rewritten after the receipt was taken (section 2.5) |
+| `--receipt FILE` against the chain | A log cut back below the receipt's entry, or any entry up to and including it rewritten (section 2.5) |
 
 Every command that changes or exports data runs the same check first, so nothing is
 added on top of a project that was altered. A project last written by RiskForge 1.1 has
 no fingerprints and no head file yet: `verify` passes with a warning, the next change or
-export records them, and `verify --strict` exits 2 until then. A change that is in
-progress or unfinished (`txn.json` exists) makes `verify` exit 1 without checking.
+export records them, and `verify --strict` exits 2 until then. A change in progress
+(`txn.json` exists) makes `verify` retry briefly, then check the project as the next
+command would recover it: exit 1 if that view is clean, exit 2 if it has a finding or
+the journal is not one RiskForge wrote.
 
 ### 2.5 Receipts
 
@@ -152,8 +154,9 @@ Keep it where the project's editors cannot change it: with your client, your aud
 in a separate repository. `verify --receipt` exits 2 when the log no longer holds that
 entry with that hash at that position, or when the receipt's fingerprint is not the last
 one the log records for its system up to that entry. This is the check that catches
-someone who rewrote the whole log and the head file with the public algorithm
-(section 3.2). Every JSON export also carries a receipt, so a saved export works as one:
+someone who rewrote the log and the head file with the public algorithm, for every
+entry up to the one the receipt names (section 3.2). Entries written after the receipt
+are not covered. Every JSON export also carries a receipt, so a saved export works as one:
 `riskforge verify --receipt rmf.json`.
 
 ### 2.6 Signatures
@@ -190,7 +193,10 @@ checks the schema, recomputes the digest, checks every signature and sign-off, r
 the chain proof, and checks that the proof's last fingerprint for the system matches the
 register in the file. It needs only the file. The `rmf.exported` entry that records the
 export is written after the file and stores the SHA-256 of the file's bytes
-(`file_sha256`), so a failed export leaves neither a file nor an entry. A file written
+(`file_sha256`). If the export fails before the file is renamed into place, neither a
+file nor an entry is left. If it fails after the rename, while flushing the directory or
+recording `rmf.exported`, the file stays without an `rmf.exported` entry; a failed flush
+says the export was not recorded. A file written
 by RiskForge 1.1 (RMF schema 1.0.0) gets the schema and digest check only.
 
 ---
@@ -203,10 +209,10 @@ by RiskForge 1.1 (RMF schema 1.0.0) gets the schema and digest check only.
 | --- | --- |
 | Editing any audit entry (for example backdating an acceptance) | `verify`: hash mismatch from that entry on |
 | Inserting, deleting or reordering entries | `verify`: sequence and `prev_hash` errors |
-| Cutting the last entries off the log | `verify`: the log no longer reaches `audit.head.json` |
+| Cutting the last entries off the log | `verify`: the log no longer reaches `audit.head.json` (unless `audit.head.json` is edited to match) |
 | Editing a register (scores, acceptances, deleted items) | `verify`: fingerprint mismatch; every changing command refuses to run |
 | Deleting the log or a system directory | `verify`: missing log or missing files |
-| Rewriting the whole log and the head file with the public algorithm | `verify --receipt` with a receipt taken before the rewrite |
+| Rewriting entries up to a receipt's `seq`, head file included | `verify --receipt` with that receipt |
 | Altering an exported file (content, signatures, sign-offs, chain proof, receipt) | `verify --file`, and with `--trusted-key` also a file re-signed with another key |
 | Two writers at once on one machine | Prevented by the lock; no lost updates |
 | A crash in the middle of a change | Finished or discarded by the next command |
@@ -217,14 +223,16 @@ by RiskForge 1.1 (RMF schema 1.0.0) gets the schema and digest check only.
 | --- | --- | --- |
 | The assessment does not describe the deployed system | The chain shows what was recorded, not that it is true | Provider's quality management; independent review |
 | The assessor was not competent, or an acceptance was unreasonable | Judgements are recorded, not graded | Competence controls; independent review |
-| Someone with write access rewrites everything and no receipt was taken | Without a secret or an outside copy, a consistent forgery from the first entry verifies | Take receipts and keep them outside the project; sign exports |
+| Someone with write access recomputes the entries from a change onward and the head file (cutting entries off the end needs only a matching head-file edit), and no receipt covers those entries | The algorithm is public and holds no secret, so a consistent rewrite verifies (ADR-03) | Take a receipt after each export or review and keep it outside the project; sign exports with a key the project's editors do not hold |
 | A wrong clock | Timestamps come from the local clock; `seq` orders entries, not wall time | Trusted timestamping (not built) |
 | A claimed identity is false | `actor.identity` is typed by the user in the CLI | A program that authenticates users and signs entries |
 | Two git branches that both changed `.riskforge/` are merged | The merged log is no longer one chain, so `verify` exits 2; it cannot be repaired automatically | One writer per project; do not merge `.riskforge/` |
 | A host that was compromised before any entry was written | Every entry is the attacker's | Host security |
 
-The chain and the receipts make tampering detectable. They do not make an assessment
-correct, and they do not replace independent review.
+The chain makes changes outside RiskForge detectable unless the person making them
+recomputes the chain and the head file. Receipts kept outside the project extend
+detection to every entry they cover. Neither makes an assessment correct or replaces
+independent review.
 
 ---
 
@@ -236,13 +244,13 @@ Claims that hold up:
   reviewer can run the check on a read-only copy and reproduce the result.
 - "This export is the register the chain recorded last, signed with this key." `verify
   --file --trusted-key` checks both.
-- "The chain has not been rewritten since we gave you this receipt." `verify --receipt`
-  checks it.
+- "The log still holds, unchanged, every entry up to the one in this receipt."
+  `verify --receipt` checks it.
 
 Claims that do not:
 
-- "The audit chain shows the assessment is correct." It shows the record was not changed
-  outside RiskForge.
+- "The audit chain shows the assessment is correct." It shows the files are consistent
+  with each other and, for the entries a receipt covers, unchanged since the receipt.
 - "The actor names are verified identities." In the CLI they are typed by the user.
 - "This replaces independent attestation." It is one input to it.
 
@@ -328,7 +336,7 @@ These are questions for the provider, not for an algorithm.
 - The CLI does not authenticate users or sign audit entries. A program that uses the
   engine from Python can give `AuditEngine` a signing key and an authenticated identity;
   `verify --trusted-key` then checks those signatures, and `export --public-key` embeds
-  their public keys in the chain proof.
+  their public keys in the export's `public_keys` block.
 - Concurrent writers are serialized on one machine. A project on a network file system,
   or copied between machines and changed on both, can fork; `verify` then exits 2.
 
@@ -342,10 +350,10 @@ These are questions for the provider, not for an algorithm.
   rolled back by the next command.
 - `riskforge verify` exits 0 when intact and 2 on any finding, and every changing command
   runs the same check first.
-- Receipts kept outside the project catch a full rewrite. Ed25519 signatures bind exports,
-  receipts and sign-offs to a key.
-- The chain shows the record was not altered outside RiskForge. It does not show the
-  assessment is right.
+- Receipts kept outside the project catch a rewrite of any entry up to the receipt.
+  Ed25519 signatures bind exports, receipts and sign-offs to a key.
+- The chain shows the files are consistent and, with a receipt, that the history up to
+  the receipt is unchanged. It does not show the assessment is right.
 
 If this document and the code disagree, the code wins and this document needs a fix. File
 an issue at <https://github.com/aiexponent/riskforge/issues>.
