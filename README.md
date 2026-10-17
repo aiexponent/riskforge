@@ -589,10 +589,10 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 
 | Exit Code | Meaning | CI Behavior |
 | :--- | :--- | :--- |
-| `0` | **PASS / VALID** | The command succeeded, or what it checked is intact. |
+| `0` | **PASS / VALID** | Success: the command succeeded, or what it checked is intact. |
 | `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify` or `validate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
 | `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an exported RMF file fails `verify --file` (its digest, a signature, its chain proof or its receipt). `verify` exits 2 (with `--strict`, also on any integrity warning), and every command that changes or exports data exits 2 on such a project without changing it. |
-| `3` | **USAGE / INPUT ERROR** | Unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not a receipt, a `--trusted-key` file that is not an Ed25519 public key, a `keygen` or `receipt --output` file that already exists, or interactive `assess` without a terminal. Prints one line saying what to do. |
+| `3` | **USAGE / INPUT ERROR** | Usage or input error: unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not a receipt, a `--trusted-key` file that is not an Ed25519 public key, a `keygen` or `receipt --output` file that already exists, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 

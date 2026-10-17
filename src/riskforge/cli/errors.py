@@ -1,4 +1,14 @@
-"""Exit codes and the one-line failure helper every command uses."""
+"""Exit codes and the one-line failure helper every command uses.
+
+CI pipelines depend on these codes:
+
+- 0 (EXIT_OK): success, or what was checked is intact.
+- 1 (EXIT_FAILED): a validation gate failed, a change is in progress, the project lock
+  was not released in time, or the export could not be built. An unexpected crash also
+  exits 1.
+- 2 (EXIT_TAMPERED): integrity failure: tampering or corruption was found.
+- 3 (EXIT_USAGE): usage or input error, such as a bad option or a missing file.
+"""
 
 from __future__ import annotations
 

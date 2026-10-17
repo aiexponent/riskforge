@@ -13,6 +13,7 @@ import pytest
 import riskforge._data as data_pkg
 import typer
 import yaml
+from riskforge.cli import errors
 from riskforge.cli.errors import EXIT_FAILED, EXIT_OK, EXIT_TAMPERED, EXIT_USAGE
 from riskforge.cli.main import app
 from riskforge.engine.assess import AssessEngine
@@ -235,11 +236,42 @@ def test_rmf_sample_matches_the_system_yaml_sample() -> None:
     assert document["register"]["system"]["id"] == system["id"]
 
 
+# Words each exit code's meaning must use, in riskforge.cli.errors and in every table.
+MEANINGS = {
+    EXIT_OK: ("success",),
+    EXIT_FAILED: ("validation gate",),
+    EXIT_TAMPERED: ("integrity failure", "tamper"),
+    EXIT_USAGE: ("usage or input error",),
+}
+
+
+def _code_meanings() -> dict[int, str]:
+    """The meaning of each exit code as the ``riskforge.cli.errors`` docstring states it."""
+    lines = re.findall(r"^- (\d) \(EXIT_\w+\): (.+)$", errors.__doc__ or "", flags=re.M)
+    return {int(code): meaning.lower() for code, meaning in lines}
+
+
+def _table_problems(rows: dict[int, str]) -> list[str]:
+    problems = []
+    if set(rows) != set(MEANINGS):
+        problems.append(f"codes {sorted(rows)}, expected {sorted(MEANINGS)}")
+    for code, meaning in rows.items():
+        for other, words in MEANINGS.items():
+            for word in words:
+                if (word in meaning.lower()) != (other == code):
+                    problems.append(f"{code}: {'lacks' if other == code else 'has'} {word!r}")
+    return problems
+
+
+def test_exit_code_meanings_are_stated_in_the_code() -> None:
+    assert _table_problems(_code_meanings()) == []
+
+
 def test_exit_code_table_matches_the_cli() -> None:
     text = README.read_text(encoding="utf-8")
     section = text[text.index("### Exit Code Contract") : text.index("## CLI Command Reference")]
-    codes = {int(code) for code in re.findall(r"^\| `(\d)` \|", section, flags=re.M)}
-    assert codes == {EXIT_OK, EXIT_FAILED, EXIT_TAMPERED, EXIT_USAGE}
+    rows = re.findall(r"^\| `(\d)` \|(.*)$", section, flags=re.M)
+    assert _table_problems({int(code): meaning for code, meaning in rows}) == []
 
 
 def test_user_guide_exit_code_table_matches_the_cli() -> None:
@@ -247,8 +279,14 @@ def test_user_guide_exit_code_table_matches_the_cli() -> None:
     section = text[
         text.index("## Exit codes (for CI)") : text.index("## Continuous integration recipe")
     ]
-    codes = {int(code) for code in re.findall(r"^\| (\d) \|", section, flags=re.M)}
-    assert codes == {EXIT_OK, EXIT_FAILED, EXIT_TAMPERED, EXIT_USAGE}
+    rows = re.findall(r"^\| (\d) \|(.*)$", section, flags=re.M)
+    assert _table_problems({int(code): meaning for code, meaning in rows}) == []
+
+
+def test_exit_code_check_catches_swapped_meanings() -> None:
+    rows = {0: "Success", 1: "A validation gate failed", 2: "Usage or input error"}
+    rows[3] = "Integrity failure: the log was tampered with"
+    assert _table_problems(rows)
 
 
 def test_pattern_claim_matches_the_bundled_patterns() -> None:
