@@ -306,10 +306,19 @@ def test_pdf_uses_no_serif_font(rendered, tmp_path: Path) -> None:
     assert not [f for f in fonts if re.search(r"Times|Serif|Roman|Georgia", f)], fonts
 
 
+# WeasyPrint logs this when the host lacks the HarfBuzz-Subset library (as on
+# the Ubuntu CI image). It is about the machine, not the report stylesheet.
+_HOST_LIBRARY_NOTICE = "Using fontTools instead of HarfBuzz-Subset"
+
+
 def test_render_logs_no_weasyprint_errors(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING, logger="weasyprint"):
         PDFExporter().render(_sample_rmf())
-    assert [r.getMessage() for r in caplog.records if r.name.startswith("weasyprint")] == []
+    assert [
+        r.getMessage()
+        for r in caplog.records
+        if r.name.startswith("weasyprint") and not r.getMessage().startswith(_HOST_LIBRARY_NOTICE)
+    ] == []
 
 
 def test_report_html_references_no_external_resource() -> None:
