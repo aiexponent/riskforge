@@ -54,6 +54,7 @@ bandit -ll -r src/                  # CI job: Security Scan
 | `tests/integration/` | CLI flows end to end, including the golden examples |
 | `tests/contract/` | Schema validation and repository standards |
 | `tests/boundary/` | Import boundary enforcement |
+| `tests/release/` | The release-only check that the RMF schemas published on aiexponent.com match the bundled ones. The `release` marker is deselected by default, and `release.yml` runs it with `-m release` |
 
 Rules that trip agents:
 

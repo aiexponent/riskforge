@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import threading
 from pathlib import Path
 
 import pytest
@@ -271,3 +272,98 @@ def test_load_signer_exits_3_for_a_fifo_without_blocking(tmp_path: Path) -> None
     fifo = tmp_path / "fifo.pem"
     os.mkfifo(fifo, 0o600)
     assert _exit_code(lambda: load_signer(fifo)) == 3
+
+
+# --- Ed25519Signer.from_file applies the same file rules as the CLI ------------------
+
+
+@posix_only
+def test_from_file_refuses_a_symlinked_key(tmp_path: Path) -> None:
+    private, _public = _key_files(tmp_path)
+    link = tmp_path / "link.pem"
+    link.symlink_to(private)
+    with pytest.raises(KeyFileError, match="is a symbolic link"):
+        Ed25519Signer.from_file(link)
+
+
+@posix_only
+def test_from_file_refuses_a_fifo_without_blocking(tmp_path: Path) -> None:
+    fifo = tmp_path / "fifo.pem"
+    os.mkfifo(fifo, 0o600)
+    outcome: list[BaseException | None] = []
+
+    def load() -> None:
+        try:
+            Ed25519Signer.from_file(fifo)
+        except KeyFileError as exc:
+            outcome.append(exc)
+        else:
+            outcome.append(None)
+
+    thread = threading.Thread(target=load, daemon=True)
+    thread.start()
+    thread.join(10)
+    if thread.is_alive():
+        # Open the write end so the blocked read returns and the thread ends.
+        os.close(os.open(fifo, os.O_WRONLY | os.O_NONBLOCK))
+        thread.join(10)
+        pytest.fail("Ed25519Signer.from_file blocked on a FIFO")
+    assert outcome and "is not a regular file" in str(outcome[0])
+
+
+@posix_only
+@pytest.mark.parametrize("mode", [0o640, 0o604, 0o644, 0o660, 0o601])
+def test_from_file_refuses_a_key_its_group_or_others_can_access(tmp_path: Path, mode: int) -> None:
+    private, _public = _key_files(tmp_path)
+    private.chmod(mode)
+    with pytest.raises(KeyFileError, match=rf"can be read by other users \(mode {mode:03o}\)"):
+        Ed25519Signer.from_file(private)
+
+
+@posix_only
+def test_from_file_accepts_an_owner_only_key(tmp_path: Path) -> None:
+    private, public = _key_files(tmp_path)
+    private.chmod(0o400)
+    assert Ed25519Signer.from_file(private).public_key_b64 == load_public_key_b64(public)
+
+
+def _cli_message(capsys: pytest.CaptureFixture[str], path: Path) -> str:
+    assert _exit_code(lambda: load_signer(path)) == 3
+    return capsys.readouterr().err.strip()
+
+
+def test_load_signer_messages_for_a_missing_or_wrong_key(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "missing.pem"
+    assert _cli_message(capsys, missing) == (
+        f"✗ Key file not found: {missing}. RiskForge signs with an Ed25519 key file; "
+        "create one with `riskforge keygen --output FILE`."
+    )
+    _private, public = _key_files(tmp_path)
+    public.chmod(0o600)
+    assert _cli_message(capsys, public) == f"✗ {public} is not an unencrypted PEM private key."
+    (tmp_path / "dir.pem").mkdir()
+    if os.name == "posix":
+        assert _cli_message(capsys, tmp_path / "dir.pem") == (
+            f"✗ Key file {tmp_path / 'dir.pem'} is not a regular file."
+        )
+
+
+@posix_only
+def test_load_signer_messages_for_a_symlink_fifo_or_open_mode(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    private, _public = _key_files(tmp_path)
+    link = tmp_path / "link.pem"
+    link.symlink_to(private)
+    assert _cli_message(capsys, link) == (
+        f"✗ Key file {link} is a symbolic link. Pass the path of the key file itself."
+    )
+    fifo = tmp_path / "fifo.pem"
+    os.mkfifo(fifo, 0o600)
+    assert _cli_message(capsys, fifo) == f"✗ Key file {fifo} is not a regular file."
+    private.chmod(0o640)
+    assert _cli_message(capsys, private) == (
+        f"✗ Key file {private} can be read by other users (mode 640). Run: chmod 600 {private}"
+    )

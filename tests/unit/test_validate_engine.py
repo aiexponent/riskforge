@@ -99,3 +99,34 @@ def test_g7_warns_when_all_low_scores() -> None:
     results = engine.run(register)
     g7 = next(r for r in results if r.gate_id == "G7")
     assert g7.status == GateStatus.WARN
+
+
+def _g3(item: RiskItem):
+    results = ValidateEngine().run(make_register(items=[item]))
+    return next(r for r in results if r.gate_id == "G3")
+
+
+def test_g3_says_what_clears_it() -> None:
+    """G3 clears on a residual score at or below the threshold, or acceptance.
+
+    A mitigation recorded without re-scoring the residual does not clear it, so the
+    gate's text must not say "mitigated".
+    """
+    item = make_item(RiskDimension.privacy)
+    item.residual_likelihood, item.residual_severity = Likelihood(5), Severity(5)
+    failed = _g3(item)
+    assert failed.status == GateStatus.FAIL
+    for text in (failed.description, failed.details):
+        assert "mitigated" not in text
+    assert "at or below the risk-appetite threshold" in failed.description
+    assert "accepted" in failed.description
+    assert "above the risk-appetite threshold and not accepted" in failed.details
+
+    item.accepted = True
+    accepted = _g3(item)
+    assert accepted.status == GateStatus.PASS
+    assert accepted.description == failed.description
+
+    item.accepted = False
+    item.residual_likelihood, item.residual_severity = Likelihood(3), Severity(3)
+    assert _g3(item).status == GateStatus.PASS

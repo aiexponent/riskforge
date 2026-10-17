@@ -28,7 +28,7 @@ myformat = "mypkg.my_exporter:MyExporter"
 After `pip install mypkg`, RiskForge will discover your exporter automatically:
 
 ```bash
-riskforge export --system-id <id> --format myformat
+riskforge export <id> --format myformat
 ```
 
 ## Step 3: Test
