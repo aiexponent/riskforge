@@ -173,6 +173,50 @@ async def test_edited_entry_fails(tmp_path: Path) -> None:
     assert "entry_hash mismatch" in _errors(report)
 
 
+class _TrustingChainStore(FileStore):
+    """A backend whose verify_chain always passes, so only check_integrity can catch an edit."""
+
+    async def verify_chain(self) -> tuple[bool, list[str]]:
+        return True, []
+
+
+async def test_edited_entry_fails_even_when_the_backend_chain_check_passes(
+    tmp_path: Path,
+) -> None:
+    await _seeded(tmp_path)
+    entries = _entries(tmp_path)
+    entries[1].payload["edited"] = True
+    _write_entries(tmp_path, entries)
+    report = await check_integrity(_TrustingChainStore(tmp_path))
+    assert not report.ok
+    assert report.errors == [
+        f"Line 2 (seq=1): entry_hash mismatch, computed {compute_entry_hash(entries[1])!r}, "
+        f"stored {entries[1].entry_hash!r}."
+    ]
+
+
+async def test_relinked_log_fails_even_when_the_backend_chain_check_passes(
+    tmp_path: Path,
+) -> None:
+    await _seeded(tmp_path)
+    entries = _entries(tmp_path)
+    entries[3].seq = 7
+    _write_entries(tmp_path, entries)
+    report = await check_integrity(_TrustingChainStore(tmp_path))
+    assert "Line 4: sequence gap, expected 3, got 7." in report.errors
+
+
+async def test_a_chain_finding_the_backend_also_reports_is_listed_once(tmp_path: Path) -> None:
+    store, _sid = await _seeded(tmp_path)
+    entries = _entries(tmp_path)
+    entries[1].payload["edited"] = True
+    _write_entries(tmp_path, entries)
+    _ok, backend_errors = await store.verify_chain()
+    report = await check_integrity(store)
+    assert report.errors == backend_errors
+    assert len(report.errors) == 1
+
+
 async def test_garbled_line_fails_without_raising(tmp_path: Path) -> None:
     store, _sid = await _seeded(tmp_path)
     with _log(tmp_path).open("a") as fh:

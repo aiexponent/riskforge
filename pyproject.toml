@@ -65,6 +65,7 @@ test = [
     "pexpect>=4.9.0,<5.0.0",
     "pypdf>=6.0.0,<7.0.0",
 ]
+testing = ["pytest>=8.0.0,<10.0.0", "pytest-asyncio>=0.23.0,<2.0.0"]
 
 [project.scripts]
 riskforge = "riskforge.cli.main:run"
