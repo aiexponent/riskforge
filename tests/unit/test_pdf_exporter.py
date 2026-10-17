@@ -377,3 +377,22 @@ def test_critical_residual_rows_and_missing_values_have_a_style() -> None:
     css = report_css()
     assert re.search(r"\.residual-critical\s*\{[^}]*font-weight:\s*700", css)
     assert re.search(r"\.na\s*\{[^}]*font-style:\s*italic", css)
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ({"iso42001_ref": "Clause 6.1"}, "ISO/IEC 42001: Clause 6.1"),
+        ({"nist_rmf_ref": "MAP 5.1"}, "NIST AI RMF: MAP 5.1"),
+        (
+            {"nist_rmf_refs": ["MAP 5.1", "MEASURE 2.11"], "iso42001_refs": ["Annex A.7"]},
+            "NIST AI RMF: MAP 5.1, MEASURE 2.11 | ISO/IEC 42001: Annex A.7",
+        ),
+    ],
+)
+def test_risk_cross_references_render_independently(refs: dict, expected: str) -> None:
+    rmf = _sample_rmf()
+    item = rmf.register.items[0].model_copy(update=refs)
+    rmf.register.items[0] = item
+    html = PDFExporter().render_html(rmf)
+    assert expected in html

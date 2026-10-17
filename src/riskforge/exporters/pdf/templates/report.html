@@ -107,7 +107,9 @@
                 <td>Regulatory status</td><td>{{ item.regulatory_status }}</td></tr>
             </table>
             {% if item.article_refs %}<p class="article-refs"><strong>Article refs:</strong> {{ item.article_refs | join(', ') }}</p>{% endif %}
-            {% if item.nist_rmf_ref %}<p class="cross-refs">NIST AI RMF: {{ item.nist_rmf_ref }}{% if item.iso42001_ref %} | ISO/IEC 42001: {{ item.iso42001_ref }}{% endif %}</p>{% endif %}
+            {% set nist = item.nist_rmf_refs or ([item.nist_rmf_ref] if item.nist_rmf_ref else []) %}
+            {% set iso = item.iso42001_refs or ([item.iso42001_ref] if item.iso42001_ref else []) %}
+            {% if nist or iso %}<p class="cross-refs">{% if nist %}NIST AI RMF: {{ nist | join(', ') }}{% endif %}{% if nist and iso %} | {% endif %}{% if iso %}ISO/IEC 42001: {{ iso | join(', ') }}{% endif %}</p>{% endif %}
             {% if item.mitigations %}
               <div class="mitigations"><strong>Mitigations:</strong>
                 <ul>
