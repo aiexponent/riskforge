@@ -47,7 +47,12 @@ class AssessEngine:
     so the engine remains independently testable without terminal interaction.
     """
 
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(self, data_dir: Path | None = None) -> None:
+        """``data_dir`` holds ``question_bank/`` and ``patterns/``; None means the bundled data."""
+        if data_dir is None:
+            import riskforge._data as bundled
+
+            data_dir = Path(bundled.__file__).parent
         self._question_bank_dir = data_dir / "question_bank"
         self._patterns_path = data_dir / "patterns" / "patterns.yaml"
 
