@@ -4,8 +4,8 @@
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.0.x   | Yes (current)      |
-| 0.1.x   | Security fixes only until 2026-08-02 |
+| 2.0.x   | Yes (current)      |
+| < 2.0   | No; upgrade to 2.0.x |
 
 ## Reporting a Vulnerability
 

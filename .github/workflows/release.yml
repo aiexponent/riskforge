@@ -49,6 +49,13 @@ jobs:
       - name: Run the full test suite
         run: pytest --cov
 
+      - name: Check the schemas published on aiexponent.com
+        # The schemas' $id values are these URLs; the hosted files must match the package byte for byte.
+        # With RISKFORGE_RELEASE_CHECK set, a command that selects no release test or skips it fails.
+        env:
+          RISKFORGE_RELEASE_CHECK: "1"
+        run: pytest -m release tests/release -p no:cacheprovider
+
       - name: Build wheel + sdist
         run: python -m build
 
