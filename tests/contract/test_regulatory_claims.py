@@ -75,8 +75,10 @@ def test_no_forbidden_citations() -> None:
     if not (REPO_ROOT / "README.md").exists():
         pytest.skip("regulatory-claims gate runs from a source checkout")
 
+    docs = _doc_files()
+    assert docs, "no public docs found: git ls-files returned nothing"
     problems: list[str] = []
-    for doc in _doc_files():
+    for doc in docs:
         text = " ".join(doc.read_text(encoding="utf-8").split())
         for bad, reason in FORBIDDEN.items():
             if bad in text:
@@ -84,3 +86,12 @@ def test_no_forbidden_citations() -> None:
                 problems.append(f"{rel}: contains '{bad}' ({reason})")
 
     assert not problems, "Forbidden regulatory citations found:\n" + "\n".join(problems)
+
+
+def test_an_empty_doc_list_fails_the_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A git failure must not let the gate pass with nothing scanned."""
+    if not (REPO_ROOT / "README.md").exists():
+        pytest.skip("regulatory-claims gate runs from a source checkout")
+    monkeypatch.setattr(f"{__name__}._doc_files", lambda: [])
+    with pytest.raises(AssertionError, match="no public docs"):
+        test_no_forbidden_citations()
