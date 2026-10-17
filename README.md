@@ -13,13 +13,12 @@
     <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0D5463.svg?style=flat-square" alt="Python 3.11, 3.12, 3.13"></a>
     <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"><img src="https://img.shields.io/badge/EU%20AI%20Act-Article%209-0D5463.svg?style=flat-square" alt="EU AI Act Article 9"></a>
     <a href="#privacy"><img src="https://img.shields.io/badge/telemetry-zero-0B7A4B.svg?style=flat-square" alt="Zero telemetry"></a>
-    <a href="#evidence-status"><img src="https://img.shields.io/badge/evidence_status-VALIDATED-B68A2E.svg?style=flat-square" alt="Evidence status: VALIDATED"></a>
   </p>
 </div>
 
 ---
 
-> **RiskForge produces structured, hash-chained regulatory evidence for EU AI Act Article 9 (Risk Management System) and Annex IV (Technical Documentation). Apache 2.0, AS IS.**
+> **RiskForge produces structured, hash-chained evidence for the EU AI Act Article 9 risk management system and the description of it that Annex IV point 5 asks for. Apache 2.0, provided AS IS.**
 >
 > RiskForge turns Article 9 risk management into a developer workflow and writes a Risk Management File whose digest, signatures and audit chain anyone can check. It is an engineering tool that produces evidence; it is **not** a notified body, and its output is not a legal certification.
 
@@ -31,9 +30,9 @@ Under the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/legal
 
 * **Application Dates**: The high-risk requirements and obligations in Chapter III, Sections 1 to 3 (including Article 9) apply from **2 December 2027** for systems under Article 6(2) and Annex III, and from **2 August 2028** for those under Article 6(1) and Annex I (Article 113, third paragraph, point (c), as amended by [Regulation (EU) 2026/1744](https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng), in force since 27 July 2026).
 * **Penalties**: breaches of the provider obligations can be fined up to **€15,000,000 or, for an undertaking, 3% of its total worldwide annual turnover for the preceding financial year, whichever is higher** (Article 99(4)); for SMEs, including start-ups, and for small mid-cap enterprises, whichever is lower (Article 99(6) and (6a)).
-* **The bottleneck**: the assessment has to be repeated at every significant model or system change, and advisory engagements are not built for that pace.
+* **The bottleneck**: Article 9(2) makes risk management a continuous iterative process, run throughout the lifecycle with regular systematic review and updating, and advisory engagements are not built for that pace.
 
-**RiskForge** answers the essential high-risk compliance requirement directly in your terminal or CI/CD pipeline:
+**RiskForge** is built around one question, asked in your terminal or CI/CD pipeline:
 
 > *"How do we assess and mitigate Article 9 risks continuously, and keep evidence of it that an auditor can check, without blocking product velocity?"*
 
@@ -73,7 +72,7 @@ riskforge system classify <system-id> --confirm
 ```
 
 ```bash
-# 3. Run the guided 8-dimension risk assessment: 37 questions, about 30 minutes of thinking
+# 3. Run the guided 8-dimension risk assessment: 37 questions
 riskforge assess <system-id> \
   --assessor-name "Alice Chen" \
   --assessor-role "AI Governance Lead"
@@ -84,8 +83,8 @@ riskforge assess <system-id> \
 ```
 
 ```bash
-# 4. Record mitigations and accept residual risk (gate G3 fails until every risk above
-#    the appetite threshold has one or the other)
+# 4. Record mitigations and accept residual risk (gate G3 fails until every risk whose
+#    residual score is above the appetite threshold is re-scored at or below it, or accepted)
 riskforge risk list <system-id>
 riskforge risk mitigate <system-id> <risk-id> \
   -m "Remove postcode feature; add demographic parity monitoring" \
@@ -94,7 +93,7 @@ riskforge risk mitigate <system-id> <risk-id> \
 riskforge risk accept <system-id> <risk-id> --rationale "Residual within appetite after controls." \
   --by "Dr. Lena Fischer, AI Governance Lead"
 
-# 5. Derive Article 9(6)-(8) test requirements per open or knowledge-gap risk and save them
+# 5. Derive Article 9(6) to (8) test requirements for knowledge-gap risks and risks scoring 9 or more, and save them
 #    on the register (the export carries them; gate G4 warns until every knowledge gap has one)
 riskforge tests generate <system-id>
 
@@ -129,18 +128,18 @@ riskforge verify --receipt ~/riskforge-receipts/loan-scoring.json
 
 ## Why RiskForge
 
-| Evaluation Method | Cost | Turnaround | Deterministic / Repeatable? | Offline / Zero-Telemetry? |
-| :--- | :--- | :--- | :--- | :--- |
-| **Big 4 Consulting** | Paid engagement per system | Weeks | ❌ No (Advisory opinion) | ❌ No (NDAs & data sharing) |
-| **Enterprise GRC Platforms** | Annual license | Months | ⚠️ Partial | ⚠️ Depends on deployment (some are self-hosted) |
-| **Internal Spreadsheets** | "Free" | Days | ❌ No (Human error) | ⚠️ Manual |
-| **RiskForge** | **Free (Apache 2.0)** | **~30 min** | **✅ Yes (Deterministic hash)** | **✅ Yes (100% offline, zero network)** |
+| Evaluation Method | Cost | Deterministic / Repeatable? | Offline / Zero-Telemetry? |
+| :--- | :--- | :--- | :--- |
+| **Big 4 Consulting** | Paid engagement per system | ❌ No (Advisory opinion) | ❌ No (NDAs & data sharing) |
+| **Enterprise GRC Platforms** | Annual license | ⚠️ Partial | ⚠️ Depends on the product and deployment |
+| **Internal Spreadsheets** | "Free" | ❌ No (Human error) | ⚠️ Manual |
+| **RiskForge** | **Free (Apache 2.0)** | **✅ Yes (Deterministic hash)** | **✅ Yes (100% offline, zero network)** |
 
 ---
 
 ## System Architecture
 
-RiskForge has four strictly-decoupled layers with CI-enforced import boundaries (ADR-02):
+RiskForge has four layers with CI-enforced import boundaries (ADR-02):
 
 ```mermaid
 graph TB
@@ -194,7 +193,7 @@ Plain YAML plus JSONL: readable by regulators without RiskForge installed, and d
 
 ## AI Exponent Governance Toolchain
 
-RiskForge operates as the Risk Management System (Article 9) cornerstone within the open-source AiExponent governance toolchain:
+RiskForge is the Article 9 tool in the open-source AI Exponent governance toolchain:
 
 ```mermaid
 graph LR
@@ -226,9 +225,9 @@ All interactions occur via plain JSON artifacts on disk. RiskForge never calls e
 graph LR
     A9_1["Art. 9(1)<br/>Establish RMS"] --> REG["Register lifecycle<br/>Version history<br/>Audit log"]
     A9_2a["Art. 9(2)(a)<br/>Identify risks"] --> QB["Guided question bank<br/>8 dimensions · 37 questions"]
-    A9_2b["Art. 9(2)(b)<br/>Estimate misuse risks"] --> PAT["Risk patterns<br/>6 Annex III points, 1 Annex I route"]
+    A9_2b["Art. 9(2)(b)<br/>Estimate and evaluate risks<br/>(intended use, foreseeable misuse)"] --> PAT["Risk patterns<br/>6 Annex III points, 1 Annex I route"]
     A9_2d_5["Art. 9(2)(d), 9(5)<br/>Risk measures"] --> MIT["Mitigation docs<br/>Vague-detection"]
-    A9_6_8["Art. 9(6)–(8)<br/>Testing requirements"] --> TEST["riskforge tests generate<br/>Per-risk metric hints"]
+    A9_6_8["Art. 9(6) to (8)<br/>Testing requirements"] --> TEST["riskforge tests generate<br/>Per-risk metric hints"]
     A9_9["Art. 9(9)<br/>Vulnerable groups"] --> VG["Dedicated questions<br/>Mandatory flag"]
     A9_1D["Art. 9(1)<br/>Documented"] --> AUD["Append-only JSONL<br/>SHA-256 hash chain"]
 
@@ -257,7 +256,7 @@ Before every export, `riskforge validate` runs 8 automated gates:
 |---|---|
 | G1 | All 8 risk dimensions have at least one entry |
 | G2 | Article 6(2) Annex III self-classification documented |
-| G3 | All high-scoring risks mitigated or accepted with rationale |
+| G3 | Every risk whose residual score is above the appetite threshold is re-scored at or below it, or accepted with a rationale |
 | G4 | Knowledge gaps have test requirements |
 | G5 | System metadata complete |
 | G6 | Assessor identity recorded |
@@ -558,11 +557,11 @@ its digest, signature, chain proof and receipt verify.
 
 ## CI/CD Integration & Exit Codes
 
-Add RiskForge to your GitHub Actions pipeline as an automated compliance and integrity gate:
+Add RiskForge to your GitHub Actions pipeline as an automated completeness and integrity check:
 
 ```yaml
 # .github/workflows/article9-gate.yml
-name: EU AI Act Article 9 Compliance Gate
+name: EU AI Act Article 9 register checks
 on: [pull_request, push]
 
 jobs:
@@ -607,7 +606,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge assess <id>` | Run the interactive 8-dimension guided assessment (supports `--answers`). |
 | `riskforge risk mitigate <id> <risk-id> --by NAME` | Document preventive/corrective mitigation controls and re-score residual risk. `--by` (or `RISKFORGE_ACTOR`) names who recorded it; the name is self-declared and not verified. |
 | `riskforge risk accept <id> <risk-id> --by NAME` | Formally accept residual risk with documented business/technical rationale. `--by` (or `RISKFORGE_ACTOR`) names who accepted it; the name is self-declared and not verified. |
-| `riskforge tests generate <id>` | Generate Article 9(6)–(8) testing requirements for open or knowledge-gap risks and save them on the register (exported with the RMF). |
+| `riskforge tests generate <id>` | Generate Article 9(6) to (8) testing requirements for knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register (exported with the RMF). |
 | `riskforge validate <id>` | Execute the 8 completeness and quality gates before report generation. |
 | `riskforge export <id>` | Export the Risk Management File to `pdf`, `json`, or `markdown`; `--sign KEY` signs it with an Ed25519 key. |
 | `riskforge verify` | Check the project (audit chain, head file, register fingerprints, system files); `--strict` also fails on warnings. |
@@ -639,7 +638,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 
 ## Contributing
 
-**The easiest contribution requires zero Python**, edit a YAML file and open a PR.
+**The easiest contribution requires zero Python**: edit a YAML file and open a PR.
 
 **Add a question** to an existing dimension:
 
@@ -657,9 +656,9 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
   regulatory_status: settled
 ```
 
-**Add a risk pattern**, edit `src/riskforge/_data/patterns/patterns.yaml`.
+**Add a risk pattern**: edit `src/riskforge/_data/patterns/patterns.yaml`.
 
-**Fix a bug or add a feature**, see [CONTRIBUTING.md](CONTRIBUTING.md).
+**Fix a bug or add a feature**: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
 git clone https://github.com/aiexponent/riskforge
@@ -689,7 +688,7 @@ make lint        # ruff check + format
 
 > **REGULATORY EVIDENCE GENERATOR, NOT A NOTIFIED BODY**
 >
-> RiskForge produces documented evidence and audit logs for the EU AI Act Article 9 risk management system, and the description of that system that Annex IV point 5 asks for. It is a technical workflow tool for engineering and governance teams.
+> RiskForge produces documented evidence and audit logs for the EU AI Act Article 9 risk management system, and the description of that system that Annex IV point 5 asks for. It is a technical workflow tool for engineering and governance teams. A complete RiskForge file shows that the risk management steps were documented; it does not show that the AI system complies with Article 9 or any other provision.
 >
 > **RiskForge does not constitute legal advice and is not a notified body.** Using RiskForge does not replace mandatory third-party conformity assessment where required under Article 43 of the EU AI Act.
 
@@ -717,7 +716,7 @@ RiskForge v1.1.3 | Apache 2.0 | Zero telemetry | aiexponent.com
 | [v1.1.2](https://github.com/aiexponent/riskforge/releases/tag/v1.1.2) | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
 | [v1.1.1](https://github.com/aiexponent/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |
 | [v1.1.0](https://github.com/aiexponent/riskforge/releases/tag/v1.1.0) | Release-hardening pass: six correctness fixes, O(n) audit append, worked examples with a determinism check, a full user guide, benchmarks, and single-source versioning. |
-| [v1.0.0](https://github.com/aiexponent/riskforge/releases/tag/v1.0.0) | First Production/Stable release. Click 8.3 regression fixed; LICENSE realigned to canonical SPDX; PRD amended to ship reality (37 questions, 6 patterns); coverage floor 24→55. |
+| [v1.0.0](https://github.com/aiexponent/riskforge/releases/tag/v1.0.0) | First Production/Stable release. Click 8.3 regression fixed; LICENSE realigned to canonical SPDX; scope amended to ship reality (37 questions, 6 patterns); coverage floor 24→55. |
 | [v0.1.4](https://github.com/aiexponent/riskforge/releases/tag/v0.1.4) | CI fixes: lint version compat, format alignment, `--sys-version` rename |
 | [v0.1.3](https://github.com/aiexponent/riskforge/releases/tag/v0.1.3) | Superseded by v0.1.4 (ruff format alignment) |
 | [v0.1.2](https://github.com/aiexponent/riskforge/releases/tag/v0.1.2) | OSS hardening: LICENSE, CONTRIBUTING, SECURITY, issue templates, full integration tests |
@@ -734,7 +733,7 @@ Built by [AI Exponent LLC](https://aiexponent.com), `hello@aiexponent.com`
 
 ---
 
-*Part of the AiExponent open-source AI governance toolchain:*  
+*Part of the AI Exponent open-source AI governance toolchain:*  
 [litmusai](https://github.com/aiexponent/litmusai) (Art. 5) · 
 [license-compliance-checker](https://github.com/aiexponent/license-compliance-checker) (Art. 53) · 
 [rag-benchmarking](https://github.com/aiexponent/rag-benchmarking) (Art. 15) · 
