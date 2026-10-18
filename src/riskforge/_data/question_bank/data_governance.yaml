@@ -18,7 +18,7 @@ questions:
     annex_iii_categories: [employment, education, law_enforcement]
     default_likelihood_hint: 3
     default_severity_hint: 3
-    article_refs: ["Art.10(2)", "Art.10(2)(b)"]
+    article_refs: ["Art.10(2)"]
     nist_rmf_ref: "MAP 4.1"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled

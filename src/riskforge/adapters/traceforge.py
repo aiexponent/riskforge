@@ -75,7 +75,7 @@ class TraceForgeAdapter:
                     severity=Severity.major,
                     residual_likelihood=Likelihood.possible,
                     residual_severity=Severity.major,
-                    article_refs=["Art.10(2)", "Art.10(2)(b)"],
+                    article_refs=["Art.10(2)"],
                     nist_rmf_ref="MAP 4.1",
                     iso42001_ref="Annex A.7",
                 )
