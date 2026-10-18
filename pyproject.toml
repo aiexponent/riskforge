@@ -30,7 +30,11 @@ classifiers = [
 # RMF generation are guaranteed via lockfiles (uv.lock / requirements.lock) in CI.
 # CONTRIBUTING.md documents the lockfile and upgrade workflow.
 dependencies = [
-    "typer>=0.12.3,<0.28.0",
+    # Typer 0.26.0 bundles its own copy of Click, so cli/main.py no longer catches its
+    # usage errors: they print a traceback and exit 1 instead of one line and exit 3.
+    # Verified 2026-10-18: typer 0.25.1 works, 0.26.0 and 0.27.3 break. The
+    # "Test (newest allowed dependencies)" CI job checks this bound.
+    "typer>=0.12.3,<0.26.0",
     # Click 8.3+ broke is_eager callback dispatch for Typer 0.12.x — `riskforge --version`
     # silently no-ops. Pin to <8.2 until Typer ships a compatible release. Verified
     # 2026-05-10 on Python 3.12.2 against click 8.3.3 (broken) and 8.1.7 (working).

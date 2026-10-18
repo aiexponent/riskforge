@@ -86,6 +86,34 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
 
+  test-newest:
+    # Installs without requirements.lock, so it gets the newest versions pyproject.toml
+    # allows, which is what `pip install riskforge` gives a user.
+    name: Test (newest allowed dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install WeasyPrint system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
+            libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
+
+      - name: Install RiskForge with test extras, unpinned
+        run: |
+          pip install --upgrade -e ".[test]"
+          pip list
+
+      - name: Run test suite
+        run: pytest
+
   schema-validate:
     name: Schema Validation
     runs-on: ubuntu-latest
