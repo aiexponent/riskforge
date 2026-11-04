@@ -6,6 +6,10 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Security
+
+- The locked dependency versions in `requirements.lock` and `uv.lock` move past advisories published after 2.0.0: Pillow 13.0.0 (WeasyPrint's image library), filelock 4.2.8, Brotli 1.2.1 and packaging 26.3. `pyproject.toml` already allows filelock 4.2.8 and packaging 26.3, and WeasyPrint and FontTools already allow the new Pillow and Brotli, so an install that does not use the lock files is unchanged.
+
 ## [2.0.0] - 2026-10-18
 
 Upgrade note: do not downgrade a project. Once RiskForge 2.0.0 has changed a project, `riskforge verify` in RiskForge 1.1.3 reports its audit log as corrupt (exit 2, `entry_hash mismatch` from the first entry that carries `register_fingerprint`), and so do releases 1.0.0 to 1.1.2. Upgrade every machine that works on a project at the same time. Back up `.riskforge/` before the first 2.0.0 command. Projects and RMF files written by 1.1.3 keep verifying under 2.0.0.

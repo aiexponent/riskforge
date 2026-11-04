@@ -6,9 +6,9 @@ attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
-brotli==1.2.0 ; platform_python_implementation == 'CPython'
+brotli==1.2.1 ; platform_python_implementation == 'CPython'
     # via fonttools
-brotlicffi==1.2.0.2 ; platform_python_implementation != 'CPython'
+brotlicffi==1.2.1.0 ; platform_python_implementation != 'CPython'
     # via fonttools
 cffi==2.1.1
     # via
@@ -25,7 +25,7 @@ cryptography==50.0.1
     # via riskforge
 cssselect2==0.10.1
     # via weasyprint
-filelock==3.32.7
+filelock==4.2.8
     # via riskforge
 fonttools==4.65.0
     # via weasyprint
@@ -41,9 +41,9 @@ markupsafe==3.0.3
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
-packaging==24.2
+packaging==26.3
     # via riskforge
-pillow==12.3.0
+pillow==13.0.0
     # via weasyprint
 prompt-toolkit==3.0.53
     # via questionary
