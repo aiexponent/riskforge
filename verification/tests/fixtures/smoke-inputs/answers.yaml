@@ -1,0 +1,11 @@
+add_patterns: false
+answers:
+  HS-001: { applies: yes, likelihood: 1, severity: 3 }
+  FR-001: { applies: yes, likelihood: 2, severity: 4 }
+  DI-001: { applies: yes, likelihood: 2, severity: 4 }
+  PR-001: { applies: yes, likelihood: 3, severity: 4 }
+  TR-001: { applies: yes, likelihood: 2, severity: 3 }
+  HO-001: { applies: yes, likelihood: 2, severity: 3 }
+  RO-001: { applies: yes, likelihood: 4, severity: 3 }
+  DG-001: { applies: yes, likelihood: 2, severity: 2 }
+  DG-002: { applies: unknown }

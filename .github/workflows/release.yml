@@ -86,3 +86,67 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
             sbom.cdx.json
+
+  verify-release:
+    name: Independent verification of the released version
+    # Runs verification/run.sh against the version just published to PyPI.
+    # It fails when a check fails or the RMF differs from the committed
+    # verification/results/rmf.normalised.json: the release stays published,
+    # and the verification report must be redone for this version.
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Wait until PyPI serves the new version
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+          # PyPI's index can take a few minutes to reach every CDN node after the
+          # JSON API lists a release. Ask pip itself, the way run.sh installs,
+          # until it resolves the version three times in a row.
+          seen=0
+          for _ in $(seq 1 60); do
+            dest="$(mktemp -d)"
+            ok=0
+            python3 -m pip download --quiet --no-deps --no-cache-dir \
+              --dest "$dest" "riskforge==${VERSION}" > /dev/null 2>&1 && ok=1
+            rm -rf "$dest"
+            if [ "$ok" -eq 1 ]; then
+              seen=$((seen + 1))
+              if [ "$seen" -ge 3 ]; then exit 0; fi
+            else
+              seen=0
+            fi
+            sleep 20
+          done
+          echo "pip cannot resolve riskforge ${VERSION} after 20 minutes" >&2
+          exit 1
+      - name: Run verification/run.sh
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          OUT: ${{ runner.temp }}/verification
+        run: |
+          smoke=""
+          if [ ! -f verification/inputs/decisions.yaml ]; then smoke="--smoke"; fi
+          verification/run.sh --out "$OUT" --version "${TAG_NAME#v}" ${smoke:+"$smoke"}
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-results
+          path: |
+            ${{ runner.temp }}/verification/results.json
+            ${{ runner.temp }}/verification/rmf.normalised.json
+            ${{ runner.temp }}/verification/run-a/export/
+            ${{ runner.temp }}/verification/run-a/logs/
+            ${{ runner.temp }}/verification/run-b/logs/
+          if-no-files-found: ignore
+          retention-days: 90

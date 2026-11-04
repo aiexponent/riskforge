@@ -1,0 +1,8 @@
+# Smoke fixture for the replay self-check. A made-up system, not the subject under test.
+name: "Replay smoke fixture"
+version: "0.1.0"
+purpose: "Fictional system used only to check that verification/replay.py runs end to end."
+provider: "Verification smoke test"
+category: essential_services
+assessor_name: "Smoke Tester"
+assessor_role: "Verification maintainer"

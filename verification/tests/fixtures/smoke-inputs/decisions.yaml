@@ -1,0 +1,12 @@
+by: "Smoke Tester, Verification maintainer"
+mitigations:
+  - risk: "Does the system process personal data or"
+    description: "Pseudonymise applicant identifiers before scoring and delete raw records after 30 days"
+    control_type: preventive
+    owner: "Data protection team"
+    status: implemented
+    residual_likelihood: 2
+    residual_severity: 4
+acceptances:
+  - risk: "Has the system been tested against out-o"
+    rationale: "Accepted for the smoke fixture: out-of-distribution testing is scheduled before release"
