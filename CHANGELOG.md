@@ -8,7 +8,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ### Security
 
-- The locked dependency versions in `requirements.lock` and `uv.lock` move past advisories published after 2.0.0: Pillow 13.0.0 (WeasyPrint's image library), filelock 4.2.8, Brotli 1.2.1 and packaging 26.3. The ranges in `pyproject.toml` already allowed these versions, so an install that does not use the lock files is unchanged.
+- The locked dependency versions in `requirements.lock` and `uv.lock` move past advisories published after 2.0.0: Pillow 13.0.0 (WeasyPrint's image library), filelock 4.2.8, Brotli 1.2.1 and packaging 26.3. `pyproject.toml` already allows filelock 4.2.8 and packaging 26.3, and WeasyPrint and FontTools already allow the new Pillow and Brotli, so an install that does not use the lock files is unchanged.
 
 ## [2.0.0] - 2026-10-18
 
