@@ -124,11 +124,17 @@ echo "Results: $out/results.json"
 # A failed check is a result too, so --update keeps its evidence and the exit code still
 # reports it. Only a run where every check passed (exit 0, or 1 for an RMF that changed)
 # replaces the baseline, rmf.normalised.json, so a failed run never becomes the expected one.
-if [ "$update" -eq 1 ] && [ "$status" -le 2 ] && [ -f "$out/results.json" ] && [ -f "$out/run-a/export/rmf.json" ]; then
+# A file this run did not produce is removed from results/, so no file from an older run is
+# left beside the new results.json.
+if [ "$update" -eq 1 ] && [ "$status" -le 2 ] && [ -f "$out/results.json" ]; then
   mkdir -p "$HERE/results"
   for f in results.json run-a/export/rmf.json run-a/export/rmf.md run-a/export/rmf.pdf \
            run-a/risk-list.txt; do
-    if [ -f "$out/$f" ]; then cp "$out/$f" "$HERE/results/"; fi
+    if [ -f "$out/$f" ]; then
+      cp "$out/$f" "$HERE/results/"
+    else
+      rm -f "$HERE/results/$(basename "$f")"
+    fi
   done
   if [ "$status" -le 1 ] && [ -f "$out/rmf.normalised.json" ]; then
     cp "$out/rmf.normalised.json" "$HERE/results/"

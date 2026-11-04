@@ -695,6 +695,10 @@ def main(argv: list[str] | None = None) -> int:
         if decisions is None:
             results["runs"] = {"a": asdict(run_a)}
             bad = [f"{s.name} exited {s.exit_code}" for s in run_a.steps if not s.ok]
+            if not bad and not run_a.system_id:
+                bad.append("init printed no system id")
+            elif not bad and not any(s.name == "risk-list" for s in run_a.steps):
+                bad.append("risk list not reached")
             if bad or not checks[0].passed:
                 # A command failed before the risk list: that is a failed run, not missing input.
                 checks.append(
