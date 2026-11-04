@@ -1,0 +1,15 @@
+# riskforge init parameters and the assessor, for the German Credit test subject (see subject.md).
+name: "Retail Credit Risk Scorer"
+version: "1.0.0"
+# Purpose: from the system paragraph in subject.md (an assumption about the system, built on S01 and S15).
+purpose: "Credit scoring of retail consumer credit applicants: a binary classifier, trained on the UCI Statlog German Credit data, scores each applicant as good or bad credit risk, and a lender's credit officer uses the score when deciding on the application."
+# Provider: made up, as in subject.md.
+provider: "Northwind Scoring Labs (fictional)"
+# The user guide lists the Annex III categories `riskforge init --category` takes. Scoring
+# the creditworthiness of natural persons falls under essential_services; the README Quick Start
+# uses the same category for a credit scoring model.
+category: essential_services
+# Assessor: a made-up person.
+assessor_name: "Mara Lindqvist"
+assessor_role: "Head of Model Risk"
+review_months: 12
