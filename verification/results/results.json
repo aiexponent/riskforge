@@ -1,0 +1,1506 @@
+{
+  "date": "2026-11-04",
+  "versions": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v233-x86_64-with-glibc2.39",
+    "riskforge": "RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com",
+    "pypdf": "6.21.4",
+    "weasyprint": "70.0"
+  },
+  "inputs": {
+    "answers.yaml": "404991818cc0a97bd30a83c38e3df3edf3cc7e8e82c12b7833f0926b08c0ab6e",
+    "decisions.yaml": "db0a9baa64823fb52eab73df1b9fef3e8add6f9495d6e070a90798f3eba9861d",
+    "system.yaml": "35698c6f4d43a8d9a780dfa6f066b29443464c8a59d88711c44a1105d2d5af1a"
+  },
+  "runs": {
+    "a": {
+      "label": "a",
+      "steps": [
+        {
+          "name": "init",
+          "argv": [
+            "riskforge",
+            "init",
+            "--name",
+            "Retail Credit Risk Scorer",
+            "--sys-version",
+            "1.0.0",
+            "--purpose",
+            "Credit scoring of retail consumer credit applicants: a binary classifier, trained on the UCI Statlog German Credit data, scores each applicant as good or bad credit risk, and a lender's credit officer uses the score when deciding on the application.",
+            "--provider",
+            "Northwind Scoring Labs (fictional)",
+            "--category",
+            "essential_services",
+            "--project-dir",
+            "$OUT/run-a/project",
+            "--non-interactive"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/01-init.txt"
+        },
+        {
+          "name": "classify",
+          "argv": [
+            "riskforge",
+            "system",
+            "classify",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "--confirm",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/02-classify.txt"
+        },
+        {
+          "name": "assess",
+          "argv": [
+            "riskforge",
+            "assess",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "--project-dir",
+            "$OUT/run-a/project",
+            "--assessor-name",
+            "Mara Lindqvist",
+            "--assessor-role",
+            "Head of Model Risk",
+            "--answers",
+            "/home/user/riskforge/verification/inputs/answers.yaml",
+            "--review-months",
+            "12"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/03-assess.txt"
+        },
+        {
+          "name": "risk-list",
+          "argv": [
+            "riskforge",
+            "risk",
+            "list",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/04-risk-list.txt"
+        },
+        {
+          "name": "mitigate-1",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "aed4c486-00e2-42e9-b95e-467857846880",
+            "--description",
+            "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project",
+            "--residual-likelihood",
+            "3",
+            "--residual-severity",
+            "4"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/05-mitigate-1.txt"
+        },
+        {
+          "name": "mitigate-2",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "aed4c486-00e2-42e9-b95e-467857846880",
+            "--description",
+            "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/06-mitigate-2.txt"
+        },
+        {
+          "name": "mitigate-3",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+            "--description",
+            "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Data Science team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/07-mitigate-3.txt"
+        },
+        {
+          "name": "mitigate-4",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+            "--description",
+            "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/08-mitigate-4.txt"
+        },
+        {
+          "name": "mitigate-5",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "8c42055a-d12d-4940-9017-5445fa53069d",
+            "--description",
+            "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/09-mitigate-5.txt"
+        },
+        {
+          "name": "mitigate-6",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+            "--description",
+            "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/10-mitigate-6.txt"
+        },
+        {
+          "name": "mitigate-7",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "e541ddff-41eb-4605-9e19-dc1ec292e188",
+            "--description",
+            "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/11-mitigate-7.txt"
+        },
+        {
+          "name": "mitigate-8",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+            "--description",
+            "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/12-mitigate-8.txt"
+        },
+        {
+          "name": "mitigate-9",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+            "--description",
+            "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "MLOps team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/13-mitigate-9.txt"
+        },
+        {
+          "name": "mitigate-10",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "60278de0-44dd-4b0b-bb68-08a540c17087",
+            "--description",
+            "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "MLOps team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/14-mitigate-10.txt"
+        },
+        {
+          "name": "mitigate-11",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+            "--description",
+            "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/15-mitigate-11.txt"
+        },
+        {
+          "name": "mitigate-12",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+            "--description",
+            "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Legal and Privacy team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/16-mitigate-12.txt"
+        },
+        {
+          "name": "mitigate-13",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "d936c7f0-c839-4676-b5ed-17db0ee07392",
+            "--description",
+            "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project",
+            "--residual-likelihood",
+            "2",
+            "--residual-severity",
+            "3"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/17-mitigate-13.txt"
+        },
+        {
+          "name": "mitigate-14",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+            "--description",
+            "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/18-mitigate-14.txt"
+        },
+        {
+          "name": "mitigate-15",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+            "--description",
+            "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/19-mitigate-15.txt"
+        },
+        {
+          "name": "mitigate-16",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+            "--description",
+            "Show the credit officer the reason codes and the score band next to each score.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/20-mitigate-16.txt"
+        },
+        {
+          "name": "mitigate-17",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+            "--description",
+            "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application.",
+            "--control-type",
+            "corrective",
+            "--owner",
+            "Product team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/21-mitigate-17.txt"
+        },
+        {
+          "name": "mitigate-18",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "c3ff7160-489c-48e0-bc35-cf2aea497241",
+            "--description",
+            "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Product team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project",
+            "--residual-likelihood",
+            "2",
+            "--residual-severity",
+            "3"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/22-mitigate-18.txt"
+        },
+        {
+          "name": "accept-1",
+          "argv": [
+            "riskforge",
+            "risk",
+            "accept",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "19dd45f3-1b3d-47bf-afef-f8966416e660",
+            "--rationale",
+            "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted.",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/23-accept-1.txt"
+        },
+        {
+          "name": "tests-generate",
+          "argv": [
+            "riskforge",
+            "tests",
+            "generate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/24-tests-generate.txt"
+        },
+        {
+          "name": "validate",
+          "argv": [
+            "riskforge",
+            "validate",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 1,
+          "expected": 1,
+          "log": "run-a/logs/25-validate.txt"
+        },
+        {
+          "name": "export-json",
+          "argv": [
+            "riskforge",
+            "export",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "-f",
+            "json",
+            "-o",
+            "$OUT/run-a/export/rmf.json",
+            "--sign",
+            "$OUT/keys/signer.pem",
+            "--force",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/26-export-json.txt"
+        },
+        {
+          "name": "export-markdown",
+          "argv": [
+            "riskforge",
+            "export",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "-f",
+            "markdown",
+            "-o",
+            "$OUT/run-a/export/rmf.md",
+            "--force",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/27-export-markdown.txt"
+        },
+        {
+          "name": "export-pdf",
+          "argv": [
+            "riskforge",
+            "export",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "-f",
+            "pdf",
+            "-o",
+            "$OUT/run-a/export/rmf.pdf",
+            "--force",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/28-export-pdf.txt"
+        },
+        {
+          "name": "verify-file",
+          "argv": [
+            "riskforge",
+            "verify",
+            "--file",
+            "$OUT/run-a/export/rmf.json",
+            "--trusted-key",
+            "$OUT/keys/signer.pem.pub"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/29-verify-file.txt"
+        },
+        {
+          "name": "verify-project",
+          "argv": [
+            "riskforge",
+            "verify",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/30-verify-project.txt"
+        },
+        {
+          "name": "export-json-again",
+          "argv": [
+            "riskforge",
+            "export",
+            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "-f",
+            "json",
+            "-o",
+            "$OUT/run-a/export/rmf-again.json",
+            "--sign",
+            "$OUT/keys/signer.pem",
+            "--force",
+            "--project-dir",
+            "$OUT/run-a/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-a/logs/31-export-json-again.txt"
+        }
+      ],
+      "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+      "forced_export": true,
+      "files": {
+        "json": "$OUT/run-a/export/rmf.json",
+        "markdown": "$OUT/run-a/export/rmf.md",
+        "pdf": "$OUT/run-a/export/rmf.pdf"
+      },
+      "digests": {
+        "json": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23",
+        "markdown": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23",
+        "pdf": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+      }
+    },
+    "b": {
+      "label": "b",
+      "steps": [
+        {
+          "name": "init",
+          "argv": [
+            "riskforge",
+            "init",
+            "--name",
+            "Retail Credit Risk Scorer",
+            "--sys-version",
+            "1.0.0",
+            "--purpose",
+            "Credit scoring of retail consumer credit applicants: a binary classifier, trained on the UCI Statlog German Credit data, scores each applicant as good or bad credit risk, and a lender's credit officer uses the score when deciding on the application.",
+            "--provider",
+            "Northwind Scoring Labs (fictional)",
+            "--category",
+            "essential_services",
+            "--project-dir",
+            "$OUT/run-b/project",
+            "--non-interactive"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/01-init.txt"
+        },
+        {
+          "name": "classify",
+          "argv": [
+            "riskforge",
+            "system",
+            "classify",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "--confirm",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/02-classify.txt"
+        },
+        {
+          "name": "assess",
+          "argv": [
+            "riskforge",
+            "assess",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "--project-dir",
+            "$OUT/run-b/project",
+            "--assessor-name",
+            "Mara Lindqvist",
+            "--assessor-role",
+            "Head of Model Risk",
+            "--answers",
+            "/home/user/riskforge/verification/inputs/answers.yaml",
+            "--review-months",
+            "12"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/03-assess.txt"
+        },
+        {
+          "name": "risk-list",
+          "argv": [
+            "riskforge",
+            "risk",
+            "list",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/04-risk-list.txt"
+        },
+        {
+          "name": "mitigate-1",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "2c21a868-67c6-4b88-94b2-d38bfa3c2b17",
+            "--description",
+            "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project",
+            "--residual-likelihood",
+            "3",
+            "--residual-severity",
+            "4"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/05-mitigate-1.txt"
+        },
+        {
+          "name": "mitigate-2",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "2c21a868-67c6-4b88-94b2-d38bfa3c2b17",
+            "--description",
+            "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/06-mitigate-2.txt"
+        },
+        {
+          "name": "mitigate-3",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "a789c4f8-f0f9-4365-a163-d8af21176e41",
+            "--description",
+            "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Data Science team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/07-mitigate-3.txt"
+        },
+        {
+          "name": "mitigate-4",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "130113b2-f951-4b2e-afd5-386bf7a71b12",
+            "--description",
+            "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/08-mitigate-4.txt"
+        },
+        {
+          "name": "mitigate-5",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "d7a750ca-5f28-4656-b862-3e9794f897ff",
+            "--description",
+            "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/09-mitigate-5.txt"
+        },
+        {
+          "name": "mitigate-6",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "19e69a81-d43e-4887-b767-3843306371ae",
+            "--description",
+            "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/10-mitigate-6.txt"
+        },
+        {
+          "name": "mitigate-7",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "4b37d130-8867-4744-8c95-d5207a43f4ac",
+            "--description",
+            "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/11-mitigate-7.txt"
+        },
+        {
+          "name": "mitigate-8",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "5d3d302e-2073-49bd-bcce-055adca57142",
+            "--description",
+            "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/12-mitigate-8.txt"
+        },
+        {
+          "name": "mitigate-9",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "5d3d302e-2073-49bd-bcce-055adca57142",
+            "--description",
+            "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "MLOps team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/13-mitigate-9.txt"
+        },
+        {
+          "name": "mitigate-10",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "99b9e0ac-310c-4f47-bae4-0dacaf8d0437",
+            "--description",
+            "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "MLOps team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/14-mitigate-10.txt"
+        },
+        {
+          "name": "mitigate-11",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "46a818fb-d800-4be0-b4db-7f4dc2b754f3",
+            "--description",
+            "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent.",
+            "--control-type",
+            "detective",
+            "--owner",
+            "Model Validation team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/15-mitigate-11.txt"
+        },
+        {
+          "name": "mitigate-12",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "31e6e9a3-930e-4902-b0c2-a6dcce85f9be",
+            "--description",
+            "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Legal and Privacy team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/16-mitigate-12.txt"
+        },
+        {
+          "name": "mitigate-13",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "3c3bfa35-3684-4fa4-bdd6-a9e5c247d429",
+            "--description",
+            "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project",
+            "--residual-likelihood",
+            "2",
+            "--residual-severity",
+            "3"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/17-mitigate-13.txt"
+        },
+        {
+          "name": "mitigate-14",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "26b53f49-4050-47c0-87ff-cea62c06c00b",
+            "--description",
+            "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/18-mitigate-14.txt"
+        },
+        {
+          "name": "mitigate-15",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "e414a419-d403-4fc8-aa33-ab948c102bab",
+            "--description",
+            "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/19-mitigate-15.txt"
+        },
+        {
+          "name": "mitigate-16",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "5827c4e7-1b2b-45b4-b3cf-785b543f9c67",
+            "--description",
+            "Show the credit officer the reason codes and the score band next to each score.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Model Development team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/20-mitigate-16.txt"
+        },
+        {
+          "name": "mitigate-17",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "59cf802d-dc09-4b4e-b991-bbbcb977964b",
+            "--description",
+            "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application.",
+            "--control-type",
+            "corrective",
+            "--owner",
+            "Product team",
+            "--status",
+            "planned",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/21-mitigate-17.txt"
+        },
+        {
+          "name": "mitigate-18",
+          "argv": [
+            "riskforge",
+            "risk",
+            "mitigate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "0ebf585f-018b-4c4c-9694-15f46a2bd459",
+            "--description",
+            "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain.",
+            "--control-type",
+            "preventive",
+            "--owner",
+            "Product team",
+            "--status",
+            "implemented",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project",
+            "--residual-likelihood",
+            "2",
+            "--residual-severity",
+            "3"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/22-mitigate-18.txt"
+        },
+        {
+          "name": "accept-1",
+          "argv": [
+            "riskforge",
+            "risk",
+            "accept",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "12ce40da-0820-48ef-8f66-509f549b0971",
+            "--rationale",
+            "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted.",
+            "--by",
+            "Mara Lindqvist, Head of Model Risk",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/23-accept-1.txt"
+        },
+        {
+          "name": "tests-generate",
+          "argv": [
+            "riskforge",
+            "tests",
+            "generate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/24-tests-generate.txt"
+        },
+        {
+          "name": "validate",
+          "argv": [
+            "riskforge",
+            "validate",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 1,
+          "expected": 1,
+          "log": "run-b/logs/25-validate.txt"
+        },
+        {
+          "name": "export-json",
+          "argv": [
+            "riskforge",
+            "export",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "-f",
+            "json",
+            "-o",
+            "$OUT/run-b/export/rmf.json",
+            "--sign",
+            "$OUT/keys/signer.pem",
+            "--force",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/26-export-json.txt"
+        },
+        {
+          "name": "export-markdown",
+          "argv": [
+            "riskforge",
+            "export",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "-f",
+            "markdown",
+            "-o",
+            "$OUT/run-b/export/rmf.md",
+            "--force",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/27-export-markdown.txt"
+        },
+        {
+          "name": "export-pdf",
+          "argv": [
+            "riskforge",
+            "export",
+            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "-f",
+            "pdf",
+            "-o",
+            "$OUT/run-b/export/rmf.pdf",
+            "--force",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/28-export-pdf.txt"
+        },
+        {
+          "name": "verify-file",
+          "argv": [
+            "riskforge",
+            "verify",
+            "--file",
+            "$OUT/run-b/export/rmf.json",
+            "--trusted-key",
+            "$OUT/keys/signer.pem.pub"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/29-verify-file.txt"
+        },
+        {
+          "name": "verify-project",
+          "argv": [
+            "riskforge",
+            "verify",
+            "--project-dir",
+            "$OUT/run-b/project"
+          ],
+          "exit_code": 0,
+          "expected": 0,
+          "log": "run-b/logs/30-verify-project.txt"
+        }
+      ],
+      "system_id": "83c4d793-1118-4b38-83be-1f70d94f4263",
+      "forced_export": true,
+      "files": {
+        "json": "$OUT/run-b/export/rmf.json",
+        "markdown": "$OUT/run-b/export/rmf.md",
+        "pdf": "$OUT/run-b/export/rmf.pdf"
+      },
+      "digests": {
+        "json": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f",
+        "markdown": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f",
+        "pdf": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f"
+      }
+    }
+  },
+  "checks": [
+    {
+      "id": "keygen",
+      "passed": true,
+      "detail": "run-keys/logs/01-keygen.txt"
+    },
+    {
+      "id": "flow.a",
+      "passed": true,
+      "detail": "30 commands"
+    },
+    {
+      "id": "validate.a",
+      "passed": false,
+      "detail": "see run-a/logs/25-validate.txt; exported with --force"
+    },
+    {
+      "id": "digest.recomputed.a",
+      "passed": true,
+      "detail": "file 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23, riskforge.api.content_digest 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+    },
+    {
+      "id": "digest.formats.a",
+      "passed": true,
+      "detail": "JSON field 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23; printed {'json': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23', 'markdown': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23', 'pdf': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23'}; in Markdown text: True"
+    },
+    {
+      "id": "verify.api.a",
+      "passed": true,
+      "detail": "verified with the trusted key"
+    },
+    {
+      "id": "export.markdown.a",
+      "passed": true,
+      "detail": "171 lines"
+    },
+    {
+      "id": "export.pdf.a",
+      "passed": true,
+      "detail": "22 pages, 177999 bytes"
+    },
+    {
+      "id": "flow.b",
+      "passed": true,
+      "detail": "30 commands"
+    },
+    {
+      "id": "validate.b",
+      "passed": false,
+      "detail": "see run-b/logs/25-validate.txt; exported with --force"
+    },
+    {
+      "id": "digest.recomputed.b",
+      "passed": true,
+      "detail": "file 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f, riskforge.api.content_digest 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f"
+    },
+    {
+      "id": "digest.formats.b",
+      "passed": true,
+      "detail": "JSON field 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f; printed {'json': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f', 'markdown': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f', 'pdf': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f'}; in Markdown text: True"
+    },
+    {
+      "id": "verify.api.b",
+      "passed": true,
+      "detail": "verified with the trusted key"
+    },
+    {
+      "id": "export.markdown.b",
+      "passed": true,
+      "detail": "171 lines"
+    },
+    {
+      "id": "export.pdf.b",
+      "passed": true,
+      "detail": "22 pages, 177959 bytes"
+    },
+    {
+      "id": "repeat.same_register",
+      "passed": true,
+      "detail": "first export 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23, second export 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+    },
+    {
+      "id": "tamper.rmf_content",
+      "passed": true,
+      "detail": "byte 1078 changed: verify --file exit 2 (expected 2); restored: exit 0 (expected 0)"
+    },
+    {
+      "id": "tamper.rmf_signature",
+      "passed": true,
+      "detail": "byte 79310 changed: verify --file exit 2 (expected 2); restored: exit 0 (expected 0)"
+    },
+    {
+      "id": "tamper.register",
+      "passed": true,
+      "detail": "register.yaml byte 812 changed: verify exit 2 (expected 2); restored: exit 0 (expected 0)"
+    },
+    {
+      "id": "tamper.audit_log",
+      "passed": true,
+      "detail": "audit.jsonl byte 18 changed: verify exit 2 (expected 2); restored: exit 0 (expected 0)"
+    },
+    {
+      "id": "repeat.two_runs",
+      "passed": true,
+      "detail": "same RMF after ids and timestamps are replaced by placeholders"
+    }
+  ],
+  "passed": 19,
+  "failed": 2
+}

@@ -71,6 +71,7 @@ jobs:
           path: |
             ${{ runner.temp }}/verification/results.json
             ${{ runner.temp }}/verification/rmf.normalised.json
+            ${{ runner.temp }}/verification/gates.json
             ${{ runner.temp }}/verification/run-a/export/
             ${{ runner.temp }}/verification/run-a/logs/
             ${{ runner.temp }}/verification/run-b/logs/

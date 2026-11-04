@@ -1,0 +1,60 @@
+# Answers for `riskforge assess --answers`, in the user guide's format.
+# How I read the questions: `yes` means the risk the question points at applies to this
+# system now. Many questions are phrased as "is control X in place?"; for those, `yes`
+# means the control is missing or not shown, so the risk applies (the README sample
+# exports DI-001 the same way). `no` means the risk does not apply. `unknown` means the
+# sources and my assumptions do not tell. S-ids refer to verification/inputs/subject.md;
+# "assumption" refers to the system paragraph there.
+
+# The user guide says add_patterns injects the matched Annex III patterns, and that a
+# category plus a matching purpose keyword triggers one ("credit" matches). The system is
+# a credit scoring model (S01, S15), so the credit scoring pattern fits and I want its
+# risks in the register.
+add_patterns: true
+
+answers:
+  # data_governance
+  DG-001: { applies: yes, likelihood: 4, severity: 3 }    # S17: no collection date, place, lender or period is documented, so provenance cannot be complete
+  DG-002: { applies: no }                                  # S03: CC BY 4.0 allows use for any purpose with credit
+  DG-003: { applies: yes, likelihood: 3, severity: 3 }    # S14: the doc is unsure of code A47; S20: how good/bad was decided is not documented
+  DG-004: { applies: unknown }                             # assumption: the sources say nothing on retention, and the provider's schedule is not known
+  DG-005: { applies: no }                                  # S02, S05: a fixed 1994 file with a DOI, so the training data version is recoverable; assumption: code is versioned
+  # discrimination
+  DI-001: { applies: yes, likelihood: 4, severity: 4 }    # S08, S09, S10, S19: sex, age and foreign worker status are present and representativeness is not documented
+  DI-002: { applies: yes, likelihood: 4, severity: 4 }    # assumption: no group fairness metrics have been computed
+  DI-003: { applies: yes, likelihood: 5, severity: 4 }    # S08, S09, S10 are protected characteristics used as inputs; S11, S12 (job incl. non-resident, housing) can act as proxies
+  DI-004: { applies: unknown }                             # assumption: no model update process exists yet, so it is not known whether bias tests repeat
+  # fundamental_rights
+  FR-001: { applies: unknown }                             # assumption: the provider does not know whether the lender has done such an assessment
+  FR-002: { applies: yes, likelihood: 3, severity: 4 }    # S01, S16: a bad score can block access to credit; S08 to S10 raise non-discrimination concerns
+  FR-003: { applies: unknown }                             # assumption: informing applicants is up to the lender, whose practice is not known
+  FR-004: { applies: no }                                  # assumption: a credit officer makes each decision; the score is one input
+  # health_safety
+  HS-001: { applies: no }                                  # assumption: the output feeds a credit decision, not a clinical, safety or physical one
+  HS-002: { applies: no }                                  # assumption: a wrong score causes financial harm, not physical harm
+  HS-003: { applies: no }                                  # assumption: no physical process to halt; the officer can ignore the score
+  HS-004: { applies: no }                                  # assumption: not a safety-critical system, so no safety failure paths
+  HS-005: { applies: yes, likelihood: 4, severity: 3 }    # assumption: no production monitoring exists yet (no post-market data)
+  HS-006: { applies: yes, likelihood: 3, severity: 4 }    # S09: age is an input, so older and very young applicants may be scored worse; S19: their share is not documented
+  # human_oversight
+  HO-001: { applies: no }                                  # assumption: the officer decides and can set the score aside
+  HO-002: { applies: unknown }                             # assumption: lender staff training is not known to the provider
+  HO-003: { applies: unknown }                             # assumption: the lender's case volume per officer is not known
+  HO-004: { applies: yes, likelihood: 3, severity: 4 }    # assumption: the model gives only a label and a score, no reasons
+  # privacy
+  PR-001: { applies: yes, likelihood: 5, severity: 4 }    # S08 to S12: data about natural persons incl. sex and age; S10 may relate to nationality or origin; live applicants' data is personal data
+  PR-002: { applies: unknown }                             # S18: nothing on legal basis; assumption: whether a DPIA exists is not known
+  PR-003: { applies: yes, likelihood: 4, severity: 3 }    # assumption: all 20 attributes are inputs, incl. S08, S10 and telephone (S12), not all needed
+  PR-004: { applies: yes, likelihood: 2, severity: 3 }    # S18: no names or ids, but consent and anonymisation are not documented
+  PR-005: { applies: no }                                  # assumption: a tabular classifier that outputs a label and a score cannot reproduce records
+  # robustness
+  RO-001: { applies: yes, likelihood: 4, severity: 4 }    # S02, S07, S17: 1994 data in DM, so today's applicants fall outside it; assumption: hold-out test only
+  RO-002: { applies: yes, likelihood: 4, severity: 4 }    # assumption: no subgroup metrics; S21: the page gives no baseline values
+  RO-003: { applies: yes, likelihood: 3, severity: 3 }    # assumption: no performance floor defined
+  RO-004: { applies: yes, likelihood: 5, severity: 4 }    # S02, S17: training data about three decades old, so drift against today's applicants is near certain
+  RO-005: { applies: no }                                  # assumption: not a language model; label-only output gives little attack surface
+  # transparency
+  TR-001: { applies: unknown }                             # assumption: notification of applicants is up to the lender
+  TR-002: { applies: yes, likelihood: 3, severity: 4 }    # assumption: no explanation method is in place
+  TR-003: { applies: yes, likelihood: 3, severity: 3 }    # S17, S19, S20, S21: the sources give no limitations, and the provider has not written any (assumption)
+  TR-004: { applies: no }                                  # assumption: the score itself is shown to the officer

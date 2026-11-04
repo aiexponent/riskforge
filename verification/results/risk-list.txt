@@ -1,0 +1,33 @@
+                           Risk items for 2c475c5c-c646-4da8-89a9-03141a0bcfbd                            
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID       ┃ Dimension          ┃ Title                                    ┃ Score ┃ Band     ┃ Accepted ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ 8c42055a │ discrimination     │ Demographic bias in credit scoring outpu │ 12    │ high     │ No       │
+│ 555fecb1 │ transparency       │ Lack of explanation for credit decisions │ 9     │ medium   │ No       │
+│ 60278de0 │ health_safety      │ Are system performance metrics (accuracy │ 12    │ high     │ No       │
+│ 6c48e838 │ health_safety      │ Could vulnerable populations (elderly, c │ 12    │ high     │ No       │
+│ 351bedb2 │ fundamental_rights │ Has a fundamental rights impact assessme │ 9     │ medium   │ No       │
+│ ff5260d1 │ fundamental_rights │ Could the system restrict or affect acce │ 12    │ high     │ No       │
+│ f44ccbdf │ fundamental_rights │ Are affected individuals informed of the │ 6     │ medium   │ No       │
+│ f6c25aec │ discrimination     │ Has the training dataset been audited fo │ 16    │ high     │ No       │
+│ c0b71de9 │ discrimination     │ Have demographic parity, equalised odds, │ 16    │ high     │ No       │
+│ aed4c486 │ discrimination     │ Does the system use proxy variables that │ 20    │ critical │ No       │
+│ 25c401d1 │ discrimination     │ Are bias test results documented and rev │ 6     │ medium   │ No       │
+│ f678a8c1 │ privacy            │ Does the system process personal data or │ 20    │ critical │ No       │
+│ 3e189772 │ privacy            │ Has a Data Protection Impact Assessment  │ 9     │ medium   │ No       │
+│ d936c7f0 │ privacy            │ Is data minimisation enforced: does the  │ 12    │ high     │ No       │
+│ 2d133a03 │ privacy            │ Has the training data been scanned for i │ 6     │ medium   │ No       │
+│ 7ff6fe87 │ transparency       │ Are users notified that they are interac │ 9     │ medium   │ No       │
+│ a038286b │ transparency       │ Is an explanation of the system's decisi │ 12    │ high     │ No       │
+│ c3ff7160 │ transparency       │ Does the system documentation include cl │ 9     │ medium   │ No       │
+│ ce393cc6 │ human_oversight    │ Are human reviewers trained on the syste │ 9     │ medium   │ No       │
+│ 0265c848 │ human_oversight    │ Is the human oversight load (volume of c │ 12    │ high     │ No       │
+│ 27dd0821 │ human_oversight    │ Is the system designed to make its reaso │ 12    │ high     │ No       │
+│ e541ddff │ robustness         │ Has the system been tested against out-o │ 16    │ high     │ No       │
+│ 905e8cd6 │ robustness         │ Are accuracy, precision, recall, and cal │ 16    │ high     │ No       │
+│ 3e4bcc98 │ robustness         │ Is there a defined performance floor (mi │ 9     │ medium   │ No       │
+│ 85a548ab │ robustness         │ Are model degradation scenarios (data dr │ 20    │ critical │ No       │
+│ 19dd45f3 │ data_governance    │ Is the provenance of all training, valid │ 12    │ high     │ No       │
+│ 2a4a31b3 │ data_governance    │ Are data quality checks (completeness, c │ 9     │ medium   │ No       │
+│ a3f1e0de │ data_governance    │ Is there a data retention and deletion s │ 4     │ low      │ No       │
+└──────────┴────────────────────┴──────────────────────────────────────────┴───────┴──────────┴──────────┘

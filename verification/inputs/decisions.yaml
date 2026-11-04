@@ -1,0 +1,145 @@
+# Decisions after the first risk list (run of 2026-11-04), written as the provider would.
+# Rule I followed: a residual score is lowered only where the control is a design change the
+# provider can make now (status implemented). Planned controls do not change the residual score.
+# Risks not listed here are left as they are. S-ids refer to subject.md.
+by: "Mara Lindqvist, Head of Model Risk"
+
+mitigations:
+  # Direct protected characteristics are inputs (S08, S09, S10). Dropping them is a change the
+  # provider can make in training now. Proxies remain (job with "non-resident", housing: S11, S12),
+  # so likelihood drops from 5 to 3, not lower; severity stays 4.
+  - risk: "Does the system use proxy variables that may correlate"
+    description: "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing."
+    control_type: preventive
+    owner: "Model Development team"
+    status: implemented
+    residual_likelihood: 3
+    residual_severity: 4
+
+  # Same proxies need measuring before the residual can go down. Planned, so no re-score.
+  - risk: "Does the system use proxy variables that may correlate"
+    description: "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # S08, S19: imbalance cannot be fixed from this data, only reported. Reporting does not lower the risk.
+  - risk: "Has the training dataset been audited for representation"
+    description: "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code."
+    control_type: detective
+    owner: "Data Science team"
+    status: implemented
+
+  # No fairness metrics yet (assumption in subject.md). A release gate is planned.
+  - risk: "Have demographic parity, equalised odds"
+    description: "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # The credit scoring pattern risk is the same concern as DI-002; the same planned gate applies.
+  - risk: "Demographic bias in credit scoring outputs"
+    description: "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # No subgroup metrics yet (assumption); S16 gives the cost matrix to weight errors.
+  - risk: "Are accuracy, precision, recall, and calibration"
+    description: "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # S02, S07, S17: 1994 data in DM. Only a test on today's applicants can show the gap. Planned.
+  - risk: "Has the system been tested against out-of-distribution"
+    description: "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # Drift against today's applicants is near certain (S02, S17). Retraining is the real fix; planned.
+  - risk: "Are model degradation scenarios (data drift"
+    description: "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production."
+    control_type: preventive
+    owner: "Model Development team"
+    status: planned
+  - risk: "Are model degradation scenarios (data drift"
+    description: "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days."
+    control_type: detective
+    owner: "MLOps team"
+    status: planned
+
+  # No production monitoring yet (assumption).
+  - risk: "Are system performance metrics (accuracy"
+    description: "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change."
+    control_type: detective
+    owner: "MLOps team"
+    status: planned
+
+  # S09: age is an input; older and young applicants may be harmed. Age is dropped by the first
+  # decision above, but errors by age band still need checking. Planned, so no re-score.
+  - risk: "Could vulnerable populations (elderly"
+    description: "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent."
+    control_type: detective
+    owner: "Model Validation team"
+    status: planned
+
+  # Personal data of live applicants is inherent to credit scoring (S08 to S12); S18 gives no legal basis
+  # for the 1994 records. The legal review is planned; dropping attributes 9, 13 and 20 reduces but does not
+  # remove the personal data, so no re-score.
+  - risk: "Does the system process personal data or special"
+    description: "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries."
+    control_type: preventive
+    owner: "Legal and Privacy team"
+    status: planned
+
+  # Data minimisation: telephone (attribute 19) and the three attributes above are not needed for
+  # the purpose. Removing them is a training change made now, so likelihood drops from 4 to 2.
+  - risk: "Is data minimisation enforced"
+    description: "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed."
+    control_type: preventive
+    owner: "Model Development team"
+    status: implemented
+    residual_likelihood: 2
+    residual_severity: 3
+
+  # No reasons are given with the score (assumption). Reason codes are planned, not built.
+  - risk: "Is an explanation of the system's decision-making"
+    description: "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request."
+    control_type: preventive
+    owner: "Model Development team"
+    status: planned
+  - risk: "Lack of explanation for credit decisions"
+    description: "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request."
+    control_type: preventive
+    owner: "Model Development team"
+    status: planned
+  - risk: "Is the system designed to make its reasoning"
+    description: "Show the credit officer the reason codes and the score band next to each score."
+    control_type: preventive
+    owner: "Model Development team"
+    status: planned
+
+  # A refused applicant can lose access to credit (S01, S16). Human re-review is the lender's
+  # process; the provider can only require it in the instructions for use. Planned.
+  - risk: "Could the system restrict or affect access"
+    description: "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application."
+    control_type: corrective
+    owner: "Product team"
+    status: planned
+
+  # S17, S19, S20, S21: the sources give no limitations. Writing them is done now, so likelihood 3 to 2.
+  - risk: "Does the system documentation include clear"
+    description: "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain."
+    control_type: preventive
+    owner: "Product team"
+    status: implemented
+    residual_likelihood: 2
+    residual_severity: 3
+
+acceptances:
+  # S17: the collection details are not published and cannot be recovered. The gap itself cannot be
+  # closed; its effects are handled by the drift and out-of-distribution decisions above.
+  - risk: "Is the provenance of all training"
+    rationale: "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted."
