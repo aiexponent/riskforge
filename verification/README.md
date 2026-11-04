@@ -35,7 +35,7 @@ exit code still reports it. Only a run in which every check passed replaces the 
 | Exit code | Meaning |
 |---|---|
 | 0 | Every check passed, and the RMF matches `results/rmf.normalised.json` when that file is committed. |
-| 1 | Every check passed, but the RMF differs from `results/rmf.normalised.json`. A new release changed the RMF content, so the report needs redoing for it. |
+| 1 | Every check passed, but the RMF or the gate results differ from the committed baseline (`results/rmf.normalised.json`, `results/gates.json`). A new release changed them, so the report needs redoing for it. |
 | 2 | A check failed: the install, a command, a digest, repeatability, tamper evidence or an export. `results.json` lists each check. |
 | 3 | `inputs/decisions.yaml` does not exist yet. The risk list is printed so the decisions can be written. |
 
@@ -87,7 +87,9 @@ acceptances:
 ```
 
 The decisions are applied in file order, mitigations first. If `riskforge validate`
-still reports a FAIL gate, the replay records it as a failed check and exports with
+reports a FAIL gate, that is the tool's verdict on the inputs, not a fault in the tool.
+The replay records the gate results in `gates.json`, checks that `validate` exits 1
+exactly when a gate fails and that both runs reach the same gates, and exports with
 `--force`, so the other checks still run.
 
 ## Order of the tester's commits
@@ -122,4 +124,4 @@ The git history shows that each file was fixed before the next step.
 | `expected.md` | What an Article 9 risk management file should contain, written by the tester before any run. |
 | `inputs/` | The tester's inputs. |
 | `coverage.csv`, `NOTES.md` | The tester's coverage table and usability notes, written after the run. |
-| `results/` | `results.json`, the exported RMF in three formats, its normalised form and the risk list. |
+| `results/` | `results.json`, the exported RMF in three formats, the risk list, and the baseline later runs are compared with: the normalised RMF (`rmf.normalised.json`) and the gate results (`gates.json`). |

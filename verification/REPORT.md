@@ -12,10 +12,10 @@ RiskForge records a provider's own risk management decisions. Neither the tool n
 | Area | Result |
 |---|---|
 | Tamper evidence | One changed byte failed `riskforge verify` in all four places tried: the RMF content, its signature, a register file and the audit log. Restoring the byte passed each time. |
-| Repeatability | The same register exported twice gave the same content digest. Two full runs gave the same RMF once ids and timestamps were replaced. |
+| Repeatability | The same register exported twice gave the same content digest. Two full runs gave different digests, as expected, because ids and timestamps are part of the content, but the same RMF once those were replaced. Both runs reached the same gate results. |
 | Exports | JSON, Markdown and PDF carry the same content digest, and `riskforge.api.content_digest` recomputes it. The signed JSON verified with the trusted key. The PDF (22 pages) opened. |
 | Coverage of Article 9 | Of 22 things a file can show, 9 present, 8 partial, 5 missing. |
-| Checks | 19 of 21 passed. The two failures are gate G3 in each run, caused by the tester's decisions (see "Checks"). |
+| Checks | 19 of 21 passed in the tester's run. The two failures were gate G3, caused by the tester's decisions, which the replay then counted as failed checks. The replay now records gate results instead (see "Checks"), and a re-run on the same inputs passes all 22 checks. |
 | Defects | 12 defects in the exported content and the CLI, each confirmed against the committed files. None breaks the integrity checks. Three affect what a reader of the file can rely on. |
 
 **Read these results with two cautions:**
@@ -68,7 +68,14 @@ Neither affects the results.
 
 **Why G3 failed.** Gate G3 requires every risk's residual score to be at or below the risk appetite threshold (9), or the risk to be accepted. The tester lowered a residual score only where a control was already in place. Most controls in `decisions.yaml` are planned, so 14 of the 28 risks stayed above 9 and unaccepted. That is the outcome the gate exists to show. The replay then exported with `--force`, as `verification/README.md` describes, so the other checks still ran.
 
-**No baseline yet.** `results/rmf.normalised.json` is written only by a run in which every check passes. This run's G3 result means no baseline is committed, so later release checks cannot yet detect RMF drift (see "Follow-up").
+**How the replay now treats gates.** A failing gate is RiskForge's verdict on the inputs, not a fault in RiskForge. Counting it as a failed check would have made every later release check fail on these inputs. The replay was therefore changed in this pull request:
+- it records the gate results in `gates.json`;
+- it checks that `validate` exits 1 exactly when a gate fails, and that both runs reach the same gates;
+- the exit code still reports any other failure.
+
+The tester's `results/results.json` is kept as it was produced, with 19 of 21 under the earlier rule.
+
+**Baseline.** A re-run of the same inputs under the changed replay passed all 22 checks. It produced `results/rmf.normalised.json` and `results/gates.json` (G3 FAIL, the other seven PASS). The normalised RMF of that re-run is identical to the normalised form of the tester's committed `results/rmf.json`. Later release checks compare against these two files and exit 1 if a release changes either.
 
 ## Coverage of Article 9
 
@@ -84,6 +91,14 @@ The tester listed what an Article 9 file can show before running anything (`expe
 - **E18:** the system's `deployment_context` and `intended_users` exist, but `riskforge init` has no option for them.
 - **E20:** test requirements are per-dimension templates (see D5).
 - **E19:** the file lists required tests but has no place for test results.
+
+### Reviewer notes on the tester's inputs
+
+The inputs are the tester's blind work and are kept as committed. A review found four points; none changes a defect or a check result:
+- **`inputs/subject.md` S08 contradicts itself.** It lists "female single" among the codes of attribute 9, then says there is no separate code for a single female. `german.doc` has one: `A95 : female : single`. The answers treat sex as a protected attribute either way.
+- **`inputs/answers.yaml` DG-005 is answered `no`** on an assumption that code is versioned. Another reader could answer `unknown`, which would add a knowledge gap.
+- **The acceptance of DG-001** in `inputs/decisions.yaml` leans on retraining that is only planned. The tester recorded this in `NOTES.md`.
+- **E22 could be read as partial rather than present.** The file scores a generic vulnerable-groups risk, but gives no conclusion about persons under 18. With E22 as partial, coverage is 8 present, 9 partial, 5 missing. The tester's own note in `NOTES.md` makes the same point.
 
 ## Defects
 
@@ -138,9 +153,11 @@ verification/run.sh                 # in Docker, with the versions pinned in req
 verification/run.sh --no-docker     # in a venv (needs the WeasyPrint system libraries for the PDF)
 ```
 
-The inputs are in `inputs/`. Without `--update`, nothing is written into the checkout. Ids, timestamps and signatures differ on every run; the content digest of each run's register and the normalised RMF do not.
+The inputs are in `inputs/`. Without `--update`, nothing is written into the checkout. What to expect from a re-run:
+- **Different on every run:** ids, timestamps and signatures. So two runs have different content digests.
+- **The same within a run:** repeated exports of one register keep its digest.
+- **The same across runs:** the normalised RMF and the gate results equal `results/rmf.normalised.json` and `results/gates.json`.
 
 ## Follow-up
 
 - **Defects.** D1 to D12 are filed against RiskForge.
-- **Baseline and gate result.** The replay is to record the validate gate outcome as a result to compare between runs, rather than a failed check. That gives `verify-release` a baseline to compare later releases with.

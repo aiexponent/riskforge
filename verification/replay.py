@@ -20,9 +20,15 @@ export (JSON signed, Markdown, PDF) and verify. Then it checks:
   `riskforge verify --file`, and restoring it passes again;
 - one changed byte in a register file or the audit log fails `riskforge verify`
   on a copy of the project, and restoring it passes again;
-- the PDF opens in pypdf and has at least one page, and the Markdown names the digest.
+- the PDF opens in pypdf and has at least one page, and the Markdown names the digest;
+- both runs reach the same validate gate results.
 
-With --baseline, the normalised RMF is also compared with a committed one.
+A failing validate gate is the tool's verdict on the inputs, not a fault in the tool,
+so it is recorded (gates.json) and the export goes ahead with --force, as a user who
+accepts the result would do.
+
+With --baseline, the normalised RMF and the gate results are also compared with the
+committed ones (rmf.normalised.json and the gates.json beside it).
 
 Exit codes: 0 every check passed; 1 checks passed but the RMF differs from the
 baseline; 2 a check failed; 3 the inputs are incomplete (no decisions.yaml yet:
@@ -271,6 +277,7 @@ class Run:
     steps: list[Step] = field(default_factory=list)
     system_id: str | None = None
     forced_export: bool = False
+    gates: dict[str, str] = field(default_factory=dict)
     files: dict[str, str] = field(default_factory=dict)
     digests: dict[str, str | None] = field(default_factory=dict)
 
@@ -349,6 +356,15 @@ async def register_titles(project: Path, system_id: str) -> list[tuple[str, str]
     return [(str(item.id), item.title) for item in items]
 
 
+async def gate_results(project: Path, system_id: str) -> dict[str, str]:
+    """{gate id: PASS, WARN or FAIL}, from riskforge.api.ValidateEngine on the stored register."""
+    import riskforge.api as rf
+
+    store = rf.FileStore(project, read_only=True)
+    register = await store.read_register(system_id)
+    return {g.gate_id: g.status.value for g in rf.ValidateEngine().run(register)}
+
+
 def replay_once(
     replay: Replay,
     label: str,
@@ -420,9 +436,10 @@ def replay_once(
 
     replay.call(run, "tests-generate", ["tests", "generate", sid, *pdir])
     step, _ = replay.call(run, "validate", ["validate", sid, *pdir])
-    if not step.ok:
-        # Record the failed gates, then export anyway so the other checks still run.
-        step.expected = step.exit_code
+    run.gates = asyncio.run(gate_results(project, sid))
+    if step.exit_code == 1 and "FAIL" in run.gates.values():
+        # A failing gate is a result: record it and export anyway, as the user guide allows.
+        step.expected = 1
         run.forced_export = True
     force = ["--force"] if run.forced_export else []
 
@@ -460,17 +477,20 @@ def check_run(replay: Replay, run: Run, public_key: Path) -> list[Check]:
         Check(f"flow.{run.label}", not bad, "; ".join(bad) or f"{len(run.steps)} commands")
     )
     validate = [s for s in run.steps if s.name == "validate"]
-    checks.append(
-        Check(
-            f"validate.{run.label}",
-            bool(validate) and not run.forced_export,
-            "all FAIL gates pass"
-            if validate and not run.forced_export
-            else f"see {validate[0].log}; exported with --force"
-            if validate
-            else "not reached",
+    failing = sorted(g for g, status in run.gates.items() if status == "FAIL")
+    if not validate or not run.gates:
+        checks.append(Check(f"validate.{run.label}", False, "not reached"))
+    else:
+        # validate must exit 1 exactly when a gate fails; which gates fail is a result.
+        agrees = (validate[0].exit_code == 1) == bool(failing)
+        detail = (
+            f"gates failing: {', '.join(failing)} (a result; exported with --force)"
+            if failing
+            else "no gate fails"
         )
-    )
+        if not agrees:
+            detail = f"validate exited {validate[0].exit_code} but gates failing: {failing}"
+        checks.append(Check(f"validate.{run.label}", agrees, detail))
     if "json" not in run.files or not Path(run.files["json"]).exists():
         checks.append(Check(f"export.{run.label}", False, "no JSON export"))
         return checks
@@ -725,6 +745,13 @@ def main(argv: list[str] | None = None) -> int:
         checks += tamper_checks(replay, run_a, public_key)
     two_runs, normalised = two_runs_check(run_a, run_b)
     checks.append(two_runs)
+    checks.append(
+        Check(
+            "repeat.gates",
+            bool(run_a.gates) and run_a.gates == run_b.gates,
+            f"run a {run_a.gates}, run b {run_b.gates}",
+        )
+    )
     results["runs"] = {"a": asdict(run_a), "b": asdict(run_b)}
 
     drift = False
@@ -732,9 +759,17 @@ def main(argv: list[str] | None = None) -> int:
         (out / "rmf.normalised.json").write_text(
             json.dumps(normalised, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
+        (out / "gates.json").write_text(
+            json.dumps(run_a.gates, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         if args.baseline:
             committed = json.loads(args.baseline.read_text(encoding="utf-8"))
             diff = first_difference(committed, normalised)
+            committed_gates = args.baseline.with_name("gates.json")
+            if diff is None and committed_gates.is_file():
+                gates_then = json.loads(committed_gates.read_text(encoding="utf-8"))
+                gates_diff = first_difference(gates_then, run_a.gates)
+                diff = f"gates: {gates_diff}" if gates_diff else None
             drift = diff is not None
             results["baseline"] = {
                 "file": args.baseline.name,

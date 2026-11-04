@@ -138,7 +138,8 @@ if [ "$update" -eq 1 ] && [ "$status" -le 2 ] && [ -f "$out/results.json" ]; the
   done
   if [ "$status" -le 1 ] && [ -f "$out/rmf.normalised.json" ]; then
     cp "$out/rmf.normalised.json" "$HERE/results/"
-    echo "Updated verification/results/, including the baseline rmf.normalised.json"
+    if [ -f "$out/gates.json" ]; then cp "$out/gates.json" "$HERE/results/"; fi
+    echo "Updated verification/results/, including the baseline rmf.normalised.json and gates.json"
     status=0
   else
     echo "Updated verification/results/ with the failed run; the baseline is unchanged"
