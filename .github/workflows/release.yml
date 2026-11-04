@@ -30,7 +30,8 @@ jobs:
 
       - name: Install dev dependencies + build frontend
         run: |
-          pip install build pip-audit bandit
+          # setuptools: see the same step in ci.yml.
+          pip install --upgrade setuptools build pip-audit bandit
           if [ -f requirements.lock ]; then
             pip install -c requirements.lock -e ".[dev]"
           else

@@ -153,7 +153,9 @@ jobs:
           cache: pip
 
       - name: Install security tools
-        run: pip install bandit pip-audit
+        # setuptools is upgraded because pip-audit audits the whole environment, and the
+        # runner's Python ships an older one. RiskForge does not use it (hatchling backend).
+        run: pip install --upgrade setuptools bandit pip-audit
 
       - name: Static security analysis
         run: bandit -ll -r src/
