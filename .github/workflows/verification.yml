@@ -1,0 +1,78 @@
+name: Verification
+
+# Runs the independent verification in verification/ with the released
+# package from PyPI, pinned in verification/requirements.lock. A manual run
+# can test another released version. After each release the same check runs
+# as the last job of release.yml, against the version just published.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "verification/**"
+      - ".github/workflows/verification.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "riskforge version to test (blank: the version pinned in requirements.lock)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  replay-tests:
+    name: Replay self-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s verification/tests -v
+
+  verify:
+    name: Verification run (Docker, package from PyPI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Choose the version and the inputs
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          version=""
+          if [ "$EVENT" = "workflow_dispatch" ]; then version="$INPUT_VERSION"; fi
+          if [ -n "$version" ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]]; then
+            echo "Not a release version: $version" >&2; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Until the tester's inputs are committed, run the made-up smoke inputs.
+          if [ -f verification/inputs/decisions.yaml ]; then smoke=""; else smoke="--smoke"; fi
+          echo "smoke=$smoke" >> "$GITHUB_OUTPUT"
+      - name: Run verification/run.sh
+        env:
+          VERSION: ${{ steps.pick.outputs.version }}
+          SMOKE: ${{ steps.pick.outputs.smoke }}
+          OUT: ${{ runner.temp }}/verification
+        run: verification/run.sh --out "$OUT" ${VERSION:+--version "$VERSION"} ${SMOKE:+"$SMOKE"}
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-results
+          path: |
+            ${{ runner.temp }}/verification/results.json
+            ${{ runner.temp }}/verification/rmf.normalised.json
+            ${{ runner.temp }}/verification/run-a/export/
+            ${{ runner.temp }}/verification/run-a/logs/
+            ${{ runner.temp }}/verification/run-b/logs/
+          if-no-files-found: ignore
+          retention-days: 30
