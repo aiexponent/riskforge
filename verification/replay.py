@@ -693,10 +693,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         run_a = replay_once(replay, "a", inputs, system, decisions, private_key)
         if decisions is None:
+            results["runs"] = {"a": asdict(run_a)}
+            bad = [f"{s.name} exited {s.exit_code}" for s in run_a.steps if not s.ok]
+            if bad or not checks[0].passed:
+                # A command failed before the risk list: that is a failed run, not missing input.
+                checks.append(
+                    Check("flow.a", not bad, "; ".join(bad) or f"{len(run_a.steps)} commands")
+                )
+                write_results(out, results, checks)
+                for c in checks:
+                    print(f"{'PASS' if c.passed else 'FAIL'}  {c.id}: {c.detail}")
+                return 2
             listed = out / "run-a" / "risk-list.txt"
             print(listed.read_text(encoding="utf-8") if listed.is_file() else "")
             print("No decisions.yaml yet: write it from the risk list above, then run again.")
-            results["runs"] = {"a": asdict(run_a)}
             write_results(out, results, checks)
             return 3
         run_b = replay_once(replay, "b", inputs, system, decisions, private_key)
@@ -752,4 +762,9 @@ def write_results(out: Path, results: dict[str, Any], checks: list[Check]) -> No
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        code = main()
+    except Exception as exc:  # noqa: BLE001 - a crash is a failed run, never exit 1 (drift)
+        print(f"Error: {type(exc).__name__}: {exc}", file=sys.stderr)
+        code = 2
+    sys.exit(code)

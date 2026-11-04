@@ -8,7 +8,8 @@
 #   verification/run.sh --smoke         use the made-up inputs in tests/fixtures/smoke-inputs
 #   verification/run.sh --out DIR       where to write everything (default: a new temp dir)
 #   verification/run.sh --update        copy the results into verification/results/ (also
-#                                       after a failed check, which is a result too)
+#                                       after a failed check, which is a result too; the
+#                                       baseline rmf.normalised.json only when all pass)
 #
 # Nothing is written into the checkout unless --update is given.
 # Exit codes: 0 every check passed (and the RMF matches results/rmf.normalised.json if committed),
@@ -37,7 +38,7 @@ while [ $# -gt 0 ]; do
     --smoke) smoke=1 ;;
     --version) version="${2:-}"; shift ;;
     --out) out="${2:-}"; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "Error: unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
   shift
@@ -120,14 +121,21 @@ else
 fi
 
 echo "Results: $out/results.json"
-# A failed check is a result too, so --update keeps it; the exit code still reports it.
+# A failed check is a result too, so --update keeps its evidence and the exit code still
+# reports it. Only a run where every check passed (exit 0, or 1 for an RMF that changed)
+# replaces the baseline, rmf.normalised.json, so a failed run never becomes the expected one.
 if [ "$update" -eq 1 ] && [ "$status" -le 2 ] && [ -f "$out/results.json" ] && [ -f "$out/run-a/export/rmf.json" ]; then
   mkdir -p "$HERE/results"
-  for f in results.json rmf.normalised.json run-a/export/rmf.json run-a/export/rmf.md \
-           run-a/export/rmf.pdf run-a/risk-list.txt; do
+  for f in results.json run-a/export/rmf.json run-a/export/rmf.md run-a/export/rmf.pdf \
+           run-a/risk-list.txt; do
     if [ -f "$out/$f" ]; then cp "$out/$f" "$HERE/results/"; fi
   done
-  echo "Updated verification/results/"
-  if [ "$status" -eq 1 ]; then status=0; fi
+  if [ "$status" -le 1 ] && [ -f "$out/rmf.normalised.json" ]; then
+    cp "$out/rmf.normalised.json" "$HERE/results/"
+    echo "Updated verification/results/, including the baseline rmf.normalised.json"
+    status=0
+  else
+    echo "Updated verification/results/ with the failed run; the baseline is unchanged"
+  fi
 fi
 exit "$status"

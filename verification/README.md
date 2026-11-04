@@ -29,7 +29,8 @@ verification/run.sh --smoke         # with the made-up inputs in tests/fixtures/
 Everything goes to a new temporary folder (or `--out DIR`), and the last line prints
 where. Nothing is written into the checkout unless you pass `--update`, which copies
 the results into `results/`, also when a check failed: a failure is a result too, and the
-exit code still reports it.
+exit code still reports it. Only a run in which every check passed replaces the baseline
+`results/rmf.normalised.json`.
 
 | Exit code | Meaning |
 |---|---|
