@@ -1,0 +1,2911 @@
+{
+  "id": "6a597817-667d-49a8-bd7c-bffa4a9e6884",
+  "rmf_schema_version": "1.1.0",
+  "register": {
+    "id": "6797d732-06a6-4f53-83a7-9ddd875f4a84",
+    "system": {
+      "id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+      "name": "Retail Credit Risk Scorer",
+      "version": "1.0.0",
+      "purpose": "Credit scoring of retail consumer credit applicants: a binary classifier, trained on the UCI Statlog German Credit data, scores each applicant as good or bad credit risk, and a lender's credit officer uses the score when deciding on the application.",
+      "intended_users": [],
+      "inputs": [],
+      "outputs": [],
+      "deployment_context": "",
+      "annex_iii_category": "essential_services",
+      "annex_iii_self_classification_documented": true,
+      "provider_name": "Northwind Scoring Labs (fictional)",
+      "provider_contact": "",
+      "created_at": "2026-11-04T10:51:41.196295Z",
+      "schema_version": "1.0.0"
+    },
+    "items": [
+      {
+        "id": "8c42055a-d12d-4940-9017-5445fa53069d",
+        "dimension": "discrimination",
+        "title": "Demographic bias in credit scoring outputs",
+        "description": "Credit scoring models trained on historical data may encode systemic biases against protected groups (age, gender, ethnicity). Article 9(9) requires consideration of impacts on vulnerable groups.",
+        "source": "pattern",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "35710bea-6747-4942-a17b-41948b4917df",
+            "description": "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.083459Z",
+        "article_refs": [
+          "Art.9(2)(a)",
+          "Art.9(9)",
+          "Art.10(2)(f)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.11",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "pattern:CREDIT_SCORING_BIAS"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+        "dimension": "transparency",
+        "title": "Lack of explanation for credit decisions",
+        "description": "Where a solely automated credit decision falls under GDPR Article 22(2)(a) or (c), GDPR Article 22(3) gives at least the right to obtain human intervention, to express a point of view and to contest the decision, and GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. The system may not currently support this.",
+        "source": "pattern",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [
+          {
+            "id": "ea477c69-80a3-4285-9859-53d7e577331b",
+            "description": "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.099724Z",
+        "article_refs": [
+          "Art.13",
+          "Art.86(1)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.8",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "pattern:CREDIT_SCORING_BIAS"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "60278de0-44dd-4b0b-bb68-08a540c17087",
+        "dimension": "health_safety",
+        "title": "Are system performance metrics (accuracy, error rates, latency) monitored in production with alerts for degradation?",
+        "description": "Post-market monitoring under Article 72 requires tracking of actual performance against stated specifications.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 3,
+        "mitigations": [
+          {
+            "id": "e2ecdda2-a6fa-4f78-a2bf-818fdebac625",
+            "description": "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change.",
+            "control_type": "detective",
+            "owner": "MLOps team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 4,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.126250Z",
+        "article_refs": [
+          "Art.9(8)",
+          "Art.72"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.4",
+        "iso42001_ref": "Clause 9.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "HS-005"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+        "dimension": "health_safety",
+        "title": "Could vulnerable populations (elderly, children, people with disabilities) be disproportionately harmed by system errors",
+        "description": "Article 9(9) requires explicit consideration of impacts on children and other vulnerable groups.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "d3e80a07-69bf-4079-a35b-b46752086e03",
+            "description": "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.148829Z",
+        "article_refs": [
+          "Art.9(9)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 5.1",
+        "iso42001_ref": "Clause 6.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "HS-006"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "351bedb2-d866-49a8-9455-7453cb9bb715",
+        "dimension": "fundamental_rights",
+        "title": "Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?",
+        "description": "Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.181092Z",
+        "article_refs": [
+          "Art.9(2)(a)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "GOVERN 1.1",
+        "iso42001_ref": "Clause 6.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "FR-001"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+        "dimension": "fundamental_rights",
+        "title": "Could the system restrict or affect access to rights protected under the EU Charter of Fundamental Rights?",
+        "description": "Consider right to an effective remedy, right to a fair trial, presumption of innocence, freedom of expression, right to education.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "af78c9e0-d209-4c04-8ff8-dda52ce59277",
+            "description": "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application.",
+            "control_type": "corrective",
+            "owner": "Product team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.213146Z",
+        "article_refs": [
+          "Art.9(2)(a)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 5.1",
+        "iso42001_ref": "Clause 6.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "FR-002"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "f44ccbdf-4033-4f9e-9715-6a35456631df",
+        "dimension": "fundamental_rights",
+        "title": "Are affected individuals informed of the AI system's role in decisions that affect them, in a language they understand?",
+        "description": "Transparency is a foundational right. The obligation to inform subjects is strengthened in high-risk AI contexts.",
+        "source": "question_bank",
+        "likelihood": 2,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 2,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.244712Z",
+        "article_refs": [
+          "Art.26(11)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.8",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "FR-003"
+        ],
+        "notes": "",
+        "risk_score": 6,
+        "residual_risk_score": 6,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+        "dimension": "discrimination",
+        "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,",
+        "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "f2c167e4-b329-4f42-a9d2-4aa5b5e855d7",
+            "description": "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code.",
+            "control_type": "detective",
+            "owner": "Data Science team",
+            "status": "implemented",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 4,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.282321Z",
+        "article_refs": [
+          "Art.10(2)(f)",
+          "Art.9(2)(a)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.11",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DI-001"
+        ],
+        "notes": "",
+        "risk_score": 16,
+        "residual_risk_score": 16,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+        "dimension": "discrimination",
+        "title": "Have demographic parity, equalised odds, or other fairness metrics been computed and documented for each protected group",
+        "description": "Quantified fairness metrics are required for meaningful bias assessment. Select metrics appropriate to the use case.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "24977bb7-aec9-45f8-96de-66ba6bcfe86b",
+            "description": "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 4,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.325369Z",
+        "article_refs": [
+          "Art.9(8)",
+          "Art.10(2)(f)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.11",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DI-002"
+        ],
+        "notes": "",
+        "risk_score": 16,
+        "residual_risk_score": 16,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "aed4c486-00e2-42e9-b95e-467857846880",
+        "dimension": "discrimination",
+        "title": "Does the system use proxy variables that may correlate with protected characteristics (e.g. postcode, school name, emplo",
+        "description": "Proxy discrimination occurs when facially neutral features encode protected characteristics. Legal exposure exists even without intent.",
+        "source": "question_bank",
+        "likelihood": 5,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "de708cd4-a040-429f-a41a-77c0e3520f73",
+            "description": "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "implemented",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          },
+          {
+            "id": "8eddba75-d820-4270-9a1e-745fc8c4d135",
+            "description": "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.372668Z",
+        "article_refs": [
+          "Art.9(2)(a)",
+          "Art.10(2)(f)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.11",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DI-003"
+        ],
+        "notes": "",
+        "risk_score": 20,
+        "residual_risk_score": 12,
+        "risk_band": "critical",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "25c401d1-e4be-4cfc-849e-d631c8f29667",
+        "dimension": "discrimination",
+        "title": "Are bias test results documented and reviewed at each model update, not just at initial deployment?",
+        "description": "Data drift and concept drift can re-introduce bias after initial mitigation. Continuous monitoring is required.",
+        "source": "question_bank",
+        "likelihood": 2,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 2,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.419949Z",
+        "article_refs": [
+          "Art.9(8)",
+          "Art.72"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.11",
+        "iso42001_ref": "Clause 9.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DI-004"
+        ],
+        "notes": "",
+        "risk_score": 6,
+        "residual_risk_score": 6,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+        "dimension": "privacy",
+        "title": "Does the system process personal data or special category data (health, biometric, ethnicity, religion)?",
+        "description": "Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
+        "source": "question_bank",
+        "likelihood": 5,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "613f92ba-575c-4825-8053-22edad95f117",
+            "description": "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries.",
+            "control_type": "preventive",
+            "owner": "Legal and Privacy team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 5,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.481529Z",
+        "article_refs": [
+          "Art.4a(1)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.10",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "PR-001"
+        ],
+        "notes": "",
+        "risk_score": 20,
+        "residual_risk_score": 20,
+        "risk_band": "critical",
+        "residual_risk_band": "critical"
+      },
+      {
+        "id": "3e189772-dfed-4f75-a07f-5e7bc662b09b",
+        "dimension": "privacy",
+        "title": "Has a Data Protection Impact Assessment (DPIA) been carried out, with the advice of the Data Protection Officer where on",
+        "description": "GDPR Article 35 requires a DPIA for high-risk processing. High-risk AI systems typically trigger this threshold.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.553630Z",
+        "article_refs": [
+          "Art.26(9)",
+          "Art.9(2)(a)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.10",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "PR-002"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "d936c7f0-c839-4676-b5ed-17db0ee07392",
+        "dimension": "privacy",
+        "title": "Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?",
+        "description": "GDPR data minimisation and purpose limitation principles (GDPR Article 5(1)(b) and (c)) apply to AI systems processing personal data.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 3,
+        "mitigations": [
+          {
+            "id": "48efa42f-4beb-40b8-b0f9-43de89c68537",
+            "description": "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "implemented",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 2,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.618500Z",
+        "article_refs": [],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.10",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "PR-003"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 6,
+        "risk_band": "high",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "2d133a03-6111-4f2f-a81d-9cd2e91ae437",
+        "dimension": "privacy",
+        "title": "Has the training data been scanned for inadvertent PII inclusion, and is PII redaction/pseudonymisation applied before t",
+        "description": "Training data containing real PII creates privacy risk. Automated PII detection tools (e.g. TraceForge) can surface this.",
+        "source": "question_bank",
+        "likelihood": 2,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 2,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.693521Z",
+        "article_refs": [],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.10",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "PR-004"
+        ],
+        "notes": "",
+        "risk_score": 6,
+        "residual_risk_score": 6,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d",
+        "dimension": "transparency",
+        "title": "Are users notified that they are interacting with or being assessed by an AI system?",
+        "description": "Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.780425Z",
+        "article_refs": [
+          "Art.26(11)",
+          "Art.50(1)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.8",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "TR-001"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+        "dimension": "transparency",
+        "title": "Is an explanation of the system's decision-making logic available to affected individuals upon request?",
+        "description": "GDPR Article 22(1) gives a right not to be subject to a decision based solely on automated processing, including profiling, which produces legal effects or similarly significantly affects the person. GDPR Articles 13(2)(f), 14(2)(g) and 15(1)(h) require meaningful information about the logic involved. An explanation capability is a key technical control.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "06b851b4-5d07-4e0e-9df2-8c5ceeb41529",
+            "description": "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.866822Z",
+        "article_refs": [
+          "Art.13(3)(b)(iv)",
+          "Art.86(1)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.8",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "TR-002"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "c3ff7160-489c-48e0-bc35-cf2aea497241",
+        "dimension": "transparency",
+        "title": "Does the system documentation include clear capability limitations, known failure modes, and out-of-distribution behavio",
+        "description": "Article 13(3)(b) requires information about the system's capabilities and limitations for the benefit of deployers.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [
+          {
+            "id": "1e686232-5e93-4696-8299-31884d45874d",
+            "description": "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain.",
+            "control_type": "preventive",
+            "owner": "Product team",
+            "status": "implemented",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 2,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:42.949199Z",
+        "article_refs": [
+          "Art.13(3)(b)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.8",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "TR-003"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 6,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "ce393cc6-b98c-4ea6-902b-b2e74e100fa2",
+        "dimension": "human_oversight",
+        "title": "Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on",
+        "description": "Untrained human reviewers provide illusory oversight. Article 26(2) requires deployers to assign human oversight to natural persons who have the necessary competence, training and authority.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.055038Z",
+        "article_refs": [
+          "Art.26(2)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 3.5",
+        "iso42001_ref": "Annex A.9",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "HO-002"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "0265c848-94be-486b-ad84-0c04e34ab676",
+        "dimension": "human_oversight",
+        "title": "Is the human oversight load (volume of cases reviewed per reviewer per day) realistic for meaningful review, not rubber-",
+        "description": "Automation bias and review fatigue cause human oversight to become nominal. Workload design is a technical control.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.165378Z",
+        "article_refs": [
+          "Art.14"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 3.5",
+        "iso42001_ref": "Annex A.9",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "HO-003"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+        "dimension": "human_oversight",
+        "title": "Is the system designed to make its reasoning interpretable to human reviewers (e.g. via explainability methods, confiden",
+        "description": "Human oversight is only meaningful if the reviewer can understand what the system decided and why.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "fd90787a-7ff7-4ba2-a3f6-98addbb629e7",
+            "description": "Show the credit officer the reason codes and the score band next to each score.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 3,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.286328Z",
+        "article_refs": [
+          "Art.14(4)(c)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.9",
+        "iso42001_ref": "Annex A.6",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "HO-004"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "e541ddff-41eb-4605-9e19-dc1ec292e188",
+        "dimension": "robustness",
+        "title": "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?",
+        "description": "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "dd135925-ae94-4197-99d6-476f839cba10",
+            "description": "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 4,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.393259Z",
+        "article_refs": [
+          "Art.9(6)",
+          "Art.15"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.5",
+        "iso42001_ref": "Annex A.9",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "RO-001"
+        ],
+        "notes": "",
+        "risk_score": 16,
+        "residual_risk_score": 16,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+        "dimension": "robustness",
+        "title": "Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?",
+        "description": "Aggregate metrics can mask poor performance for subpopulations. Slice-level evaluation is required for high-risk systems.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "85b87734-e808-4119-951f-a3b84dc50670",
+            "description": "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set.",
+            "control_type": "detective",
+            "owner": "Model Validation team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 4,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.504441Z",
+        "article_refs": [
+          "Art.9(8)",
+          "Art.10(2)(f)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.5",
+        "iso42001_ref": "Annex A.9",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "RO-002"
+        ],
+        "notes": "",
+        "risk_score": 16,
+        "residual_risk_score": 16,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+        "dimension": "robustness",
+        "title": "Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?",
+        "description": "A defined performance floor ensures degraded models do not remain in production. This is a key operational control.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.621995Z",
+        "article_refs": [
+          "Art.9(8)",
+          "Art.72"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MANAGE 1.3",
+        "iso42001_ref": "Clause 9.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "RO-003"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+        "dimension": "robustness",
+        "title": "Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response proc",
+        "description": "Models degrade over time as real-world data distributions shift. Post-market monitoring under Article 72 requires detection and response.",
+        "source": "question_bank",
+        "likelihood": 5,
+        "severity": 4,
+        "mitigations": [
+          {
+            "id": "4a4b96d1-4eed-4df6-ad00-46085571330f",
+            "description": "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production.",
+            "control_type": "preventive",
+            "owner": "Model Development team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          },
+          {
+            "id": "51dd3c42-f06e-4c9f-8903-64e546aac020",
+            "description": "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days.",
+            "control_type": "detective",
+            "owner": "MLOps team",
+            "status": "planned",
+            "evidence_refs": [],
+            "is_vague": false,
+            "article_ref": "",
+            "nist_rmf_ref": "",
+            "recorded_by": "Mara Lindqvist, Head of Model Risk"
+          }
+        ],
+        "residual_likelihood": 5,
+        "residual_severity": 4,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:43.755102Z",
+        "article_refs": [
+          "Art.72"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.4",
+        "iso42001_ref": "Clause 9.1",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "RO-004"
+        ],
+        "notes": "",
+        "risk_score": 20,
+        "residual_risk_score": 20,
+        "risk_band": "critical",
+        "residual_risk_band": "critical"
+      },
+      {
+        "id": "19dd45f3-1b3d-47bf-afef-f8966416e660",
+        "dimension": "data_governance",
+        "title": "Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?",
+        "description": "Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
+        "source": "question_bank",
+        "likelihood": 4,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 4,
+        "residual_severity": 3,
+        "accepted": true,
+        "acceptance_rationale": "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted.",
+        "accepted_by": "Mara Lindqvist, Head of Model Risk",
+        "identified_at": "2026-11-04T10:51:43.892801Z",
+        "article_refs": [
+          "Art.10(2)",
+          "Art.10(2)(b)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 2.3",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DG-001"
+        ],
+        "notes": "",
+        "risk_score": 12,
+        "residual_risk_score": 12,
+        "risk_band": "high",
+        "residual_risk_band": "high"
+      },
+      {
+        "id": "2a4a31b3-54aa-4519-ac41-5544fbe3af42",
+        "dimension": "data_governance",
+        "title": "Are data quality checks (completeness, consistency, accuracy) applied and documented before training and fine-tuning?",
+        "description": "Article 10(3) requires training, validation and testing data sets to be, to the best extent possible, free of errors and complete in view of the intended purpose. Article 10(2)(c) covers data-preparation processing operations such as cleaning.",
+        "source": "question_bank",
+        "likelihood": 3,
+        "severity": 3,
+        "mitigations": [],
+        "residual_likelihood": 3,
+        "residual_severity": 3,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:44.028997Z",
+        "article_refs": [
+          "Art.10(3)",
+          "Art.10(2)(c)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MAP 2.3",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": false,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DG-003"
+        ],
+        "notes": "",
+        "risk_score": 9,
+        "residual_risk_score": 9,
+        "risk_band": "medium",
+        "residual_risk_band": "medium"
+      },
+      {
+        "id": "a3f1e0de-b3d1-4040-9e83-d89c72d0275f",
+        "dimension": "data_governance",
+        "title": "Is there a data retention and deletion schedule that covers both training data and inference logs?",
+        "description": "Data retained beyond its purpose creates ongoing legal and privacy risk. GDPR Article 5(1)(e) requires storage limitation.",
+        "source": "question_bank",
+        "likelihood": 2,
+        "severity": 2,
+        "mitigations": [],
+        "residual_likelihood": 2,
+        "residual_severity": 2,
+        "accepted": false,
+        "acceptance_rationale": "",
+        "identified_at": "2026-11-04T10:51:44.148920Z",
+        "article_refs": [
+          "Art.19(1)",
+          "Art.26(6)"
+        ],
+        "nist_rmf_refs": [],
+        "iso42001_refs": [],
+        "nist_rmf_ref": "MEASURE 2.10",
+        "iso42001_ref": "Annex A.7",
+        "regulatory_status": "settled",
+        "knowledge_gap": true,
+        "knowledge_gap_reason": "",
+        "source_ref": "",
+        "tags": [
+          "DG-004"
+        ],
+        "notes": "",
+        "risk_score": 4,
+        "residual_risk_score": 4,
+        "risk_band": "low",
+        "residual_risk_band": "low"
+      }
+    ],
+    "risk_appetite_threshold": 9,
+    "assessor_name": "Mara Lindqvist",
+    "assessor_role": "Head of Model Risk",
+    "assessment_date": "2026-11-04T10:51:42.053583Z",
+    "review_date": "2027-10-30T10:51:42.053583Z",
+    "question_bank_version": "1.0.0",
+    "schema_version": "1.0.0",
+    "test_requirements": [
+      {
+        "id": "c6bc8b5d-bbb7-5a94-9ada-ad9ecd181883",
+        "risk_item_id": "8c42055a-d12d-4940-9017-5445fa53069d",
+        "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
+        "metric_type": "demographic_parity",
+        "threshold_range": "<= 0.10",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "d81e0a74-2206-59ba-8b21-4e93755304b7",
+        "risk_item_id": "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+        "description": "Validate 'Lack of explanation for credit decisions' via explanation_coverage measurement. Target: >= 0.90.",
+        "metric_type": "explanation_coverage",
+        "threshold_range": ">= 0.90",
+        "article_ref": "Art.13",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "038c2916-9991-5fe4-bc67-1ccecae8722f",
+        "risk_item_id": "60278de0-44dd-4b0b-bb68-08a540c17087",
+        "description": "Validate 'Are system performance metrics (accuracy, error rates, latency) monitored in production with alerts for degradation?' via false_negative_rate measurement. Target: <= 0.01.",
+        "metric_type": "false_negative_rate",
+        "threshold_range": "<= 0.01",
+        "article_ref": "Art.9(2)(b)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "59a1c192-28a7-599d-87d7-cb0b450db673",
+        "risk_item_id": "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+        "description": "Validate 'Could vulnerable populations (elderly, children, people with disabilities) be disproportionately harmed by system errors' via false_negative_rate measurement. Target: <= 0.01.",
+        "metric_type": "false_negative_rate",
+        "threshold_range": "<= 0.01",
+        "article_ref": "Art.9(2)(b)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "c9fce991-b87c-5f92-a454-9cf5a9f15a06",
+        "risk_item_id": "351bedb2-d866-49a8-9455-7453cb9bb715",
+        "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
+        "metric_type": "fundamental_rights_impact_score",
+        "threshold_range": "= 0",
+        "article_ref": "Art.9(2)(a)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "00ca420f-e709-5782-8ec8-4fc718cab69c",
+        "risk_item_id": "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+        "description": "Validate 'Could the system restrict or affect access to rights protected under the EU Charter of Fundamental Rights?' via fundamental_rights_impact_score measurement. Target: = 0.",
+        "metric_type": "fundamental_rights_impact_score",
+        "threshold_range": "= 0",
+        "article_ref": "Art.9(2)(a)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "e1e25032-95fe-5128-a2d7-fc4b4f5d614d",
+        "risk_item_id": "f44ccbdf-4033-4f9e-9715-6a35456631df",
+        "description": "Validate 'Are affected individuals informed of the AI system's role in decisions that affect them, in a language they understand?' via fundamental_rights_impact_score measurement. Target: = 0.",
+        "metric_type": "fundamental_rights_impact_score",
+        "threshold_range": "= 0",
+        "article_ref": "Art.9(2)(a)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "6b97d95f-8734-53ea-af2c-702d09fdf763",
+        "risk_item_id": "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+        "metric_type": "demographic_parity",
+        "threshold_range": "<= 0.10",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "0e882715-5459-5a33-b99a-b1cc7c7c58a8",
+        "risk_item_id": "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+        "description": "Validate 'Have demographic parity, equalised odds, or other fairness metrics been computed and documented for each protected group' via demographic_parity measurement. Target: <= 0.10.",
+        "metric_type": "demographic_parity",
+        "threshold_range": "<= 0.10",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "1cf9ad6a-43dc-5271-99b2-3bfe39f0481d",
+        "risk_item_id": "aed4c486-00e2-42e9-b95e-467857846880",
+        "description": "Validate 'Does the system use proxy variables that may correlate with protected characteristics (e.g. postcode, school name, emplo' via demographic_parity measurement. Target: <= 0.10.",
+        "metric_type": "demographic_parity",
+        "threshold_range": "<= 0.10",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "ec64034c-bc6e-5ce5-800f-d427ec8ca059",
+        "risk_item_id": "25c401d1-e4be-4cfc-849e-d631c8f29667",
+        "description": "Validate 'Are bias test results documented and reviewed at each model update, not just at initial deployment?' via demographic_parity measurement. Target: <= 0.10.",
+        "metric_type": "demographic_parity",
+        "threshold_range": "<= 0.10",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "b08d4720-7bbe-5bfb-88ea-f48021bb1983",
+        "risk_item_id": "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+        "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+        "metric_type": "pii_leakage_rate",
+        "threshold_range": "= 0.00",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "138f24cb-b0fa-5992-b99e-0458e0e52df5",
+        "risk_item_id": "3e189772-dfed-4f75-a07f-5e7bc662b09b",
+        "description": "Validate 'Has a Data Protection Impact Assessment (DPIA) been carried out, with the advice of the Data Protection Officer where on' via pii_leakage_rate measurement. Target: = 0.00.",
+        "metric_type": "pii_leakage_rate",
+        "threshold_range": "= 0.00",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "26aeab8d-c09d-5aae-9c20-c2b98ba26816",
+        "risk_item_id": "d936c7f0-c839-4676-b5ed-17db0ee07392",
+        "description": "Validate 'Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?' via pii_leakage_rate measurement. Target: = 0.00.",
+        "metric_type": "pii_leakage_rate",
+        "threshold_range": "= 0.00",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "f82220ed-56e0-57f6-990a-04495e1d480d",
+        "risk_item_id": "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d",
+        "description": "Validate 'Are users notified that they are interacting with or being assessed by an AI system?' via explanation_coverage measurement. Target: >= 0.90.",
+        "metric_type": "explanation_coverage",
+        "threshold_range": ">= 0.90",
+        "article_ref": "Art.13",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "3fefd396-2a0b-56fc-a9bc-825c7adde41d",
+        "risk_item_id": "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+        "description": "Validate 'Is an explanation of the system's decision-making logic available to affected individuals upon request?' via explanation_coverage measurement. Target: >= 0.90.",
+        "metric_type": "explanation_coverage",
+        "threshold_range": ">= 0.90",
+        "article_ref": "Art.13",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "5f43f03f-98cc-5763-9c7c-508027a84632",
+        "risk_item_id": "c3ff7160-489c-48e0-bc35-cf2aea497241",
+        "description": "Validate 'Does the system documentation include clear capability limitations, known failure modes, and out-of-distribution behavio' via explanation_coverage measurement. Target: >= 0.90.",
+        "metric_type": "explanation_coverage",
+        "threshold_range": ">= 0.90",
+        "article_ref": "Art.13",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "3b30b032-daca-5b24-a5a1-137c130eb3f2",
+        "risk_item_id": "ce393cc6-b98c-4ea6-902b-b2e74e100fa2",
+        "description": "Validate 'Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on' via override_latency_ms measurement. Target: <= 500.",
+        "metric_type": "override_latency_ms",
+        "threshold_range": "<= 500",
+        "article_ref": "Art.14",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "cc26b0f6-80b3-5779-9eea-1965e358e22f",
+        "risk_item_id": "0265c848-94be-486b-ad84-0c04e34ab676",
+        "description": "Validate 'Is the human oversight load (volume of cases reviewed per reviewer per day) realistic for meaningful review, not rubber-' via override_latency_ms measurement. Target: <= 500.",
+        "metric_type": "override_latency_ms",
+        "threshold_range": "<= 500",
+        "article_ref": "Art.14",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "8a070981-7577-58bf-a803-bf71e645d1c1",
+        "risk_item_id": "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+        "description": "Validate 'Is the system designed to make its reasoning interpretable to human reviewers (e.g. via explainability methods, confiden' via override_latency_ms measurement. Target: <= 500.",
+        "metric_type": "override_latency_ms",
+        "threshold_range": "<= 500",
+        "article_ref": "Art.14",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "8a49300d-a7ef-5518-8698-fdd74bfc2f6e",
+        "risk_item_id": "e541ddff-41eb-4605-9e19-dc1ec292e188",
+        "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+        "metric_type": "faithfulness",
+        "threshold_range": ">= 0.85",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "61f9a34d-cb31-540d-8e6c-9465dab8322b",
+        "risk_item_id": "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+        "description": "Validate 'Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?' via faithfulness measurement. Target: >= 0.85.",
+        "metric_type": "faithfulness",
+        "threshold_range": ">= 0.85",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "f663eb1e-b104-57bd-9487-f59c418c0670",
+        "risk_item_id": "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+        "description": "Validate 'Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?' via faithfulness measurement. Target: >= 0.85.",
+        "metric_type": "faithfulness",
+        "threshold_range": ">= 0.85",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "4e253c5d-2a15-561c-83e2-2ad30e521032",
+        "risk_item_id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+        "description": "Validate 'Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response proc' via faithfulness measurement. Target: >= 0.85.",
+        "metric_type": "faithfulness",
+        "threshold_range": ">= 0.85",
+        "article_ref": "Art.9(8)",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "0b6df55a-6f30-5c0d-b68e-5b74d92ac260",
+        "risk_item_id": "19dd45f3-1b3d-47bf-afef-f8966416e660",
+        "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+        "metric_type": "data_quality_score",
+        "threshold_range": ">= 0.95",
+        "article_ref": "Art.10",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "e7a5341d-d1ea-5424-991e-d1d7d5d4c761",
+        "risk_item_id": "2a4a31b3-54aa-4519-ac41-5544fbe3af42",
+        "description": "Validate 'Are data quality checks (completeness, consistency, accuracy) applied and documented before training and fine-tuning?' via data_quality_score measurement. Target: >= 0.95.",
+        "metric_type": "data_quality_score",
+        "threshold_range": ">= 0.95",
+        "article_ref": "Art.10",
+        "nist_rmf_ref": ""
+      },
+      {
+        "id": "4b5a3fdf-9ff6-516b-adb0-1d7dfe996134",
+        "risk_item_id": "a3f1e0de-b3d1-4040-9e83-d89c72d0275f",
+        "description": "Validate 'Is there a data retention and deletion schedule that covers both training data and inference logs?' via data_quality_score measurement. Target: >= 0.95.",
+        "metric_type": "data_quality_score",
+        "threshold_range": ">= 0.95",
+        "article_ref": "Art.10",
+        "nist_rmf_ref": ""
+      }
+    ]
+  },
+  "test_requirements": [
+    {
+      "id": "c6bc8b5d-bbb7-5a94-9ada-ad9ecd181883",
+      "risk_item_id": "8c42055a-d12d-4940-9017-5445fa53069d",
+      "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
+      "metric_type": "demographic_parity",
+      "threshold_range": "<= 0.10",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "d81e0a74-2206-59ba-8b21-4e93755304b7",
+      "risk_item_id": "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+      "description": "Validate 'Lack of explanation for credit decisions' via explanation_coverage measurement. Target: >= 0.90.",
+      "metric_type": "explanation_coverage",
+      "threshold_range": ">= 0.90",
+      "article_ref": "Art.13",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "038c2916-9991-5fe4-bc67-1ccecae8722f",
+      "risk_item_id": "60278de0-44dd-4b0b-bb68-08a540c17087",
+      "description": "Validate 'Are system performance metrics (accuracy, error rates, latency) monitored in production with alerts for degradation?' via false_negative_rate measurement. Target: <= 0.01.",
+      "metric_type": "false_negative_rate",
+      "threshold_range": "<= 0.01",
+      "article_ref": "Art.9(2)(b)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "59a1c192-28a7-599d-87d7-cb0b450db673",
+      "risk_item_id": "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+      "description": "Validate 'Could vulnerable populations (elderly, children, people with disabilities) be disproportionately harmed by system errors' via false_negative_rate measurement. Target: <= 0.01.",
+      "metric_type": "false_negative_rate",
+      "threshold_range": "<= 0.01",
+      "article_ref": "Art.9(2)(b)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "c9fce991-b87c-5f92-a454-9cf5a9f15a06",
+      "risk_item_id": "351bedb2-d866-49a8-9455-7453cb9bb715",
+      "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
+      "metric_type": "fundamental_rights_impact_score",
+      "threshold_range": "= 0",
+      "article_ref": "Art.9(2)(a)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "00ca420f-e709-5782-8ec8-4fc718cab69c",
+      "risk_item_id": "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+      "description": "Validate 'Could the system restrict or affect access to rights protected under the EU Charter of Fundamental Rights?' via fundamental_rights_impact_score measurement. Target: = 0.",
+      "metric_type": "fundamental_rights_impact_score",
+      "threshold_range": "= 0",
+      "article_ref": "Art.9(2)(a)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "e1e25032-95fe-5128-a2d7-fc4b4f5d614d",
+      "risk_item_id": "f44ccbdf-4033-4f9e-9715-6a35456631df",
+      "description": "Validate 'Are affected individuals informed of the AI system's role in decisions that affect them, in a language they understand?' via fundamental_rights_impact_score measurement. Target: = 0.",
+      "metric_type": "fundamental_rights_impact_score",
+      "threshold_range": "= 0",
+      "article_ref": "Art.9(2)(a)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "6b97d95f-8734-53ea-af2c-702d09fdf763",
+      "risk_item_id": "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+      "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+      "metric_type": "demographic_parity",
+      "threshold_range": "<= 0.10",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "0e882715-5459-5a33-b99a-b1cc7c7c58a8",
+      "risk_item_id": "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+      "description": "Validate 'Have demographic parity, equalised odds, or other fairness metrics been computed and documented for each protected group' via demographic_parity measurement. Target: <= 0.10.",
+      "metric_type": "demographic_parity",
+      "threshold_range": "<= 0.10",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "1cf9ad6a-43dc-5271-99b2-3bfe39f0481d",
+      "risk_item_id": "aed4c486-00e2-42e9-b95e-467857846880",
+      "description": "Validate 'Does the system use proxy variables that may correlate with protected characteristics (e.g. postcode, school name, emplo' via demographic_parity measurement. Target: <= 0.10.",
+      "metric_type": "demographic_parity",
+      "threshold_range": "<= 0.10",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "ec64034c-bc6e-5ce5-800f-d427ec8ca059",
+      "risk_item_id": "25c401d1-e4be-4cfc-849e-d631c8f29667",
+      "description": "Validate 'Are bias test results documented and reviewed at each model update, not just at initial deployment?' via demographic_parity measurement. Target: <= 0.10.",
+      "metric_type": "demographic_parity",
+      "threshold_range": "<= 0.10",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "b08d4720-7bbe-5bfb-88ea-f48021bb1983",
+      "risk_item_id": "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+      "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+      "metric_type": "pii_leakage_rate",
+      "threshold_range": "= 0.00",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "138f24cb-b0fa-5992-b99e-0458e0e52df5",
+      "risk_item_id": "3e189772-dfed-4f75-a07f-5e7bc662b09b",
+      "description": "Validate 'Has a Data Protection Impact Assessment (DPIA) been carried out, with the advice of the Data Protection Officer where on' via pii_leakage_rate measurement. Target: = 0.00.",
+      "metric_type": "pii_leakage_rate",
+      "threshold_range": "= 0.00",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "26aeab8d-c09d-5aae-9c20-c2b98ba26816",
+      "risk_item_id": "d936c7f0-c839-4676-b5ed-17db0ee07392",
+      "description": "Validate 'Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?' via pii_leakage_rate measurement. Target: = 0.00.",
+      "metric_type": "pii_leakage_rate",
+      "threshold_range": "= 0.00",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "f82220ed-56e0-57f6-990a-04495e1d480d",
+      "risk_item_id": "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d",
+      "description": "Validate 'Are users notified that they are interacting with or being assessed by an AI system?' via explanation_coverage measurement. Target: >= 0.90.",
+      "metric_type": "explanation_coverage",
+      "threshold_range": ">= 0.90",
+      "article_ref": "Art.13",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "3fefd396-2a0b-56fc-a9bc-825c7adde41d",
+      "risk_item_id": "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+      "description": "Validate 'Is an explanation of the system's decision-making logic available to affected individuals upon request?' via explanation_coverage measurement. Target: >= 0.90.",
+      "metric_type": "explanation_coverage",
+      "threshold_range": ">= 0.90",
+      "article_ref": "Art.13",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "5f43f03f-98cc-5763-9c7c-508027a84632",
+      "risk_item_id": "c3ff7160-489c-48e0-bc35-cf2aea497241",
+      "description": "Validate 'Does the system documentation include clear capability limitations, known failure modes, and out-of-distribution behavio' via explanation_coverage measurement. Target: >= 0.90.",
+      "metric_type": "explanation_coverage",
+      "threshold_range": ">= 0.90",
+      "article_ref": "Art.13",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "3b30b032-daca-5b24-a5a1-137c130eb3f2",
+      "risk_item_id": "ce393cc6-b98c-4ea6-902b-b2e74e100fa2",
+      "description": "Validate 'Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on' via override_latency_ms measurement. Target: <= 500.",
+      "metric_type": "override_latency_ms",
+      "threshold_range": "<= 500",
+      "article_ref": "Art.14",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "cc26b0f6-80b3-5779-9eea-1965e358e22f",
+      "risk_item_id": "0265c848-94be-486b-ad84-0c04e34ab676",
+      "description": "Validate 'Is the human oversight load (volume of cases reviewed per reviewer per day) realistic for meaningful review, not rubber-' via override_latency_ms measurement. Target: <= 500.",
+      "metric_type": "override_latency_ms",
+      "threshold_range": "<= 500",
+      "article_ref": "Art.14",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "8a070981-7577-58bf-a803-bf71e645d1c1",
+      "risk_item_id": "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+      "description": "Validate 'Is the system designed to make its reasoning interpretable to human reviewers (e.g. via explainability methods, confiden' via override_latency_ms measurement. Target: <= 500.",
+      "metric_type": "override_latency_ms",
+      "threshold_range": "<= 500",
+      "article_ref": "Art.14",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "8a49300d-a7ef-5518-8698-fdd74bfc2f6e",
+      "risk_item_id": "e541ddff-41eb-4605-9e19-dc1ec292e188",
+      "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+      "metric_type": "faithfulness",
+      "threshold_range": ">= 0.85",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "61f9a34d-cb31-540d-8e6c-9465dab8322b",
+      "risk_item_id": "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+      "description": "Validate 'Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?' via faithfulness measurement. Target: >= 0.85.",
+      "metric_type": "faithfulness",
+      "threshold_range": ">= 0.85",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "f663eb1e-b104-57bd-9487-f59c418c0670",
+      "risk_item_id": "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+      "description": "Validate 'Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?' via faithfulness measurement. Target: >= 0.85.",
+      "metric_type": "faithfulness",
+      "threshold_range": ">= 0.85",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "4e253c5d-2a15-561c-83e2-2ad30e521032",
+      "risk_item_id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+      "description": "Validate 'Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response proc' via faithfulness measurement. Target: >= 0.85.",
+      "metric_type": "faithfulness",
+      "threshold_range": ">= 0.85",
+      "article_ref": "Art.9(8)",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "0b6df55a-6f30-5c0d-b68e-5b74d92ac260",
+      "risk_item_id": "19dd45f3-1b3d-47bf-afef-f8966416e660",
+      "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+      "metric_type": "data_quality_score",
+      "threshold_range": ">= 0.95",
+      "article_ref": "Art.10",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "e7a5341d-d1ea-5424-991e-d1d7d5d4c761",
+      "risk_item_id": "2a4a31b3-54aa-4519-ac41-5544fbe3af42",
+      "description": "Validate 'Are data quality checks (completeness, consistency, accuracy) applied and documented before training and fine-tuning?' via data_quality_score measurement. Target: >= 0.95.",
+      "metric_type": "data_quality_score",
+      "threshold_range": ">= 0.95",
+      "article_ref": "Art.10",
+      "nist_rmf_ref": ""
+    },
+    {
+      "id": "4b5a3fdf-9ff6-516b-adb0-1d7dfe996134",
+      "risk_item_id": "a3f1e0de-b3d1-4040-9e83-d89c72d0275f",
+      "description": "Validate 'Is there a data retention and deletion schedule that covers both training data and inference logs?' via data_quality_score measurement. Target: >= 0.95.",
+      "metric_type": "data_quality_score",
+      "threshold_range": ">= 0.95",
+      "article_ref": "Art.10",
+      "nist_rmf_ref": ""
+    }
+  ],
+  "cross_references": [
+    {
+      "article_ref": "Art.9(2)(a)",
+      "risk_item_ids": [
+        "8c42055a-d12d-4940-9017-5445fa53069d",
+        "351bedb2-d866-49a8-9455-7453cb9bb715",
+        "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+        "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+        "aed4c486-00e2-42e9-b95e-467857846880",
+        "3e189772-dfed-4f75-a07f-5e7bc662b09b"
+      ],
+      "nist_rmf_ref": "MEASURE 2.11",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.9(9)",
+      "risk_item_ids": [
+        "8c42055a-d12d-4940-9017-5445fa53069d",
+        "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e"
+      ],
+      "nist_rmf_ref": "MEASURE 2.11",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.10(2)(f)",
+      "risk_item_ids": [
+        "8c42055a-d12d-4940-9017-5445fa53069d",
+        "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+        "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+        "aed4c486-00e2-42e9-b95e-467857846880",
+        "905e8cd6-cc1d-4488-96d7-6549b49081fc"
+      ],
+      "nist_rmf_ref": "MEASURE 2.11",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.13",
+      "risk_item_ids": [
+        "555fecb1-8d89-460f-ad6d-cd6d889e0188"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.86(1)",
+      "risk_item_ids": [
+        "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+        "a038286b-1ab2-4b1e-ad55-65ce77a41703"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "risk_item_ids": [
+        "60278de0-44dd-4b0b-bb68-08a540c17087",
+        "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+        "25c401d1-e4be-4cfc-849e-d631c8f29667",
+        "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+        "3e4bcc98-d210-4df3-80ae-d450eee1f824"
+      ],
+      "nist_rmf_ref": "MEASURE 2.4",
+      "iso42001_ref": "Clause 9.1"
+    },
+    {
+      "article_ref": "Art.72",
+      "risk_item_ids": [
+        "60278de0-44dd-4b0b-bb68-08a540c17087",
+        "25c401d1-e4be-4cfc-849e-d631c8f29667",
+        "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+        "85a548ab-a456-4303-b7f2-6aa96b57feb1"
+      ],
+      "nist_rmf_ref": "MEASURE 2.4",
+      "iso42001_ref": "Clause 9.1"
+    },
+    {
+      "article_ref": "Art.26(11)",
+      "risk_item_ids": [
+        "f44ccbdf-4033-4f9e-9715-6a35456631df",
+        "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.4a(1)",
+      "risk_item_ids": [
+        "f678a8c1-c49b-4477-ae99-73ef8fe4fc80"
+      ],
+      "nist_rmf_ref": "MEASURE 2.10",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.26(9)",
+      "risk_item_ids": [
+        "3e189772-dfed-4f75-a07f-5e7bc662b09b"
+      ],
+      "nist_rmf_ref": "MEASURE 2.10",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.50(1)",
+      "risk_item_ids": [
+        "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.13(3)(b)(iv)",
+      "risk_item_ids": [
+        "a038286b-1ab2-4b1e-ad55-65ce77a41703"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.13(3)(b)",
+      "risk_item_ids": [
+        "c3ff7160-489c-48e0-bc35-cf2aea497241"
+      ],
+      "nist_rmf_ref": "MEASURE 2.8",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.26(2)",
+      "risk_item_ids": [
+        "ce393cc6-b98c-4ea6-902b-b2e74e100fa2"
+      ],
+      "nist_rmf_ref": "MAP 3.5",
+      "iso42001_ref": "Annex A.9"
+    },
+    {
+      "article_ref": "Art.14",
+      "risk_item_ids": [
+        "0265c848-94be-486b-ad84-0c04e34ab676"
+      ],
+      "nist_rmf_ref": "MAP 3.5",
+      "iso42001_ref": "Annex A.9"
+    },
+    {
+      "article_ref": "Art.14(4)(c)",
+      "risk_item_ids": [
+        "27dd0821-f7a3-4aec-9c6f-367164b84f87"
+      ],
+      "nist_rmf_ref": "MEASURE 2.9",
+      "iso42001_ref": "Annex A.6"
+    },
+    {
+      "article_ref": "Art.9(6)",
+      "risk_item_ids": [
+        "e541ddff-41eb-4605-9e19-dc1ec292e188"
+      ],
+      "nist_rmf_ref": "MEASURE 2.5",
+      "iso42001_ref": "Annex A.9"
+    },
+    {
+      "article_ref": "Art.15",
+      "risk_item_ids": [
+        "e541ddff-41eb-4605-9e19-dc1ec292e188"
+      ],
+      "nist_rmf_ref": "MEASURE 2.5",
+      "iso42001_ref": "Annex A.9"
+    },
+    {
+      "article_ref": "Art.10(2)",
+      "risk_item_ids": [
+        "19dd45f3-1b3d-47bf-afef-f8966416e660"
+      ],
+      "nist_rmf_ref": "MAP 2.3",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.10(2)(b)",
+      "risk_item_ids": [
+        "19dd45f3-1b3d-47bf-afef-f8966416e660"
+      ],
+      "nist_rmf_ref": "MAP 2.3",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.10(3)",
+      "risk_item_ids": [
+        "2a4a31b3-54aa-4519-ac41-5544fbe3af42"
+      ],
+      "nist_rmf_ref": "MAP 2.3",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.10(2)(c)",
+      "risk_item_ids": [
+        "2a4a31b3-54aa-4519-ac41-5544fbe3af42"
+      ],
+      "nist_rmf_ref": "MAP 2.3",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.19(1)",
+      "risk_item_ids": [
+        "a3f1e0de-b3d1-4040-9e83-d89c72d0275f"
+      ],
+      "nist_rmf_ref": "MEASURE 2.10",
+      "iso42001_ref": "Annex A.7"
+    },
+    {
+      "article_ref": "Art.26(6)",
+      "risk_item_ids": [
+        "a3f1e0de-b3d1-4040-9e83-d89c72d0275f"
+      ],
+      "nist_rmf_ref": "MEASURE 2.10",
+      "iso42001_ref": "Annex A.7"
+    }
+  ],
+  "generated_at": "2026-11-04T10:52:00.227403Z",
+  "sha256_hash": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23",
+  "disclosure": "This document was produced using RiskForge v2.0.0, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
+  "signoffs": [],
+  "signatures": [
+    {
+      "key_id": "ed25519:e13f52ac9080778c",
+      "algorithm": "ed25519",
+      "signed_at": "2026-11-04T10:52:00.229394Z",
+      "signature": "zAzhCKpZ6mWXqTOQTvbY/UHFgyGyfu71UB45M3Fqhd6opw0FK/RZLVTEPJSUOUOTXsb2F9J8pmK3l/bPYqE+Bw=="
+    }
+  ],
+  "public_keys": [
+    {
+      "key_id": "ed25519:e13f52ac9080778c",
+      "algorithm": "ed25519",
+      "public_key": "S1pMhLuPe5Tr7stHjQVK0SNZ7JoDBnyflrCwnyOrlIs="
+    }
+  ],
+  "chain_proof": {
+    "scope": "project",
+    "entries": [
+      {
+        "seq": 0,
+        "event": "system.created",
+        "timestamp": "2026-11-04T10:51:41.213832Z",
+        "actor": {
+          "type": "human",
+          "identity": "cli"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "name": "Retail Credit Risk Scorer",
+          "version": "1.0.0",
+          "annex_iii_category": "essential_services"
+        },
+        "prev_hash": "0000000000",
+        "entry_hash": "3dfc98183697e59be00d490bc057653d4803ea89bb9c3e5e3c126c9555fad029"
+      },
+      {
+        "seq": 1,
+        "event": "system.classified",
+        "timestamp": "2026-11-04T10:51:41.594672Z",
+        "actor": {
+          "type": "human",
+          "identity": "cli"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "annex_iii_self_classification_documented": true,
+          "annex_iii_category": "essential_services"
+        },
+        "prev_hash": "3dfc98183697e59be00d490bc057653d4803ea89bb9c3e5e3c126c9555fad029",
+        "entry_hash": "22cc652581ec9fb28e89fe7390520e2ea1f1ae70bb70827e820b831567b371c0"
+      },
+      {
+        "seq": 2,
+        "event": "register.created",
+        "timestamp": "2026-11-04T10:51:42.061296Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "assessor_name": "Mara Lindqvist",
+          "assessor_role": "Head of Model Risk",
+          "review_date": "2027-10-30T10:51:42.053583+00:00"
+        },
+        "prev_hash": "22cc652581ec9fb28e89fe7390520e2ea1f1ae70bb70827e820b831567b371c0",
+        "entry_hash": "1ed4f1b51132aa88e74473d34a6cf121c577e8068f90e3fd182af906cff5c1d9",
+        "register_fingerprint": "47c5fbea273294a160c7c2e73ca348298ac2aa43a5507c2d4122c02165f8c120"
+      },
+      {
+        "seq": 3,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.094886Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "8c42055a-d12d-4940-9017-5445fa53069d",
+          "dimension": "discrimination",
+          "score": 12
+        },
+        "prev_hash": "1ed4f1b51132aa88e74473d34a6cf121c577e8068f90e3fd182af906cff5c1d9",
+        "entry_hash": "bc1f3b60c64a6712a2ec389d631885f6aa6924851068b1411103d784affadcdc",
+        "register_fingerprint": "126e8bfad51fda5ea2ca49a58bc8cde5c9d3386f1f681c9d04d5a21bc9c96cf8"
+      },
+      {
+        "seq": 4,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.115548Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+          "dimension": "transparency",
+          "score": 9
+        },
+        "prev_hash": "bc1f3b60c64a6712a2ec389d631885f6aa6924851068b1411103d784affadcdc",
+        "entry_hash": "eec148b13046acf9856c6ce0c30a4f01e677bea03f3bb2668d01aa60bc90f998",
+        "register_fingerprint": "ad7ff9c51621d5f8b468d5536b1368d53f6dd7e6e57fd4e1d5d043f5ebfc3587"
+      },
+      {
+        "seq": 5,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.145213Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "60278de0-44dd-4b0b-bb68-08a540c17087",
+          "dimension": "health_safety",
+          "score": 12
+        },
+        "prev_hash": "eec148b13046acf9856c6ce0c30a4f01e677bea03f3bb2668d01aa60bc90f998",
+        "entry_hash": "819b3c002dbd3fbfec4115c3200fe2abb310a997176fdbe311e7ceefa676a5af",
+        "register_fingerprint": "9d93c3dee77d8e445afb57c327c423bb510e454ab02670b73de5165d10ff246c"
+      },
+      {
+        "seq": 6,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.170032Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+          "dimension": "health_safety",
+          "score": 12
+        },
+        "prev_hash": "819b3c002dbd3fbfec4115c3200fe2abb310a997176fdbe311e7ceefa676a5af",
+        "entry_hash": "ac3567129a94cd6ed30918440d7982e218a3688637df730643ad6860566b115c",
+        "register_fingerprint": "151e0b689dfd7dcc279d7ecfde843bb60834a94aed254f32722f83dcded0d61a"
+      },
+      {
+        "seq": 7,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.206711Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "351bedb2-d866-49a8-9455-7453cb9bb715",
+          "dimension": "fundamental_rights",
+          "score": 9
+        },
+        "prev_hash": "ac3567129a94cd6ed30918440d7982e218a3688637df730643ad6860566b115c",
+        "entry_hash": "02a97eb193761c414bf595b3f73785bf1f81419b55a35b37fc5a336dcbc4f6ac",
+        "register_fingerprint": "b80b4c87792dd99f0619811b493e73acd3c99255c977ec6c4fad65bcc772623a"
+      },
+      {
+        "seq": 8,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.240222Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+          "dimension": "fundamental_rights",
+          "score": 12
+        },
+        "prev_hash": "02a97eb193761c414bf595b3f73785bf1f81419b55a35b37fc5a336dcbc4f6ac",
+        "entry_hash": "1e3da6749eb9ad057163615e079929696f5f1ef991de8e0f752236a395ce6269",
+        "register_fingerprint": "757907367af1927ca1e7af83f1ed9d79f9a58e0ba474c51d4d291dbecc2d49dc"
+      },
+      {
+        "seq": 9,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.275257Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "f44ccbdf-4033-4f9e-9715-6a35456631df",
+          "dimension": "fundamental_rights",
+          "score": 6
+        },
+        "prev_hash": "1e3da6749eb9ad057163615e079929696f5f1ef991de8e0f752236a395ce6269",
+        "entry_hash": "54957f5d48beb3b50ccb5e526f75e3240b6de7b822e1c28a6659ff669a5c6d4f",
+        "register_fingerprint": "f00a8974aff9948608158af1b55e5a62d1a9de5f66f1e32eada84ccf0723dcc3"
+      },
+      {
+        "seq": 10,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.318099Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+          "dimension": "discrimination",
+          "score": 16
+        },
+        "prev_hash": "54957f5d48beb3b50ccb5e526f75e3240b6de7b822e1c28a6659ff669a5c6d4f",
+        "entry_hash": "6c04a7bfca665fb068a8497616f230ce6315b70dde243ef97ca40fe074b8be66",
+        "register_fingerprint": "e323093c542e151a3bd653c77246efa976ae518470f34e976b4716ee49d3b6db"
+      },
+      {
+        "seq": 11,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.365190Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+          "dimension": "discrimination",
+          "score": 16
+        },
+        "prev_hash": "6c04a7bfca665fb068a8497616f230ce6315b70dde243ef97ca40fe074b8be66",
+        "entry_hash": "58e2941bcd80c60fb168125add928bf8e17f399fd93846251a13d1aa199b50ff",
+        "register_fingerprint": "eb16dc114fbed84a664e447c36e2c1000361d3cf47500fbe489942990ba0901a"
+      },
+      {
+        "seq": 12,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.414603Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "aed4c486-00e2-42e9-b95e-467857846880",
+          "dimension": "discrimination",
+          "score": 20
+        },
+        "prev_hash": "58e2941bcd80c60fb168125add928bf8e17f399fd93846251a13d1aa199b50ff",
+        "entry_hash": "c299298dbda5ac530f324a78e1d976223a10ca4faf34619608c274721124e728",
+        "register_fingerprint": "1ad59420a05411b2b26204e34933057ae7f7ad642c96378306bfbc20f79eb516"
+      },
+      {
+        "seq": 13,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.462529Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "25c401d1-e4be-4cfc-849e-d631c8f29667",
+          "dimension": "discrimination",
+          "score": 6
+        },
+        "prev_hash": "c299298dbda5ac530f324a78e1d976223a10ca4faf34619608c274721124e728",
+        "entry_hash": "63a45cce453a9391bc8e33c79a46c9d8008454a347190ae6bda4299c3ba31f91",
+        "register_fingerprint": "56c70125747be41984bec4489c2038ea7e333dee77a1db392eb39ed562de0a80"
+      },
+      {
+        "seq": 14,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.541855Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+          "dimension": "privacy",
+          "score": 20
+        },
+        "prev_hash": "63a45cce453a9391bc8e33c79a46c9d8008454a347190ae6bda4299c3ba31f91",
+        "entry_hash": "8796de3531890392854f0fe84acb68e4e5599a8ac21a4444aad33dd2e98d0ed0",
+        "register_fingerprint": "64103153c5c3a11e55cfaccbcfb1797506286f748ca9f27285f45bbbc4845d4b"
+      },
+      {
+        "seq": 15,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.612749Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "3e189772-dfed-4f75-a07f-5e7bc662b09b",
+          "dimension": "privacy",
+          "score": 9
+        },
+        "prev_hash": "8796de3531890392854f0fe84acb68e4e5599a8ac21a4444aad33dd2e98d0ed0",
+        "entry_hash": "3368cf27b11e2a9f2e284745732ad03145e3ef87aaba4778c89dd2f49b64fd43",
+        "register_fingerprint": "e3687aebf34852ea3ee50a1d3d54107d8a259bcb2a37a1e223a4362a7a7582ca"
+      },
+      {
+        "seq": 16,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.681318Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "d936c7f0-c839-4676-b5ed-17db0ee07392",
+          "dimension": "privacy",
+          "score": 12
+        },
+        "prev_hash": "3368cf27b11e2a9f2e284745732ad03145e3ef87aaba4778c89dd2f49b64fd43",
+        "entry_hash": "6c3d03b68f863ee7bc9f1af9adcf263e420ecc6e9c9eebef9f8c40c8509152b9",
+        "register_fingerprint": "f9fd3485206856dfcb3a0a53fe1041529230a7b1b99870cf0ca5eaf55e70ee4e"
+      },
+      {
+        "seq": 17,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.771966Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "2d133a03-6111-4f2f-a81d-9cd2e91ae437",
+          "dimension": "privacy",
+          "score": 6
+        },
+        "prev_hash": "6c3d03b68f863ee7bc9f1af9adcf263e420ecc6e9c9eebef9f8c40c8509152b9",
+        "entry_hash": "384e34e7ee0cad7c98c81cdbab774786fecc4738b44bca6e75819e841f043dad",
+        "register_fingerprint": "23ad9d782c39c454fa517f95eac0d11835f153fa9e5c1957bad544669496061e"
+      },
+      {
+        "seq": 18,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.858316Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d",
+          "dimension": "transparency",
+          "score": 9
+        },
+        "prev_hash": "384e34e7ee0cad7c98c81cdbab774786fecc4738b44bca6e75819e841f043dad",
+        "entry_hash": "a556e306a468d07ef146e869b2a9dc15e36026d408adf4de40b5cd24e12b5ec5",
+        "register_fingerprint": "93566f0fc700bb27163671d3c39cb71bcc6368ab854be36ef79b579cf4393f1c"
+      },
+      {
+        "seq": 19,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:42.945075Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+          "dimension": "transparency",
+          "score": 12
+        },
+        "prev_hash": "a556e306a468d07ef146e869b2a9dc15e36026d408adf4de40b5cd24e12b5ec5",
+        "entry_hash": "63f3803d2608209c43a1099d3f27066272ed2dea4d8a249d7bf575ea274ca54c",
+        "register_fingerprint": "1ea19575cb04d80651e22f075a8237a373e68b699ddcb60311cc21a455505254"
+      },
+      {
+        "seq": 20,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.042098Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "c3ff7160-489c-48e0-bc35-cf2aea497241",
+          "dimension": "transparency",
+          "score": 9
+        },
+        "prev_hash": "63f3803d2608209c43a1099d3f27066272ed2dea4d8a249d7bf575ea274ca54c",
+        "entry_hash": "bd76277caf2f029005c578622a4e902b429cd853d86a0f27eebcfb54f869bd1d",
+        "register_fingerprint": "aea954b257027138549c4ba2fbf7ec3d1b26d9216a01a0b0a2ace47e0e8c8c32"
+      },
+      {
+        "seq": 21,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.153999Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "ce393cc6-b98c-4ea6-902b-b2e74e100fa2",
+          "dimension": "human_oversight",
+          "score": 9
+        },
+        "prev_hash": "bd76277caf2f029005c578622a4e902b429cd853d86a0f27eebcfb54f869bd1d",
+        "entry_hash": "4ec2531c5c1f17acfc34cfe0d218ffca3b49371f7b0fe5d6308e8eddaee5ff8e",
+        "register_fingerprint": "df9c13dcca2f735250719a099fb2a07872af989cd8ab28b26aad5e55b50b7791"
+      },
+      {
+        "seq": 22,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.278779Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "0265c848-94be-486b-ad84-0c04e34ab676",
+          "dimension": "human_oversight",
+          "score": 12
+        },
+        "prev_hash": "4ec2531c5c1f17acfc34cfe0d218ffca3b49371f7b0fe5d6308e8eddaee5ff8e",
+        "entry_hash": "ff0ea14159c6c9c3e0db1cb54815e1878a92d5448abce1a5eee1abb26ac9f69b",
+        "register_fingerprint": "0c6c9ce6152cde11e45e78dc75e015eb0bafa785e58f63862f680d9f05ae58d3"
+      },
+      {
+        "seq": 23,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.381193Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+          "dimension": "human_oversight",
+          "score": 12
+        },
+        "prev_hash": "ff0ea14159c6c9c3e0db1cb54815e1878a92d5448abce1a5eee1abb26ac9f69b",
+        "entry_hash": "4e642cb1bcb286c7b12599b811d6c7e80cb17f6809cb7fe1f6823485a24c7f88",
+        "register_fingerprint": "c5fd52e3ef33fa0dbc5786cd24a9abb58c047e345bfec503d49e3cdc5c650a4b"
+      },
+      {
+        "seq": 24,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.497869Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "e541ddff-41eb-4605-9e19-dc1ec292e188",
+          "dimension": "robustness",
+          "score": 16
+        },
+        "prev_hash": "4e642cb1bcb286c7b12599b811d6c7e80cb17f6809cb7fe1f6823485a24c7f88",
+        "entry_hash": "32bfbaec2a839d75e14af9e6a40311cb40742ed105123d9d6f042af979ae3e6a",
+        "register_fingerprint": "a875a2b01fb0a563722f14d30df6841b2fae49638ad0d305ae74553fb0b5e0bb"
+      },
+      {
+        "seq": 25,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.616970Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+          "dimension": "robustness",
+          "score": 16
+        },
+        "prev_hash": "32bfbaec2a839d75e14af9e6a40311cb40742ed105123d9d6f042af979ae3e6a",
+        "entry_hash": "cb924a50a90aeea047d470e7baf245c0ea50bbcc7d5276ade359efa30551994b",
+        "register_fingerprint": "751f056e6bd2838f7373b29a6d5bc78b1f27f21683e6d8a1d4665303de80b558"
+      },
+      {
+        "seq": 26,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.749395Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+          "dimension": "robustness",
+          "score": 9
+        },
+        "prev_hash": "cb924a50a90aeea047d470e7baf245c0ea50bbcc7d5276ade359efa30551994b",
+        "entry_hash": "5fc477fb16b2475c638a488ba901adfe5f5f5c134f118e0ffc612727af238248",
+        "register_fingerprint": "556b86558167892efe7b6d1ce38259200a597a781c0e674d9e97988a03791ec4"
+      },
+      {
+        "seq": 27,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:43.880001Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+          "dimension": "robustness",
+          "score": 20
+        },
+        "prev_hash": "5fc477fb16b2475c638a488ba901adfe5f5f5c134f118e0ffc612727af238248",
+        "entry_hash": "9c77fd0945ab68e03afe4bb52d2df37512143174abca926b0f1a24865b88c7a5",
+        "register_fingerprint": "3261977790d7ed294bec332163cf5b26f5e145256bd5aa0e69ba0a3581d88525"
+      },
+      {
+        "seq": 28,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:44.020097Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "19dd45f3-1b3d-47bf-afef-f8966416e660",
+          "dimension": "data_governance",
+          "score": 12
+        },
+        "prev_hash": "9c77fd0945ab68e03afe4bb52d2df37512143174abca926b0f1a24865b88c7a5",
+        "entry_hash": "ebbaaacee5bcfa20ff28eaa341f602fee83906ad245134f28f0bcb563d70bd52",
+        "register_fingerprint": "f8015735f8a0ffda8131142db544504ea667b062ab25beca4d5faa791ef52f1b"
+      },
+      {
+        "seq": 29,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:44.141633Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "2a4a31b3-54aa-4519-ac41-5544fbe3af42",
+          "dimension": "data_governance",
+          "score": 9
+        },
+        "prev_hash": "ebbaaacee5bcfa20ff28eaa341f602fee83906ad245134f28f0bcb563d70bd52",
+        "entry_hash": "22dcf8f7f0b617d57fd2fe4e1bacbed5088105d9e04e41d9b7124459ff454f24",
+        "register_fingerprint": "ba43161416a7c3bd087b4b54d32cb10ee0b23da82d89677164a9376e0bbec582"
+      },
+      {
+        "seq": 30,
+        "event": "risk_item.created",
+        "timestamp": "2026-11-04T10:51:44.255911Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "a3f1e0de-b3d1-4040-9e83-d89c72d0275f",
+          "dimension": "data_governance",
+          "score": 4
+        },
+        "prev_hash": "22dcf8f7f0b617d57fd2fe4e1bacbed5088105d9e04e41d9b7124459ff454f24",
+        "entry_hash": "d8c4f69f1169f27b27c13dc6d245ec7aeb0e71947a2450ce8d770b125981ecd5",
+        "register_fingerprint": "71e070552d7ce6e2367bbed7fbde4b0177e2997ef7166f27220c67d3d9fad121"
+      },
+      {
+        "seq": 31,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:45.586984Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "aed4c486-00e2-42e9-b95e-467857846880",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "d8c4f69f1169f27b27c13dc6d245ec7aeb0e71947a2450ce8d770b125981ecd5",
+        "entry_hash": "12ca999d9ca830524b4afe32a31f6e563eb1cb6dd47a4f0f09ab6df064cd42c4",
+        "register_fingerprint": "b7d415b86169e90b61790432c0bb2e7b50aa821dd03e08d5901a02ee7aafd166"
+      },
+      {
+        "seq": 32,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:46.216427Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "aed4c486-00e2-42e9-b95e-467857846880",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "12ca999d9ca830524b4afe32a31f6e563eb1cb6dd47a4f0f09ab6df064cd42c4",
+        "entry_hash": "b8043c7dd91470e7889cbbe2f1c2cdb949a3d5cdbbdc6580903f1c87abcc2ad3",
+        "register_fingerprint": "9b2a63d4facef981f567a6a56bb721f21b2f3a0687dc210bad7e799811da222b"
+      },
+      {
+        "seq": 33,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:46.844790Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "b8043c7dd91470e7889cbbe2f1c2cdb949a3d5cdbbdc6580903f1c87abcc2ad3",
+        "entry_hash": "6a3881da29bde8df520db0ba709c0472668a2d42612a395318e3bcbc6895c28d",
+        "register_fingerprint": "de6f1125d6bfe5cb4d7d2ae1abde97a0aade9ba79f7cad31de9e517bc16de535"
+      },
+      {
+        "seq": 34,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:47.516290Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "6a3881da29bde8df520db0ba709c0472668a2d42612a395318e3bcbc6895c28d",
+        "entry_hash": "81b64ec6adf5566238070362ca08c7e4fbadbf4cafd65cea2805a33e6014343e",
+        "register_fingerprint": "e895d4c9576ac2729d8f8e48a0a32f2c63be026eb004561887a7a7a7e2dc9716"
+      },
+      {
+        "seq": 35,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:48.194854Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "8c42055a-d12d-4940-9017-5445fa53069d",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "81b64ec6adf5566238070362ca08c7e4fbadbf4cafd65cea2805a33e6014343e",
+        "entry_hash": "4cb93abae6386b39f3b776a77e065fc7dfa06e5dc3dd4024c14d3e9a49d4ba83",
+        "register_fingerprint": "747ebc162bdd5f8d7cd196f33f9075deb50eb563667cc8eddd6bd0392f298ecd"
+      },
+      {
+        "seq": 36,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:48.828104Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "4cb93abae6386b39f3b776a77e065fc7dfa06e5dc3dd4024c14d3e9a49d4ba83",
+        "entry_hash": "e4fd7e7b07ca14c783219184e0f5654a7edfdd283ac9bdf5c81d5bc32f0467ab",
+        "register_fingerprint": "a3bbb85013c6efcea2c5a9faffc0e0f33e70bb8ea2630ac290808f50ee73609d"
+      },
+      {
+        "seq": 37,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:49.577194Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "e541ddff-41eb-4605-9e19-dc1ec292e188",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "e4fd7e7b07ca14c783219184e0f5654a7edfdd283ac9bdf5c81d5bc32f0467ab",
+        "entry_hash": "be0a96b47d5dbcb941f6787ff5eee664a9fcbbfd955de1696f1f5500cc26469c",
+        "register_fingerprint": "72ab63ed6d0570633c457088be1ba238541654b3b71d5f20aaad3aa90a6f67bf"
+      },
+      {
+        "seq": 38,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:50.312805Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "be0a96b47d5dbcb941f6787ff5eee664a9fcbbfd955de1696f1f5500cc26469c",
+        "entry_hash": "a78f23efbd4a377ad4d2d76e8433e6736c7145c1fb6e7283f20c5efcf727c4e4",
+        "register_fingerprint": "a7d66c90a63ccfa10f0c985c0bfe0ebfef36999ac0da416aac0fd8d48ebc25d4"
+      },
+      {
+        "seq": 39,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:50.979432Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "a78f23efbd4a377ad4d2d76e8433e6736c7145c1fb6e7283f20c5efcf727c4e4",
+        "entry_hash": "f4015944e88876d29ab133a28be3a6c06fcc4e53ede33277174e24e258d9152f",
+        "register_fingerprint": "6275f3820dcdee4647911c32e9f3a0911bafb4a7ea09b5c90abea3b0b1f70730"
+      },
+      {
+        "seq": 40,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:51.696890Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "60278de0-44dd-4b0b-bb68-08a540c17087",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "f4015944e88876d29ab133a28be3a6c06fcc4e53ede33277174e24e258d9152f",
+        "entry_hash": "b8e0ac305dce0fef6bfb80313ffe65f07ae0d33a3394c560ba9eead26e41e2af",
+        "register_fingerprint": "c10828565fa4cd20aa234615f73b3e468d71ef19499889cde7b1d49e6b90d787"
+      },
+      {
+        "seq": 41,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:52.574143Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+          "control_type": "detective",
+          "is_vague": false
+        },
+        "prev_hash": "b8e0ac305dce0fef6bfb80313ffe65f07ae0d33a3394c560ba9eead26e41e2af",
+        "entry_hash": "4163e0b2f5942b4a40cfac4ab9b6326037daeb7983f0b9b6303e112b572d18d0",
+        "register_fingerprint": "462078f7241cc138d73d30bd6f28de2b35e4ff8b48ebb64b16e06a5ea6c16265"
+      },
+      {
+        "seq": 42,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:53.264479Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "4163e0b2f5942b4a40cfac4ab9b6326037daeb7983f0b9b6303e112b572d18d0",
+        "entry_hash": "c8ce1344fc08724302102b7954dac806d2416db55ea88158268a952c760bf9ea",
+        "register_fingerprint": "a799cb8a1d3060f00db752df932646729263250a9138e11ddafe7e568f35c375"
+      },
+      {
+        "seq": 43,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:53.940829Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "d936c7f0-c839-4676-b5ed-17db0ee07392",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "c8ce1344fc08724302102b7954dac806d2416db55ea88158268a952c760bf9ea",
+        "entry_hash": "53a6957d095dec33d546f3d012faecb86b05ff345ca180f8148dd163fcece2e6",
+        "register_fingerprint": "b353bb35fc95b4d98a23df504cfce9f95a43c104301a9c6512ef550a213ea8f1"
+      },
+      {
+        "seq": 44,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:54.664989Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "53a6957d095dec33d546f3d012faecb86b05ff345ca180f8148dd163fcece2e6",
+        "entry_hash": "704025ba359253cfed4c12bf7fe4abac4800135f7f1587862b947446cfa8032e",
+        "register_fingerprint": "ba49afbc73b780165e5ba7a350ea7fbcf1ba8d9a9937ade5b4b81961b4975349"
+      },
+      {
+        "seq": 45,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:55.372409Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "704025ba359253cfed4c12bf7fe4abac4800135f7f1587862b947446cfa8032e",
+        "entry_hash": "65b169cb2497ce49d19fb608d7807e1e6dcf60c0f24c1bc5f0a2bfe1c656af07",
+        "register_fingerprint": "92f22dd01806def035fcc972c00fc64a3665612799764aaa6b7f5099b7193f26"
+      },
+      {
+        "seq": 46,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:56.056108Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "65b169cb2497ce49d19fb608d7807e1e6dcf60c0f24c1bc5f0a2bfe1c656af07",
+        "entry_hash": "713c0aa0ae29e80a1e5222ca237c5330bdcd864e51ccae95bff84551e3d77133",
+        "register_fingerprint": "9b2ae30ea0d84f063d96b4b056da4ba95b4fb6f5b548edf4763a5d5fefb9db0a"
+      },
+      {
+        "seq": 47,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:56.862274Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+          "control_type": "corrective",
+          "is_vague": false
+        },
+        "prev_hash": "713c0aa0ae29e80a1e5222ca237c5330bdcd864e51ccae95bff84551e3d77133",
+        "entry_hash": "80c92c473fba7288c01c166543777814283c8bbcd1555888558e5767b2e4b350",
+        "register_fingerprint": "49a02892c1961c5be8c67513c8a69d1a303191fb0827fcdfcd18160fd9ce3235"
+      },
+      {
+        "seq": 48,
+        "event": "mitigation.added",
+        "timestamp": "2026-11-04T10:51:57.505148Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "c3ff7160-489c-48e0-bc35-cf2aea497241",
+          "control_type": "preventive",
+          "is_vague": false
+        },
+        "prev_hash": "80c92c473fba7288c01c166543777814283c8bbcd1555888558e5767b2e4b350",
+        "entry_hash": "051b30d8d26ce2ae542603629c82678bfc509ccd453f47092a165e64fe7ae2f8",
+        "register_fingerprint": "71f924f97b63269027757b177beca330a0daa1bb3d1c41b0b948a2e44de54634"
+      },
+      {
+        "seq": 49,
+        "event": "risk.accepted",
+        "timestamp": "2026-11-04T10:51:58.199845Z",
+        "actor": {
+          "type": "human",
+          "identity": "Mara Lindqvist, Head of Model Risk"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "risk_item_id": "19dd45f3-1b3d-47bf-afef-f8966416e660",
+          "old_accepted": false,
+          "rationale_hash": "a4fcccb3b668599d",
+          "actor": "Mara Lindqvist, Head of Model Risk"
+        },
+        "prev_hash": "051b30d8d26ce2ae542603629c82678bfc509ccd453f47092a165e64fe7ae2f8",
+        "entry_hash": "1818d90bff93a305533e7d7ea0426edd2e3b5388b1483d340e6d8ef11bb9eeb1",
+        "register_fingerprint": "1cd4189c929ea41e4ca7b90a64a82d392fac48d9d819aa4d5ed488879c670fb5"
+      },
+      {
+        "seq": 50,
+        "event": "tests.generated",
+        "timestamp": "2026-11-04T10:51:58.943744Z",
+        "actor": {
+          "type": "human",
+          "identity": "cli"
+        },
+        "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+        "payload": {
+          "count": 27,
+          "risk_item_ids": [
+            "0265c848-94be-486b-ad84-0c04e34ab676",
+            "19dd45f3-1b3d-47bf-afef-f8966416e660",
+            "25c401d1-e4be-4cfc-849e-d631c8f29667",
+            "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+            "2a4a31b3-54aa-4519-ac41-5544fbe3af42",
+            "351bedb2-d866-49a8-9455-7453cb9bb715",
+            "3e189772-dfed-4f75-a07f-5e7bc662b09b",
+            "3e4bcc98-d210-4df3-80ae-d450eee1f824",
+            "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+            "60278de0-44dd-4b0b-bb68-08a540c17087",
+            "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+            "7ff6fe87-2201-4a78-9a5f-bf9ccda2c90d",
+            "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+            "8c42055a-d12d-4940-9017-5445fa53069d",
+            "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+            "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+            "a3f1e0de-b3d1-4040-9e83-d89c72d0275f",
+            "aed4c486-00e2-42e9-b95e-467857846880",
+            "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+            "c3ff7160-489c-48e0-bc35-cf2aea497241",
+            "ce393cc6-b98c-4ea6-902b-b2e74e100fa2",
+            "d936c7f0-c839-4676-b5ed-17db0ee07392",
+            "e541ddff-41eb-4605-9e19-dc1ec292e188",
+            "f44ccbdf-4033-4f9e-9715-6a35456631df",
+            "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+            "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+            "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8"
+          ]
+        },
+        "prev_hash": "1818d90bff93a305533e7d7ea0426edd2e3b5388b1483d340e6d8ef11bb9eeb1",
+        "entry_hash": "fe25eb89933cf33664591305e321875fea1db287306b159f3cee63e5ce4b24e5",
+        "register_fingerprint": "42e5e4b7672cef4e4dcc081e29f289276ab2e4581fae7738198ea9ab6155a482"
+      }
+    ]
+  },
+  "receipt": {
+    "receipt_version": "1",
+    "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+    "seq": 50,
+    "entry_hash": "fe25eb89933cf33664591305e321875fea1db287306b159f3cee63e5ce4b24e5",
+    "register_fingerprint": "42e5e4b7672cef4e4dcc081e29f289276ab2e4581fae7738198ea9ab6155a482",
+    "issued_at": "2026-11-04T10:52:00.228886Z",
+    "key_id": "ed25519:e13f52ac9080778c",
+    "public_key": "S1pMhLuPe5Tr7stHjQVK0SNZ7JoDBnyflrCwnyOrlIs=",
+    "signature": "LY8WdSZD8I3uNzUYmxqiu5oxCjpjSOYSrytQfBGu9bmLb+9Z0WbUrSDpHHzEM6ZsMrKXe9BfImzObpJ8UHwGBg=="
+  }
+}

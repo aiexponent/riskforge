@@ -218,7 +218,8 @@ def test_system_yaml_sample_is_a_real_system_record() -> None:
 
 def test_rmf_sample_is_a_real_export_that_verifies() -> None:
     document = json.loads(_block("json", "View an exported <code>rmf.json</code>"))
-    assert document["rmf_schema_version"] == "1.1.0"
+    assert document["rmf_schema_version"] == "1.2.0"
+    assert document["validation"]["status"] == "FAIL", "the sample is made with export --force"
     assert document["signatures"], "the sample is made with export --sign"
     signer = document["public_keys"][0]["public_key"]
     check = check_rmf_document(

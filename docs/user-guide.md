@@ -216,12 +216,14 @@ riskforge export <id> -f pdf -o rmf.pdf --sign k.pem  # signed with a key from r
 An export holds the project lock from start to finish and runs in this order:
 
 1. The project is checked as `riskforge verify` checks it. A project that fails exits 2.
-2. The validation gates run, unless `--force` is given. A FAIL gate exits 1.
+2. The validation gates run. A FAIL gate exits 1 unless `--force` is given. Either way
+   the file records every gate's result (step 4).
 3. If the register was last written by RiskForge 1.1.3 or by an older model, it is
    rewritten in the current format and a `register.checkpoint` entry is prepared for it.
    No value changes.
-4. The document is built: the content and its digest, the chain proof, the receipt and,
-   with `--sign`, the signature. It must validate against RMF schema 1.1.0.
+4. The document is built: the content with the gate results and its digest, the chain
+   proof, the receipt and, with `--sign`, the signature. It must validate against RMF
+   schema 1.2.0.
 5. The whole file is rendered and written to a temporary file next to the output path,
    readable only by its owner on Linux and macOS.
 6. The checkpoint, if any, is committed to the audit log, the temporary file is renamed
@@ -263,7 +265,7 @@ The name is self-declared. RiskForge records it as given and does not check who
 ran the command. It becomes the audit entry's actor and is stored on the risk item
 as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
 exports show it as "Accepted by" and "Recorded by", and the JSON export (RMF schema
-1.1.0) holds both fields, so the content digest every format shows covers them.
+1.1.0 and later) holds both fields, so the content digest every format shows covers them.
 Acceptances recorded before 2.0.0 show "Accepted by: not recorded".
 
 ### Receipts: a record kept outside the project
@@ -391,11 +393,11 @@ system dependencies prior to running `riskforge`:
 
 ## Interpreting the RMF
 
-The JSON RMF declares RMF schema 1.1.0 and has these top-level fields: `id`,
+The JSON RMF declares RMF schema 1.2.0 and has these top-level fields: `id`,
 `rmf_schema_version`, `register`, `test_requirements`, `cross_references`,
-`generated_at`, `sha256_hash`, `disclosure`, `signoffs`, `signatures`,
+`generated_at`, `sha256_hash`, `disclosure`, `validation`, `signoffs`, `signatures`,
 `public_keys`, `chain_proof` and `receipt` (schema `$id`
-`https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json`). The `register` holds
+`https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`). The `register` holds
 the system record, the risk items, the saved test requirements, the assessor,
 dates, and the risk-appetite threshold. Each risk item carries its dimension,
 scoring, mitigations, residual scoring, acceptance, and Article/NIST/ISO references,
@@ -405,18 +407,30 @@ with `accepted_by` and `recorded_by` when a name was recorded.
 `generated_at`, `sha256_hash`, `signatures`, `public_keys`, `chain_proof` and
 `receipt`, so `riskforge verify --file` can recompute and confirm it.
 
+`validation` holds the result of every validation gate as it ran on the exported
+register: each gate's id, description, status (`PASS`, `WARN` or `FAIL`) and details,
+and an overall `status`, the most severe of them. A file whose `status` is `FAIL` was
+exported with `--force` past a failing gate, and the `rmf.exported` audit entry then
+lists the failing gates as `failing_gates`. The content digest covers `validation`, so
+a signature over the digest covers the gate results too. The Markdown export shows them
+under "Validation Gates" and the PDF on its cover and in its method section.
+
 `chain_proof` holds every entry of the project audit log up to the export (the export's
 own `rmf.exported` entry is recorded after the file is written, so it is never in the
 file), and `receipt` names the last of those entries. `signatures` and `public_keys` are
 filled when the export is signed with `--sign`. The `riskforge` CLI writes `signoffs` as an
 empty list.
 
+A file written by RiskForge 2.0.0 declares RMF schema 1.1.0. It has no `validation`
+block, so the file alone does not show whether its export was forced. `verify --file`
+checks it with the same digest rule, which leaves the same fields out.
+
 A file written by RiskForge 1.1.3 or earlier declares RMF schema 1.0.0. `verify
 --file` checks its digest by the rule those releases used: the whole document with
 `sha256_hash`, `audit_entry_hash` and `signed_by` blanked. See
 [Verifying an exported file](#verifying-an-exported-file) for everything `verify
---file` checks. The JSON Schemas are bundled as `rmf-1.0.0.schema.json` and
-`rmf-1.1.0.schema.json` in `riskforge/_data/schemas/`.
+--file` checks. The JSON Schemas are bundled as `rmf-1.0.0.schema.json`,
+`rmf-1.1.0.schema.json` and `rmf-1.2.0.schema.json` in `riskforge/_data/schemas/`.
 
 ### Verifying an exported file
 
@@ -429,11 +443,13 @@ riskforge verify --file rmf-2027-q1.json --receipt rmf-2026-q4.json  # an older 
 `verify --file` needs only the JSON export, not the project. It reads the file
 strictly: a duplicate key, `NaN`, `Infinity`, a number such as `1e400`, an integer
 too long to read or arrays and objects nested more than 64 levels deep exits 2, and a
-file that is not JSON, or declares a schema version RiskForge does not read, exits 3. For an RMF schema 1.1.0 file it then checks, in
+file that is not JSON, or declares a schema version RiskForge does not read, exits 3. For an RMF schema 1.1.0 or 1.2.0 file it then checks, in
 this order, and lists every failure it finds:
 
 1. The file validates against the schema it declares, and `sha256_hash` equals the
-   content digest. A file that does not validate gets no further checks.
+   content digest. For a 1.2.0 file, no gate appears twice in `validation` and its
+   `status` is the most severe gate status. A file that does not validate gets no
+   further checks.
 2. Each `public_keys` record has its own key id, and that key id is the one derived
    from its public key.
 3. Each RMF signature names a key in `public_keys` and verifies over the content digest.
@@ -485,7 +501,7 @@ read, goes to stderr, as it does for the project check.
 A file that declares RMF schema 1.0.0 cannot carry a signature, a chain proof or a
 receipt. Plain `verify --file` checks its schema and digest only and says so. With
 `--trusted-key` or `--receipt` it exits 2 with "RMF schema 1.0.0 cannot carry a
-signature", because otherwise a 1.1.0 file could be rewritten as 1.0.0, with its
+signature", because otherwise a 1.1.0 or 1.2.0 file could be rewritten as 1.0.0, with its
 signature, chain proof and receipt dropped and its digest recomputed, and pass. If you
 rely on a file, check it with `--trusted-key` or `--receipt`.
 

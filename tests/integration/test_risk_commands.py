@@ -196,8 +196,8 @@ def test_markdown_export_shows_who_accepted_and_who_recorded(tmp_path: Path) -> 
     assert "Recorded by: Sam Lee, ML Lead" in text
 
 
-def test_json_export_carries_the_names_in_rmf_1_1_0(tmp_path: Path) -> None:
-    """RMF schema 1.1.0 holds accepted_by and recorded_by, so the JSON export keeps them."""
+def test_json_export_carries_the_names(tmp_path: Path) -> None:
+    """RMF schemas 1.1.0 and later hold accepted_by and recorded_by, so the export keeps them."""
     import jsonschema
     from riskforge.integrity.rmf import load_schema
 
@@ -210,8 +210,8 @@ def test_json_export_carries_the_names_in_rmf_1_1_0(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.output
     rmf = json.loads(out.read_text(encoding="utf-8"))
-    assert rmf["rmf_schema_version"] == "1.1.0"
-    jsonschema.validate(rmf, load_schema("1.1.0"))
+    assert rmf["rmf_schema_version"] == "1.2.0"
+    jsonschema.validate(rmf, load_schema("1.2.0"))
     item = rmf["register"]["items"][0]
     assert item["accepted_by"] == JANE
     assert [m["recorded_by"] for m in item["mitigations"]] == ["Sam Lee, ML Lead"]

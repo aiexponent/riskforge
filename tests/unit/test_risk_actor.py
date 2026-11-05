@@ -19,7 +19,7 @@ from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.audit import AuditActor
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, Mitigation, RiskDimension, RiskItem, Severity
-from riskforge.models.rmf import RiskManagementFile, rmf_document
+from riskforge.models.rmf import RMF_SCHEMA_VERSION, RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem
 from riskforge.storage.filesystem import FileStore
 
@@ -89,7 +89,7 @@ def test_v113_register_rewrites_to_the_same_bytes() -> None:
     assert rewritten.encode("utf-8") == stored
 
 
-def test_rmf_1_1_0_keeps_the_names_and_validates() -> None:
+def test_rmf_keeps_the_names_and_validates() -> None:
     rmf = _rmf(_item(accepted=True, accepted_by="Jane", mitigations=[_mitigation(recorded_by="S")]))
     with_provenance(rmf)
     rmf.sha256_hash = content_digest(rmf_document(rmf))
@@ -97,7 +97,7 @@ def test_rmf_1_1_0_keeps_the_names_and_validates() -> None:
     item = payload["register"]["items"][0]
     assert item["accepted_by"] == "Jane"
     assert item["mitigations"][0]["recorded_by"] == "S"
-    jsonschema.validate(payload, load_schema("1.1.0"))
+    jsonschema.validate(payload, load_schema(RMF_SCHEMA_VERSION))
 
 
 # --- actor name ---------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""RiskManagementFile: the Article 9 / Annex IV export artefact, RMF schema 1.1.0 (ADR-04)."""
+"""RiskManagementFile: the Article 9 / Annex IV export artefact, RMF schema 1.2.0 (ADR-04, ADR-05)."""
 
 from __future__ import annotations
 
@@ -20,17 +20,19 @@ from riskforge.models.receipt import Receipt
 from riskforge.models.register import RiskRegister
 from riskforge.models.requirements import TestRequirement
 
-RMF_SCHEMA_VERSION = "1.1.0"
+RMF_SCHEMA_VERSION = "1.2.0"
 
 __all__ = [
     "RMF_SCHEMA_VERSION",
     "ChainProof",
     "CrossReference",
+    "GateRecord",
     "PublicKeyRecord",
     "RiskManagementFile",
     "RmfSignature",
     "SignOff",
     "TestRequirement",
+    "ValidationRecord",
     "rmf_document",
 ]
 
@@ -42,6 +44,32 @@ class CrossReference(BaseModel):
     risk_item_ids: list[UUID]
     nist_rmf_ref: str = ""  # e.g. "MAP 1.1"
     iso42001_ref: str = ""  # e.g. "Clause 6.1"
+
+
+GateStatusName = Literal["PASS", "WARN", "FAIL"]
+
+
+class GateRecord(BaseModel):
+    """One pre-export validation gate as it ran on the exported register."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    gate_id: str
+    description: str
+    status: GateStatusName
+    details: str = ""
+
+
+class ValidationRecord(BaseModel):
+    """The validation gates of an export (ADR-05). ``status`` is the most severe gate status.
+
+    A file whose ``status`` is ``FAIL`` was exported with ``--force`` past a failing gate.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: GateStatusName
+    gates: list[GateRecord]
 
 
 class PublicKeyRecord(BaseModel):
@@ -134,6 +162,7 @@ class RiskManagementFile(BaseModel):
         "not been reviewed by a qualified legal professional. "
         "It does not constitute legal advice under the EU AI Act or any other regulation."
     )
+    validation: ValidationRecord | None = None
     signoffs: list[SignOff] = Field(default_factory=list)
     signatures: list[RmfSignature] = Field(default_factory=list)
     public_keys: list[PublicKeyRecord] = Field(default_factory=list)
@@ -148,6 +177,8 @@ class RiskManagementFile(BaseModel):
         data = handler(self)
         if not isinstance(data, dict):
             return data
+        if self.validation is None:
+            data.pop("validation", None)
         if self.chain_proof is None:
             data.pop("chain_proof", None)
         if self.receipt is None:
@@ -162,5 +193,5 @@ class RiskManagementFile(BaseModel):
 
 
 def rmf_document(rmf: RiskManagementFile) -> dict:
-    """The JSON document RiskForge writes for ``rmf``, as RMF schema 1.1.0 describes it."""
+    """The JSON document RiskForge writes for ``rmf``, as RMF schema 1.2.0 describes it."""
     return rmf.model_dump(mode="json", by_alias=True)

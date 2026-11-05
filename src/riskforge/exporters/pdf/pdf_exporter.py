@@ -38,11 +38,14 @@ class PDFExporter(Exporter):
         """Return the report HTML that :meth:`render` turns into a PDF."""
         # Imported here: the engine package loads the exporters through the plugin registry.
         from riskforge import __version__
-        from riskforge.engine.validate import GateStatus, ValidateEngine
+        from riskforge.engine.export import validation_record
+        from riskforge.engine.validate import ValidateEngine
 
         register = rmf.register
-        gates = ValidateEngine().run(register)
-        failing = [gate.gate_id for gate in gates if gate.status == GateStatus.FAIL]
+        # The gates recorded in the file (ADR-05), so the PDF shows what the digest covers.
+        validation = rmf.validation or validation_record(ValidateEngine().run(register))
+        gates = validation.gates
+        failing = [gate.gate_id for gate in gates if gate.status == "FAIL"]
         system_id = str(register.system.id)
         category = register.system.annex_iii_category
         return self._env.get_template("report.html").render(

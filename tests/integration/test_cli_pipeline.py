@@ -307,14 +307,14 @@ def _export_json(d: Path, name: str) -> Path:
     return out
 
 
-def test_json_export_is_rmf_1_1_0_and_validates(tmp_path: Path) -> None:
-    """New exports declare 1.1.0, validate against its schema and carry the content digest."""
+def test_json_export_is_rmf_1_2_0_and_validates(tmp_path: Path) -> None:
+    """New exports declare 1.2.0, validate against its schema and carry the content digest."""
     import jsonschema
     from riskforge.integrity.rmf import content_digest, load_schema
 
     rmf = json.loads(_export_json(tmp_path, "RMF 1.1 System").read_text())
-    assert rmf["rmf_schema_version"] == "1.1.0"
-    jsonschema.validate(rmf, load_schema("1.1.0"))
+    assert rmf["rmf_schema_version"] == "1.2.0"
+    jsonschema.validate(rmf, load_schema("1.2.0"))
     assert "signed_by" not in rmf
     assert "audit_entry_hash" not in rmf
     assert (rmf["signoffs"], rmf["signatures"], rmf["public_keys"]) == ([], [], [])
@@ -398,7 +398,7 @@ def test_verify_file_validates_the_schema_before_it_reports_a_match(tmp_path: Pa
     result = _run(["verify", "--file", str(out)])
     assert result.returncode == 2, result.output
     assert "verified" not in result.output
-    assert "schema 1.1.0" in result.output
+    assert "schema 1.2.0" in result.output
     assert "signed_by" in result.output
     assert "Traceback" not in result.output
 
@@ -735,6 +735,7 @@ def test_rmf_export_structure_is_locked() -> None:
             "generated_at",
             "sha256_hash",
             "disclosure",
+            "validation",
             "signoffs",
             "signatures",
             "public_keys",

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from riskforge.exporters.base import Exporter, display_title
-from riskforge.models.rmf import RiskManagementFile
+from riskforge.models.rmf import RiskManagementFile, ValidationRecord
 
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_\[\]#|~!])")
 _LINE_BREAKS = re.compile(r"\s*[\r\n\u0085\u2028\u2029]+\s*")
@@ -23,6 +23,23 @@ def _md(text: str) -> str:
     text = _MARKDOWN_SPECIAL.sub(r"\\\1", text)
     # CommonMark reads a backslash before a digit literally: escape only the punctuation.
     return _LIST_MARKER.sub(r"\1\\\2", text)
+
+
+def _validation_lines(validation: ValidationRecord) -> list[str]:
+    """The validation gates recorded in the file (ADR-05), covered by its digest."""
+    failing = [gate.gate_id for gate in validation.gates if gate.status == "FAIL"]
+    if failing:
+        result = f"FAIL. Exported with --force past failing gates: {', '.join(failing)}."
+    else:
+        result = f"{validation.status}. No gate failed."
+    lines = ["## Validation Gates", "", f"**Result:** {result}", ""]
+    for gate in validation.gates:
+        line = f"- **{gate.gate_id} {gate.status}:** {_md(gate.description)}"
+        if gate.details:
+            line += f" ({_md(gate.details)})"
+        lines.append(line)
+    lines += ["", "---", ""]
+    return lines
 
 
 class MarkdownExporter(Exporter):
@@ -56,6 +73,8 @@ class MarkdownExporter(Exporter):
         lines.append("")
         lines.append("---")
         lines.append("")
+        if rmf.validation is not None:
+            lines.extend(_validation_lines(rmf.validation))
         lines.append(f"## Risk Items ({len(reg.items)} total)")
         lines.append("")
 

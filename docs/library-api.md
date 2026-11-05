@@ -102,7 +102,7 @@ every change in the audit chain inside one unit of work.
   `check_rmf_document` with the same keys and receipts is the check `riskforge verify
   --file FILE --trusted-key PUBFILE --receipt RECEIPT` runs.
 - `RmfCheck`: `findings` lists each failure and `notes` say what a pass proves.
-  `verified` is True when nothing failed and a schema 1.1.0 file was checked against
+  `verified` is True when nothing failed and a schema 1.1.0 or 1.2.0 file was checked against
   trusted keys, so a trusted key signed it. A schema 1.0.0 file carries no signature
   and is never `verified`. This is when `riskforge verify --file` prints "RMF integrity
   verified". `ok` is True when nothing failed. Without trusted keys, `ok` means only
@@ -144,7 +144,8 @@ every change in the audit chain inside one unit of work.
 `Likelihood`, `Severity`, `Mitigation`, `TestRequirement`, `AuditEntry`, `AuditActor`,
 `Receipt`, `RiskManagementFile`, `CrossReference`, `ChainProof`, `RmfSignature`,
 `PublicKeyRecord` and `SignOff` are Pydantic models and enums. An exported RMF follows
-the bundled JSON Schema `https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json`.
+the bundled JSON Schema `https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`.
+`RiskManagementFile.validation` holds the gate results of the export (ADR-05).
 
 ## Example
 

@@ -133,6 +133,53 @@ def test_json_pdf_and_markdown_share_one_digest(tmp_path: Path) -> None:
     assert [p["format"] for p in payloads] == ["json", "pdf", "markdown"]
 
 
+def test_a_forced_export_records_its_gate_results_under_the_digest(tmp_path: Path) -> None:
+    """D1 of the 2.0.0 independent test: a forced export says so in every format (ADR-05).
+
+    The JSON carries the gates in its validation block, which the content digest covers, and
+    the Markdown and PDF show the same failing gates under the same digest.
+    """
+    project, sid = _project(tmp_path)
+    blocked = run_rf(["export", sid, "-o", str(tmp_path / "x.json"), "--project-dir", str(project)])
+    assert blocked.returncode == 1, blocked.output
+    for fmt, name in (("json", "rmf.json"), ("pdf", "rmf.pdf"), ("markdown", "rmf.md")):
+        assert _export(project, sid, tmp_path / name, "-f", fmt).returncode == 0
+    document = json.loads((tmp_path / "rmf.json").read_text(encoding="utf-8"))
+    validation = document["validation"]
+    failing = [g["gate_id"] for g in validation["gates"] if g["status"] == "FAIL"]
+    assert validation["status"] == "FAIL"
+    assert failing
+    assert [g["gate_id"] for g in validation["gates"]] == [f"G{n}" for n in range(1, 9)]
+    assert run_rf(["verify", "--file", str(tmp_path / "rmf.json")]).returncode == 0
+
+    statement = f"Exported with --force past failing gates: {', '.join(failing)}."
+    markdown = (tmp_path / "rmf.md").read_text(encoding="utf-8")
+    assert statement in markdown
+    assert document["sha256_hash"] in markdown
+    pdf = " ".join(pdf_text(tmp_path / "rmf.pdf").split())
+    assert f"Exported with failing gates: {', '.join(failing)}" in pdf
+    payloads = [e["payload"] for e in _events(project) if e["event"] == "rmf.exported"]
+    assert {p["sha256"] for p in payloads} == {document["sha256_hash"]}
+    assert all(p["failing_gates"] == failing for p in payloads)
+
+
+def test_a_changed_gate_result_changes_the_digest(tmp_path: Path) -> None:
+    """The validation block is content: editing it without redoing the digest fails verify."""
+    project, sid = _project(tmp_path)
+    out = tmp_path / "rmf.json"
+    assert _export(project, sid, out).returncode == 0
+    document = json.loads(out.read_text(encoding="utf-8"))
+    for gate in document["validation"]["gates"]:
+        if gate["status"] == "FAIL":
+            gate["status"] = "PASS"
+    document["validation"]["status"] = "PASS"
+    edited = tmp_path / "edited.json"
+    edited.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+    result = run_rf(["verify", "--file", str(edited)])
+    assert result.returncode == 2, result.output
+    assert "does not match its SHA-256 digest" in result.output
+
+
 def test_entry_is_recorded_after_the_file_with_its_bytes_digest(tmp_path: Path) -> None:
     project, sid = _project(tmp_path)
     out = tmp_path / "rmf.json"
@@ -143,7 +190,11 @@ def test_entry_is_recorded_after_the_file_with_its_bytes_digest(tmp_path: Path) 
     last = _events(project)[-1]
     assert last["event"] == "rmf.exported"
     document = json.loads(data)
-    assert set(last["payload"]) == {"export_id", "format", "sha256", "file_sha256"}
+    # _export forces past the failing gates, so the entry names them, as the file does.
+    failing = [g["gate_id"] for g in document["validation"]["gates"] if g["status"] == "FAIL"]
+    assert failing
+    assert set(last["payload"]) == {"export_id", "format", "sha256", "file_sha256", "failing_gates"}
+    assert last["payload"]["failing_gates"] == failing
     assert last["payload"]["file_sha256"] == hashlib.sha256(data).hexdigest()
     assert last["payload"]["sha256"] == document["sha256_hash"]
     assert last["payload"]["export_id"] == document["id"]

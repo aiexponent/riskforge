@@ -29,7 +29,7 @@ RECEIPT_SIGNING_DOMAIN = b"riskforge.receipt.v1\n"
 
 SIGNING_FIELDS = ("key_id", "public_key", "signature")
 
-RMF_SCHEMA_WITH_RECEIPT = "1.1.0"
+RMF_SCHEMAS_WITH_RECEIPT = ("1.1.0", "1.2.0")
 
 RMF_1_0_0_REFUSAL = (
     "RMF schema 1.0.0 cannot carry a signature, so this file holds no receipt to check."
@@ -221,7 +221,7 @@ def _resolve_embedded_key(receipt: Receipt, public_keys: Any) -> None:
 
 
 def receipt_from_document(data: Any) -> Receipt:
-    """The receipt in a parsed receipt file, or the ``receipt`` block of an RMF 1.1.0 file.
+    """The receipt in a parsed receipt file, or the ``receipt`` block of an RMF 1.1.0 or 1.2.0 file.
 
     Raises
     ------
@@ -239,7 +239,7 @@ def receipt_from_document(data: Any) -> Receipt:
         version = data["rmf_schema_version"]
         if version == "1.0.0":
             raise InvalidReceiptError(RMF_1_0_0_REFUSAL)
-        if version != RMF_SCHEMA_WITH_RECEIPT:
+        if version not in RMF_SCHEMAS_WITH_RECEIPT:
             raise ReceiptFileError(
                 f"RMF schema version {version!r} is not one this RiskForge reads."
             )

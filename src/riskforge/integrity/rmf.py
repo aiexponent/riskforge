@@ -23,7 +23,15 @@ from riskforge.models.receipt import Receipt
 if TYPE_CHECKING:
     from riskforge.models.rmf import SignOff
 
-SCHEMA_FILES = {"1.0.0": "rmf-1.0.0.schema.json", "1.1.0": "rmf-1.1.0.schema.json"}
+SCHEMA_FILES = {
+    "1.0.0": "rmf-1.0.0.schema.json",
+    "1.1.0": "rmf-1.1.0.schema.json",
+    "1.2.0": "rmf-1.2.0.schema.json",
+}
+
+# Versions that carry the provenance blocks of ADR-04. 1.2.0 adds the validation block
+# (ADR-05), which the digest covers, so both use the same left-out fields.
+PROVENANCE_VERSIONS = ("1.1.0", "1.2.0")
 
 RMF_SIGNING_DOMAIN = b"riskforge.rmf.v1\n"
 SIGNOFF_SIGNING_DOMAIN = b"riskforge.signoff.v1\n"
@@ -32,7 +40,8 @@ SIGNOFF_SIGNING_DOMAIN = b"riskforge.signoff.v1\n"
 _BLANKED_1_0_0 = ("sha256_hash", "audit_entry_hash", "signed_by")
 
 # The provenance blocks either verify themselves or describe the act of exporting, and
-# change with every export of one register state, so the 1.1.0 digest leaves them out.
+# change with every export of one register state, so the 1.1.0 and 1.2.0 digests leave
+# them out.
 _NOT_DIGESTED_1_1_0 = (
     "id",
     "generated_at",
@@ -116,9 +125,10 @@ def content_digest(document: dict[str, Any]) -> str:
     """The SHA-256 a document's ``sha256_hash`` must equal, by its declared version.
 
     1.0.0: the whole document with ``sha256_hash``, ``audit_entry_hash`` and
-    ``signed_by`` blanked, as 1.1.3 computed it. 1.1.0: the document without ``id``,
-    ``generated_at``, ``sha256_hash`` and the provenance blocks, with ``signoffs`` read
-    as ``[]`` when absent (ADR-04 section 2).
+    ``signed_by`` blanked, as 1.1.3 computed it. 1.1.0 and 1.2.0: the document without
+    ``id``, ``generated_at``, ``sha256_hash`` and the provenance blocks, with ``signoffs``
+    read as ``[]`` when absent (ADR-04 section 2). The 1.2.0 ``validation`` block is
+    covered (ADR-05).
 
     Raises
     ------
@@ -128,7 +138,7 @@ def content_digest(document: dict[str, Any]) -> str:
     version = document.get("rmf_schema_version")
     if version == "1.0.0":
         source = {**document, **dict.fromkeys(_BLANKED_1_0_0, "")}
-    elif version == "1.1.0":
+    elif version in PROVENANCE_VERSIONS:
         source = {k: v for k, v in document.items() if k not in _NOT_DIGESTED_1_1_0}
         source.setdefault("signoffs", [])
     else:
@@ -165,7 +175,7 @@ class RmfCheck:
 
     ``notes`` say what was checked and what a pass proves, such as a signature verified
     only with the key embedded in the file. ``trusted_key_checked`` is whether a 1.1.0
-    file was checked against trusted keys; a pass then means a trusted key signed it.
+    or 1.2.0 file was checked against trusted keys; a pass then means a trusted key signed it.
     A 1.0.0 file carries no signature, so it is never checked against a trusted key. Without them a
     pass shows only that the file is consistent with itself, and the last note says so.
     ``verified`` is the rule ``riskforge verify --file`` uses to print "RMF integrity
@@ -207,7 +217,9 @@ def check_rmf_document(
 
     Step 1 for every version: the document validates against the schema its
     ``rmf_schema_version`` names, and ``sha256_hash`` equals the content digest. For a
-    1.1.0 document that validates, steps 2 to 7: ``public_keys``, the RMF signatures,
+    1.2.0 document that validates, its ``validation`` status is the most severe gate
+    status (ADR-05). For a 1.1.0 or 1.2.0 document that validates, steps 2 to 7 of
+    ADR-04 section 6: ``public_keys``, the RMF signatures,
     the sign-offs, the chain proof, the embedded receipt, and each of ``receipts``
     (a label and a receipt read from its own file) against the chain proof.
 
@@ -260,6 +272,8 @@ def check_rmf_document(
             "because it does not validate against its schema."
         )
     else:
+        if version == "1.2.0":
+            findings.extend(_validation_findings(document["validation"]))
         _Provenance(document, computed, trusted, findings, notes).check(receipts)
     if not trusted and not findings:
         if version == "1.0.0":
@@ -278,8 +292,33 @@ def check_rmf_document(
     )
 
 
+_SEVERITY = {"PASS": 0, "WARN": 1, "FAIL": 2}
+
+
+def _validation_findings(validation: dict[str, Any]) -> list[str]:
+    """What is wrong with a schema-valid 1.2.0 ``validation`` block (ADR-05).
+
+    The schema fixes each field's type and allowed values. This checks what it cannot: no
+    gate appears twice, and ``status`` is the most severe gate status, so a file cannot
+    report PASS over a failing gate.
+    """
+    findings: list[str] = []
+    gates = validation["gates"]
+    counts = Counter(gate["gate_id"] for gate in gates)
+    repeated = sorted(gate_id for gate_id, count in counts.items() if count > 1)
+    if repeated:
+        findings.append(f"Its validation block lists gate {', '.join(repeated)} more than once.")
+    worst = max((gate["status"] for gate in gates), key=_SEVERITY.__getitem__)
+    if validation["status"] != worst:
+        findings.append(
+            f"Its validation status is {validation['status']}, but its most severe gate "
+            f"status is {worst}."
+        )
+    return findings
+
+
 class _Provenance:
-    """ADR-04 section 6 steps 2 to 7 for a 1.1.0 document that validates against its schema.
+    """ADR-04 section 6 steps 2 to 7 for a 1.1.0 or 1.2.0 document that fits its schema.
 
     The schema has already fixed every field's type, the ``ed25519`` algorithm of each
     signature and key record, and that a chain proof entry with ``key_id`` has a

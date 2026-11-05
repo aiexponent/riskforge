@@ -31,6 +31,7 @@ REPO = Path(__file__).resolve().parents[2]
 PUBLISHED = {
     "1.0.0": "https://aiexponent.com/schemas/riskforge/rmf/1.0.0.json",
     "1.1.0": "https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json",
+    "1.2.0": "https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json",
 }
 
 FETCH = """
