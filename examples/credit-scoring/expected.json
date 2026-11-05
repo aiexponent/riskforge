@@ -941,7 +941,7 @@
       }
     ]
   },
-  "rmf_schema_version": "1.1.0",
+  "rmf_schema_version": "1.2.0",
   "sha256_hash": "<hash>",
   "signatures": [],
   "signoffs": [],
@@ -1018,5 +1018,58 @@
       "risk_item_id": "<uuid>",
       "threshold_range": ">= 0.95"
     }
-  ]
+  ],
+  "validation": {
+    "gates": [
+      {
+        "description": "All 8 risk dimensions have entries",
+        "details": "",
+        "gate_id": "G1",
+        "status": "PASS"
+      },
+      {
+        "description": "Article 6(2) self-classification documented",
+        "details": "",
+        "gate_id": "G2",
+        "status": "PASS"
+      },
+      {
+        "description": "Every risk's residual score at or below the risk-appetite threshold, or accepted",
+        "details": "",
+        "gate_id": "G3",
+        "status": "PASS"
+      },
+      {
+        "description": "Knowledge gaps have test requirements",
+        "details": "",
+        "gate_id": "G4",
+        "status": "PASS"
+      },
+      {
+        "description": "System metadata complete",
+        "details": "",
+        "gate_id": "G5",
+        "status": "PASS"
+      },
+      {
+        "description": "Assessor identity recorded",
+        "details": "",
+        "gate_id": "G6",
+        "status": "PASS"
+      },
+      {
+        "description": "Risk score distribution plausible",
+        "details": "",
+        "gate_id": "G7",
+        "status": "PASS"
+      },
+      {
+        "description": "No vague mitigations",
+        "details": "",
+        "gate_id": "G8",
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS"
+  }
 }

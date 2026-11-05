@@ -24,12 +24,12 @@ from riskforge.models.risk import (
     RiskItem,
     Severity,
 )
-from riskforge.models.rmf import RiskManagementFile, rmf_document
+from riskforge.models.rmf import RMF_SCHEMA_VERSION, RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem
 
 
 def _schema() -> dict:
-    return load_schema("1.1.0")
+    return load_schema(RMF_SCHEMA_VERSION)
 
 
 def _rmf_with_mitigation() -> RiskManagementFile:

@@ -186,7 +186,8 @@ only with `--trusted-key`.
 
 ### 2.7 What an export carries
 
-A JSON export (RMF schema 1.1.0) carries a content digest (`sha256_hash`), the
+A JSON export (RMF schema 1.2.0) carries a content digest (`sha256_hash`), the validation
+gate results (`validation`, covered by the digest, ADR-05), the
 signatures, the public keys, a chain proof (every entry of the audit log up to the
 export) and a receipt for the last of those entries. The digest leaves out `id`,
 `generated_at`, `sha256_hash` and those four provenance blocks, so the JSON, PDF and

@@ -541,9 +541,9 @@ def test_a_trusted_key_file_that_is_not_a_public_key_exits_3(exported) -> None:
 
 
 def _downgraded(exported: dict[str, Path], tmp_path: Path) -> Path:
-    """A signed 1.1.0 file rewritten as 1.0.0: provenance dropped, the 1.0.0 digest redone."""
+    """A signed new file rewritten as 1.0.0: provenance and validation dropped, digest redone."""
     document = _load(exported["second"])
-    for name in ("signoffs", "signatures", "public_keys", "chain_proof", "receipt"):
+    for name in ("validation", "signoffs", "signatures", "public_keys", "chain_proof", "receipt"):
         document.pop(name)
     document["register"].pop("test_requirements", None)
     for item in document["register"]["items"]:
@@ -832,3 +832,35 @@ def test_a_receipt_file_refusal_reads_correctly(exported, tmp_path: Path) -> Non
     result = _verify(exported["second"], "--receipt", str(path))
     assert result.returncode == 2, result.output
     assert "it holds a NaN value, which RiskForge never writes." in result.stderr
+
+
+# --- the validation block (ADR-05) -------------------------------------------------------------
+
+V200_RMF = REPO / "tests" / "fixtures" / "v2_0_0_rmf" / "rmf.json"
+
+
+def test_a_2_0_0_file_still_verifies_as_schema_1_1_0() -> None:
+    result = _verify(V200_RMF)
+    assert result.returncode == 0, result.output
+    assert "RMF schema 1.1.0" in result.output
+
+
+def test_a_status_that_hides_a_failing_gate_fails_even_when_re_signed(
+    exported, tmp_path: Path
+) -> None:
+    """A file cannot say PASS over a FAIL gate, even when its signer redoes digest and signature."""
+    document = _load(exported["second"])
+    assert document["validation"]["status"] == "FAIL"
+    document["validation"]["status"] = "PASS"
+    _redigest(document, _signer(exported["key"]))
+    result = _verify(_write(document, tmp_path), "--trusted-key", f"{exported['key']}.pub")
+    assert result.returncode == 2, result.output
+    assert "validation status is PASS, but its most severe gate status is FAIL" in result.output
+
+
+def test_a_gate_listed_twice_fails(exported, tmp_path: Path) -> None:
+    document = _load(exported["unsigned"])
+    document["validation"]["gates"].append(dict(document["validation"]["gates"][0]))
+    result = _verify(_write(_redigest(document), tmp_path))
+    assert result.returncode == 2, result.output
+    assert "lists gate G1 more than once" in result.output

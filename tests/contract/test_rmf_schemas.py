@@ -1,8 +1,9 @@
-"""RMF schemas 1.0.0 and 1.1.0, the content digest and the signing messages (ADR-04 sections 1, 2, 4).
+"""RMF schemas 1.0.0, 1.1.0 and 1.2.0, the content digest and the signing messages.
 
-A file written by 1.1.3 still validates against 1.0.0 and still matches its digest. New
-documents are 1.1.0, carry no ``signed_by`` or ``audit_entry_hash``, and every provenance
-object refuses a field ADR-04 does not define.
+ADR-04 sections 1, 2 and 4, and ADR-05. A file written by 1.1.3 still validates against
+1.0.0 and still matches its digest, and one written by 2.0.0 against 1.1.0. New documents
+are 1.2.0, carry no ``signed_by`` or ``audit_entry_hash``, carry the validation block, and
+every provenance object refuses a field ADR-04 does not define.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from uuid import uuid4
 
 import jsonschema
 import pytest
-from rf_testkit import with_provenance
+from rf_testkit import with_provenance, with_validation
 from riskforge.integrity.canonical import canonical_json, sha256_hex
 from riskforge.integrity.receipts import build_receipt
 from riskforge.integrity.rmf import (
@@ -48,6 +49,7 @@ V113_RMF = Path(__file__).resolve().parents[1] / "fixtures" / "v1_1_3_project" /
 PUBLISHED = {
     "1.0.0": "https://aiexponent.com/schemas/riskforge/rmf/1.0.0.json",
     "1.1.0": "https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json",
+    "1.2.0": "https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json",
 }
 NOW = datetime(2026, 10, 1, tzinfo=UTC)
 
@@ -101,9 +103,7 @@ def _register() -> RiskRegister:
 
 
 def _rmf() -> RiskManagementFile:
-    rmf = RiskManagementFile(register=_register())
-    rmf.sha256_hash = content_digest(rmf_document(rmf))
-    return rmf
+    return with_validation(RiskManagementFile(register=_register()))
 
 
 def _entry(seq: int, prev_hash: str, **extra: object) -> AuditEntry:
@@ -167,7 +167,11 @@ def test_schema_is_valid_and_its_id_is_the_published_url(version: str) -> None:
 
 
 def test_schema_files_are_named_by_version() -> None:
-    assert SCHEMA_FILES == {"1.0.0": "rmf-1.0.0.schema.json", "1.1.0": "rmf-1.1.0.schema.json"}
+    assert SCHEMA_FILES == {
+        "1.0.0": "rmf-1.0.0.schema.json",
+        "1.1.0": "rmf-1.1.0.schema.json",
+        "1.2.0": "rmf-1.2.0.schema.json",
+    }
 
 
 def test_unknown_schema_version_is_refused() -> None:
@@ -201,23 +205,23 @@ def test_1_0_0_digest_is_the_1_1_3_rule_even_without_the_blanked_keys() -> None:
     assert content_digest(trimmed) == expected
 
 
-# --- 1.1.0: new documents ------------------------------------------------------------
+# --- 1.2.0: new documents ------------------------------------------------------------
 
 
-def test_new_documents_are_1_1_0_and_validate() -> None:
+def test_new_documents_are_1_2_0_and_validate() -> None:
     document = rmf_document(with_provenance(_rmf()))
-    assert RMF_SCHEMA_VERSION == "1.1.0"
-    assert document["rmf_schema_version"] == "1.1.0"
-    jsonschema.validate(document, load_schema("1.1.0"))
+    assert RMF_SCHEMA_VERSION == "1.2.0"
+    assert document["rmf_schema_version"] == "1.2.0"
+    jsonschema.validate(document, load_schema("1.2.0"))
 
 
 @pytest.mark.parametrize("block", ["chain_proof", "receipt"])
-def test_a_1_1_0_document_without_its_chain_proof_or_receipt_fails(block: str) -> None:
+def test_a_new_document_without_its_chain_proof_or_receipt_fails(block: str) -> None:
     # Every 2.0 export embeds both (ADR-04 section 1), so the schema requires them.
     document = rmf_document(with_provenance(_rmf()))
     del document[block]
     with pytest.raises(jsonschema.ValidationError, match=block):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 def test_new_documents_carry_empty_provenance_arrays_and_no_retired_fields() -> None:
@@ -231,17 +235,17 @@ def test_new_documents_carry_empty_provenance_arrays_and_no_retired_fields() -> 
 
 def test_a_fully_populated_document_validates() -> None:
     document = rmf_document(_full_rmf())
-    jsonschema.validate(document, load_schema("1.1.0"))
+    jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
     assert document["chain_proof"]["scope"] == "project"
     assert document["receipt"]["seq"] == 1
 
 
 @pytest.mark.parametrize("field", ["signed_by", "audit_entry_hash"])
-def test_1_1_0_rejects_the_retired_provenance_fields(field: str) -> None:
+def test_new_documents_reject_the_retired_provenance_fields(field: str) -> None:
     document = rmf_document(_rmf())
     value = "x" if field == "signed_by" else "0" * 64
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate({**document, field: value}, load_schema("1.1.0"))
+        jsonschema.validate({**document, field: value}, load_schema(RMF_SCHEMA_VERSION))
 
 
 def test_register_block_keeps_the_names_and_test_requirements() -> None:
@@ -290,10 +294,10 @@ def _provenance_objects(document: dict) -> dict[str, dict]:
 )
 def test_each_provenance_object_refuses_an_extra_property(target: str) -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
-    jsonschema.validate(document, load_schema("1.1.0"))
+    jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
     _provenance_objects(document)[target]["extra"] = "x"
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 _FIXED_LENGTH_FIELDS = [
@@ -320,18 +324,18 @@ _FIXED_LENGTH_FIELDS = [
 def test_a_trailing_newline_on_a_key_digest_or_signature_fails(target: str, field: str) -> None:
     """In Python ``re`` a ``$`` matches before a trailing newline, so lengths are bounded too."""
     document = copy.deepcopy(rmf_document(_full_rmf()))
-    jsonschema.validate(document, load_schema("1.1.0"))
+    jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
     objects = {"document": document, **_provenance_objects(document)}
     objects[target][field] += "\n"
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 def test_the_first_entry_prev_hash_with_a_trailing_newline_fails() -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
     document["chain_proof"]["entries"][0]["prev_hash"] = "0000000000\n"
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 @pytest.mark.parametrize("where", ["register", "item", "mitigation", "test_requirement"])
@@ -346,14 +350,14 @@ def test_register_objects_refuse_an_extra_property(where: str) -> None:
     }[where]
     target["extra"] = "x"
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 def test_a_signoff_without_its_signature_fails() -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
     del document["signoffs"][0]["signature"]
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 @pytest.mark.parametrize("drop", ["key_id", "signature"])
@@ -361,7 +365,7 @@ def test_a_chain_proof_entry_signed_by_halves_fails(drop: str) -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
     del document["chain_proof"]["entries"][1][drop]
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 @pytest.mark.parametrize("drop", ["key_id", "public_key", "signature"])
@@ -369,14 +373,14 @@ def test_a_receipt_signed_by_halves_fails(drop: str) -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
     del document["receipt"][drop]
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 def test_an_empty_chain_proof_fails() -> None:
     document = copy.deepcopy(rmf_document(_full_rmf()))
     document["chain_proof"]["entries"] = []
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(document, load_schema("1.1.0"))
+        jsonschema.validate(document, load_schema(RMF_SCHEMA_VERSION))
 
 
 # --- the content digest --------------------------------------------------------------
@@ -407,6 +411,7 @@ def test_digest_ignores_identity_time_and_provenance_but_covers_content() -> Non
         ("test_requirements", [{"x": 1}]),
         ("cross_references", [{"x": 1}]),
         ("disclosure", "other"),
+        ("validation", {"status": "FAIL", "gates": []}),
     ):
         assert content_digest({**document, key: value}) != base, key
 
@@ -420,7 +425,7 @@ def test_digest_reads_a_missing_signoffs_key_as_empty() -> None:
 def test_digest_is_the_canonical_json_of_the_content_fields() -> None:
     document = rmf_document(_rmf())
     kept = ("rmf_schema_version", "register", "test_requirements", "cross_references")
-    source = {key: document[key] for key in (*kept, "disclosure", "signoffs")}
+    source = {key: document[key] for key in (*kept, "disclosure", "validation", "signoffs")}
     assert content_digest(document) == sha256_hex(canonical_json(source))
 
 
@@ -469,7 +474,7 @@ def test_signoff_refuses_an_unknown_field() -> None:
 def test_read_rmf_file_returns_the_document(tmp_path: Path) -> None:
     path = tmp_path / "rmf.json"
     path.write_text(json.dumps(rmf_document(_rmf())), encoding="utf-8")
-    assert read_rmf_file(path)["rmf_schema_version"] == "1.1.0"
+    assert read_rmf_file(path)["rmf_schema_version"] == RMF_SCHEMA_VERSION
 
 
 @pytest.mark.parametrize(
@@ -509,3 +514,82 @@ def test_register_test_requirements_default_empty_and_left_out_when_empty() -> N
     register = RiskRegister(system=system, assessor_name="A", assessor_role="B")
     assert register.test_requirements == []
     assert "test_requirements" not in register.model_dump(mode="json")
+
+
+# --- 1.1.0: files written by 2.0.0 ---------------------------------------------------
+
+V200_RMF = Path(__file__).resolve().parents[1] / "fixtures" / "v2_0_0_rmf"
+
+
+def test_v200_fixture_is_pinned() -> None:
+    import hashlib
+
+    expected = (V200_RMF / "SHA256SUMS").read_text(encoding="utf-8").split()[0]
+    assert hashlib.sha256((V200_RMF / "rmf.json").read_bytes()).hexdigest() == expected
+
+
+def test_v200_rmf_still_validates_as_1_1_0_and_matches_its_digest() -> None:
+    document = read_rmf_file(V200_RMF / "rmf.json")
+    assert document["rmf_schema_version"] == "1.1.0"
+    assert "validation" not in document
+    jsonschema.validate(document, load_schema("1.1.0"))
+    assert content_digest(document) == document["sha256_hash"]
+
+
+def test_1_1_0_cannot_carry_a_validation_block() -> None:
+    document = read_rmf_file(V200_RMF / "rmf.json")
+    block = {"status": "PASS", "gates": [_gate("G1", "PASS")]}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate({**document, "validation": block}, load_schema("1.1.0"))
+
+
+# --- 1.2.0: the validation block (ADR-05) ------------------------------------------
+
+
+def _gate(gate_id: str, status: str) -> dict:
+    return {"gate_id": gate_id, "description": "A gate", "status": status, "details": ""}
+
+
+def test_new_documents_record_every_gate_and_the_worst_status() -> None:
+    document = rmf_document(_rmf())
+    gates = document["validation"]["gates"]
+    assert [gate["gate_id"] for gate in gates] == [f"G{n}" for n in range(1, 9)]
+    statuses = {gate["status"] for gate in gates}
+    worst = "FAIL" if "FAIL" in statuses else "WARN" if "WARN" in statuses else "PASS"
+    assert document["validation"]["status"] == worst
+
+
+def test_1_2_0_requires_the_validation_block() -> None:
+    document = rmf_document(with_provenance(_rmf()))
+    del document["validation"]
+    with pytest.raises(jsonschema.ValidationError, match="validation"):
+        jsonschema.validate(document, load_schema("1.2.0"))
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(lambda v: v.update(extra="x"), id="extra-field-in-block"),
+        pytest.param(lambda v: v["gates"][0].update(extra="x"), id="extra-field-in-gate"),
+        pytest.param(lambda v: v.update(status="OK"), id="unknown-status"),
+        pytest.param(lambda v: v["gates"][0].update(status="pass"), id="lowercase-gate-status"),
+        pytest.param(lambda v: v["gates"][0].update(gate_id="X1"), id="bad-gate-id"),
+        pytest.param(lambda v: v["gates"][0].update(description=""), id="empty-description"),
+        pytest.param(lambda v: v["gates"][0].pop("details"), id="missing-details"),
+        pytest.param(lambda v: v.update(gates=[]), id="no-gates"),
+    ],
+)
+def test_1_2_0_refuses_a_malformed_validation_block(change) -> None:
+    document = copy.deepcopy(rmf_document(with_provenance(_rmf())))
+    jsonschema.validate(document, load_schema("1.2.0"))
+    change(document["validation"])
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(document, load_schema("1.2.0"))
+
+
+def test_digest_covers_the_validation_block() -> None:
+    document = rmf_document(_rmf())
+    changed = copy.deepcopy(document)
+    gate = changed["validation"]["gates"][2]
+    gate["status"] = "PASS" if gate["status"] != "PASS" else "FAIL"
+    assert content_digest(changed) != content_digest(document)

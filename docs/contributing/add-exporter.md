@@ -36,9 +36,9 @@ riskforge export <id> --format myformat
 The ExportEngine calls `render()` after:
 1. Computing the content digest (`riskforge.integrity.rmf.content_digest`)
 2. Adding the chain proof, the receipt and, for a signed export, the signature
-3. Schema validation against RMF schema 1.1.0 (`rmf-1.1.0.schema.json`)
+3. Schema validation against RMF schema 1.2.0 (`rmf-1.2.0.schema.json`)
 
-Your exporter only needs to handle serialisation. The `rmf` object passed to `render()` is fully populated and validated. Show `rmf.sha256_hash` in your format, so a reader can match the file to the JSON export of the same register state. `render()` must return the whole file: the engine writes it to a temporary file and records the export only after renaming it into place, so an exception in `render()` leaves no file and no audit entry.
+Your exporter only needs to handle serialisation. The `rmf` object passed to `render()` is fully populated and validated. Show `rmf.sha256_hash` in your format, so a reader can match the file to the JSON export of the same register state. Show the gate results from `rmf.validation` rather than running the gates again, so your format shows what the digest covers, and make a forced export (`rmf.validation.status == "FAIL"`) visible. `render()` must return the whole file: the engine writes it to a temporary file and records the export only after renaming it into place, so an exception in `render()` leaves no file and no audit entry.
 
 ## Publishing
 

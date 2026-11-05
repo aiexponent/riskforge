@@ -6,6 +6,19 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 does not read: its `riskforge verify --file` exits 3 on a 1.2.0 file. Upgrade every reviewer who checks exported files at the same time. Files written by 2.0.0 (schema 1.1.0) and 1.1.3 (schema 1.0.0) keep verifying.
+
+### Changed
+
+- The JSON export is RMF schema 1.2.0 ([ADR-05](docs/adr/ADR-05-rmf-validation-block.md)). It adds one required block, `validation`: the result of every validation gate as it ran on the exported register (id, description, `PASS`, `WARN` or `FAIL`, and details), and an overall `status`, the most severe of them. The content digest covers it, so the digest and any signature over it now vouch for the gate results. The schema is published at `https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`. Two exports of one register state by one release still share a digest.
+- The `rmf.exported` audit entry lists the failing gates as `failing_gates` when an export is forced past them. An export that passed every gate writes the same entry as before.
+- The Markdown export has a "Validation Gates" section, and the PDF shows the gate results recorded in the file instead of running the gates again when it renders.
+
+### Fixed
+
+- An export forced past a failing gate with `--force` was invisible in the signed JSON and the Markdown export, and the PDF's "Exported with failing gates" line was not covered by the digest it printed (defect D1 of the 2.0.0 independent test, `verification/REPORT.md`). All three formats now show the failing gates, under the content digest.
+- `riskforge verify --file` reads RMF schema 1.2.0, and fails a 1.2.0 file with exit 2 when its `validation` status is not the most severe gate status or a gate is listed twice, so a file cannot report PASS over a failing gate even when its signer redoes the digest and the signature.
+
 ### Security
 
 - The locked dependency versions in `requirements.lock` and `uv.lock` move past advisories published after 2.0.0: Pillow 13.0.0 (WeasyPrint's image library), filelock 4.2.8, Brotli 1.2.1 and packaging 26.3. `pyproject.toml` already allows filelock 4.2.8 and packaging 26.3, and WeasyPrint and FontTools already allow the new Pillow and Brotli, so an install that does not use the lock files is unchanged.

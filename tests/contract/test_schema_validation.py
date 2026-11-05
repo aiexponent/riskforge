@@ -1,4 +1,4 @@
-"""Contract tests: every export path must validate against RMF schema 1.1.0."""
+"""Contract tests: every export path must validate against the current RMF schema."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ from rf_testkit import with_provenance
 from riskforge.integrity.rmf import content_digest, load_schema
 from riskforge.models.register import RiskRegister
 from riskforge.models.risk import Likelihood, RiskDimension, RiskItem, Severity
-from riskforge.models.rmf import RiskManagementFile, rmf_document
+from riskforge.models.rmf import RMF_SCHEMA_VERSION, RiskManagementFile, rmf_document
 from riskforge.models.system import AISystem, AnnexIIICategory
 
 
 @pytest.fixture
 def schema() -> dict:
-    return load_schema("1.1.0")
+    return load_schema(RMF_SCHEMA_VERSION)
 
 
 def minimal_rmf() -> RiskManagementFile:
@@ -60,7 +60,9 @@ def test_minimal_rmf_passes_schema(schema: dict) -> None:
 
 
 def test_schema_has_correct_id(schema: dict) -> None:
-    assert schema["$id"] == "https://aiexponent.com/schemas/riskforge/rmf/1.1.0.json"
+    assert (
+        schema["$id"] == f"https://aiexponent.com/schemas/riskforge/rmf/{RMF_SCHEMA_VERSION}.json"
+    )
 
 
 def test_schema_requires_sha256_hash(schema: dict) -> None:

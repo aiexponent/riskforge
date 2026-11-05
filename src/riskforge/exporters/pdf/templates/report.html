@@ -80,7 +80,7 @@
     <p>Risk patterns applied: {{ patterns_used | join(', ') if patterns_used else 'none' }}.</p>
     <p>Readiness gates G1 to G8 are the checks <code>riskforge validate</code> runs. A FAIL gate
       blocks export unless the export is forced. Results at export:</p>
-    <p class="gate-list">{% for gate in gates %}<span class="gate gate-{{ gate.status.value | lower }}">{{ gate.gate_id }} {{ gate.status.value }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    <p class="gate-list">{% for gate in gates %}<span class="gate gate-{{ gate.status | lower }}">{{ gate.gate_id }} {{ gate.status }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
   </section>
 
   <section class="section">

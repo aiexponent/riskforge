@@ -102,12 +102,29 @@ def pdf_text(path: Path) -> str:
     return "\n".join(page.extract_text() for page in PdfReader(str(path)).pages)
 
 
-def with_provenance(rmf):
-    """``rmf`` with the chain proof and receipt every export embeds: one checkpoint entry.
+def with_validation(rmf):
+    """``rmf`` with the validation block every 1.2.0 export carries, and its digest redone.
 
-    For tests that build a RiskManagementFile by hand and validate it against schema
-    1.1.0, which requires both blocks.
+    The gates run on ``rmf.register`` as ``riskforge export`` runs them (ADR-05).
     """
+    from riskforge.engine.export import validation_record
+    from riskforge.engine.validate import ValidateEngine
+    from riskforge.integrity.rmf import content_digest
+    from riskforge.models.rmf import rmf_document
+
+    if rmf.validation is None:
+        rmf.validation = validation_record(ValidateEngine().run(rmf.register))
+        rmf.sha256_hash = content_digest(rmf_document(rmf))
+    return rmf
+
+
+def with_provenance(rmf):
+    """``rmf`` with the blocks every export embeds: validation, chain proof and receipt.
+
+    For tests that build a RiskManagementFile by hand and validate it against the current
+    schema, which requires all three. The chain proof is one checkpoint entry.
+    """
+    with_validation(rmf)
     from datetime import UTC, datetime
 
     from riskforge.integrity.canonical import document_fingerprint

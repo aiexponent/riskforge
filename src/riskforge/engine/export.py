@@ -34,9 +34,11 @@ from riskforge.models.rmf import (
     RMF_SCHEMA_VERSION,
     ChainProof,
     CrossReference,
+    GateRecord,
     PublicKeyRecord,
     RiskManagementFile,
     RmfSignature,
+    ValidationRecord,
     rmf_document,
 )
 from riskforge.plugins.registry import PluginRegistry
@@ -127,6 +129,27 @@ def build_cross_references(items: list[RiskItem]) -> list[CrossReference]:
         )
         for art, cluster in clusters.items()
     ]
+
+
+def validation_record(results: Sequence[GateResult]) -> ValidationRecord:
+    """The ``validation`` block of an RMF 1.2.0 file for ``results`` (ADR-05).
+
+    ``status`` is the most severe gate status: FAIL, then WARN, then PASS.
+    """
+    statuses = {result.status for result in results}
+    worst = next((s for s in (GateStatus.FAIL, GateStatus.WARN) if s in statuses), GateStatus.PASS)
+    return ValidationRecord(
+        status=worst.value,
+        gates=[
+            GateRecord(
+                gate_id=result.gate_id,
+                description=result.description,
+                status=result.status.value,
+                details=result.details,
+            )
+            for result in results
+        ],
+    )
 
 
 def _fsync_dir(directory: Path) -> None:
@@ -285,7 +308,11 @@ class ExportEngine:
     def build_rmf(
         self, register: RiskRegister, export_id: UUID | None = None
     ) -> RiskManagementFile:
-        """The RMF content for ``register``, with its content digest and no provenance."""
+        """The RMF content for ``register``, with its content digest and no provenance.
+
+        The ``validation`` block records the gates as they run on ``register``, so a file
+        exported with ``--force`` past a failing gate says so under its digest (ADR-05).
+        """
         rmf = RiskManagementFile(
             id=export_id or uuid4(),
             rmf_schema_version=RMF_SCHEMA_VERSION,
@@ -295,6 +322,7 @@ class ExportEngine:
             disclosure=self.DISCLOSURE_TEMPLATE.format(
                 version=pkg_version("riskforge"), qb_version=register.question_bank_version
             ),
+            validation=validation_record(ValidateEngine().run(register)),
         )
         rmf.sha256_hash = content_digest(rmf_document(rmf))
         return rmf
@@ -334,11 +362,10 @@ class ExportEngine:
         async with self._audit.unit_of_work():
             locked_at = time.time()
             register = await self._audit.read_register(system_id)
-            if not force:
-                validator = ValidateEngine()
-                results = validator.run(register)
-                if validator.has_failures(results):
-                    raise ValidationGateError(results)
+            validator = ValidateEngine()
+            results = validator.run(register)
+            if not force and validator.has_failures(results):
+                raise ValidationGateError(results)
             committed = [entry async for entry in self._storage.read_audit()]
             staged: StagedEntries | None = None
             if self._needs_checkpoint(system_id, register, committed):
@@ -389,6 +416,7 @@ class ExportEngine:
                 ) from exc
 
             file_sha256 = hashlib.sha256(data).hexdigest()
+            failing = [r.gate_id for r in results if r.status == GateStatus.FAIL]
             entry = await self._audit.record(
                 "rmf.exported",
                 system_id,
@@ -397,6 +425,7 @@ class ExportEngine:
                     "format": fmt,
                     "sha256": rmf.sha256_hash,
                     "file_sha256": file_sha256,
+                    **({"failing_gates": failing} if failing else {}),
                 },
             )
         return ExportResult(
