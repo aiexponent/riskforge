@@ -39,10 +39,9 @@ def cmd(
 
     from riskforge.adapters.base import AdapterSchemaError
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import read_register_or_fail, run_checked
+    from riskforge.cli.project import cli_actor, read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
-    from riskforge.models.audit import AuditActor
     from riskforge.plugins.registry import PluginRegistry
 
     registry = PluginRegistry()
@@ -65,7 +64,7 @@ def cmd(
             risk_items = registry.get_adapter(adapter).transform(data)
         except AdapterSchemaError as exc:
             fail(f"{report}: {exc}")
-        actor = AuditActor(type="human", identity="cli-import")
+        actor = cli_actor("cli-import")
         engine = RiskEngine(store, AuditEngine(store, actor))
         for item in risk_items:
             await engine.add_risk(system_id, item)

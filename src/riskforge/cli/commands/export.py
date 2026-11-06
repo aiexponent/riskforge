@@ -58,6 +58,7 @@ def cmd(
 
     from riskforge.cli.errors import EXIT_FAILED, EXIT_TAMPERED, fail
     from riskforge.cli.project import (
+        cli_actor,
         load_signer,
         load_trusted_keys,
         open_project,
@@ -76,7 +77,6 @@ def cmd(
         ValidationGateError,
     )
     from riskforge.engine.integrity import IntegrityError
-    from riskforge.models.audit import AuditActor
     from riskforge.plugins.registry import PluginRegistry
 
     registry = PluginRegistry()
@@ -93,7 +93,7 @@ def cmd(
     if output is None:
         ext = {"json": "json", "pdf": "pdf", "markdown": "md"}.get(fmt, fmt)
         output = project_dir / f"rmf-{system_id[:8]}-{str(export_id)[:8]}.{ext}"
-    audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+    audit = AuditEngine(store, cli_actor())
     engine = ExportEngine(registry, audit, store)
 
     async def _export():
