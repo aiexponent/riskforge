@@ -10,6 +10,16 @@ from riskforge.models.rmf import RiskManagementFile
 _SENTENCE_ENDS = ("?", ".", "!")
 
 
+def display_label(value: object) -> str:
+    """A stored name such as ``almost_certain`` or ``question_bank`` as words a reader expects.
+
+    >>> display_label("almost_certain")
+    'Almost certain'
+    """
+    text = str(getattr(value, "name", value)).replace("_", " ").strip()
+    return text[:1].upper() + text[1:]
+
+
 def display_title(title: str) -> str:
     """The title as a report shows it: a title cut at creation gets a trailing "...".
 

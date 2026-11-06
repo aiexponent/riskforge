@@ -699,7 +699,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 
 ```yaml
 # src/riskforge/_data/question_bank/privacy.yaml
-- id: PRIV-007
+- id: PR-006          # dimension code PR, next free number
   text: "Does the system process special category data under GDPR Article 9?"
   guidance: "Special category data includes data revealing racial or ethnic origin or political opinions, health data, and biometric data processed to uniquely identify a person (GDPR Article 9(1))."
   annex_iii_categories: [essential_services, employment]

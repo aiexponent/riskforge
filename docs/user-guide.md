@@ -202,7 +202,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register. Run it before `export`: the export carries the saved requirements. |
-| `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
+| `riskforge validate <id> [--force]` | Run the 8 readiness gates. A FAIL gate exits 1; `--force` makes it exit 0 instead. `validate` never exports: `export` takes its own `--force`. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--public-key PUBFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone exported RMF with `--file` (see [Verifying an exported file](#verifying-an-exported-file)). `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge keygen --output KEYFILE` | Create an Ed25519 key pair: `KEYFILE` (mode 600 on Linux and macOS, not encrypted) and `KEYFILE.pub`. Never overwrites a file. |

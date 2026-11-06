@@ -7,7 +7,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from riskforge.exporters.base import Exporter, display_title
+from riskforge.exporters.base import Exporter, display_label, display_title
 from riskforge.models.risk import RiskDimension
 from riskforge.models.rmf import RiskManagementFile
 
@@ -33,6 +33,7 @@ class PDFExporter(Exporter):
             autoescape=select_autoescape(["html"]),
         )
         self._env.filters["display_title"] = display_title
+        self._env.filters["label"] = display_label
 
     def render_html(self, rmf: RiskManagementFile) -> str:
         """Return the report HTML that :meth:`render` turns into a PDF."""

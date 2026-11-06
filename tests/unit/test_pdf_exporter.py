@@ -396,3 +396,28 @@ def test_risk_cross_references_render_independently(refs: dict, expected: str) -
     rmf.register.items[0] = item
     html = PDFExporter().render_html(rmf)
     assert expected in html
+
+
+def test_pdf_shows_scores_and_sources_as_words(rendered) -> None:
+    """The PDF printed raw enum values such as "almost_certain" (D9)."""
+    _rmf, text, _pages = rendered
+    flat = _flat(text)
+    assert "Likelihood Likely (4)" in flat
+    assert "Source Manual" in flat
+    assert "Regulatory status Settled" in flat
+    assert not re.search(r"\b(likely|almost_certain|question_bank) \(\d\)", flat)
+
+
+def test_pdf_mitigation_bullets_read_in_order(rendered) -> None:
+    """A list marker was drawn after the page text, so text read from the PDF put a stray
+    bullet at the end of the page instead of before the mitigation (D9)."""
+    _rmf, _text, pages = rendered
+    for page in pages:
+        assert not re.search(r"•\s*$", page.split("RiskForge, EU AI Act")[0]), page
+
+
+def test_pdf_verify_line_names_what_to_check(rendered) -> None:
+    """The last page ended "riskforge verify --file ." with no file (D9)."""
+    _rmf, text, _pages = rendered
+    assert "riskforge verify --file <JSON export>" in _flat(text)
+    assert "verify --file ." not in _flat(text)

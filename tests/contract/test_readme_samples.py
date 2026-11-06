@@ -301,3 +301,19 @@ def test_pattern_claim_matches_the_bundled_patterns() -> None:
             assert "Art. 6(1)" in text, pattern["pattern_id"]
         else:
             assert f"({pattern['annex_iii_point']})" in text, pattern["pattern_id"]
+
+
+def test_question_sample_uses_the_next_free_id_of_its_bank() -> None:
+    """The sample id `PRIV-007` matched no bank id, `PR-001` to `PR-005` (D12)."""
+    import yaml
+    from riskforge.engine.assess import AssessEngine
+    from riskforge.models.risk import RiskDimension
+
+    block = _block("yaml", "**Add a question**")
+    path = re.search(r"# src/riskforge/_data/question_bank/(\w+)\.yaml", block)
+    assert path, block
+    [sample] = yaml.safe_load(block)
+    bank = AssessEngine().load_questions(RiskDimension(path.group(1)))
+    prefix = bank[0]["id"].split("-")[0]
+    assert sample["id"] == f"{prefix}-{len(bank) + 1:03d}"
+    assert set(sample) <= {key for question in bank for key in question}
