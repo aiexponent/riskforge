@@ -536,7 +536,9 @@
         "article_ref",
         "risk_item_ids",
         "nist_rmf_ref",
-        "iso42001_ref"
+        "iso42001_ref",
+        "nist_rmf_refs",
+        "iso42001_refs"
       ],
       "properties": {
         "article_ref": {
@@ -554,6 +556,22 @@
         },
         "iso42001_ref": {
           "type": "string"
+        },
+        "nist_rmf_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "iso42001_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": false

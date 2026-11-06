@@ -360,7 +360,16 @@
     {
       "article_ref": "Art.9(2)(a)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7",
+        "Clause 6.1"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11",
+        "MAP 3.5",
+        "GOVERN 1.1"
+      ],
       "risk_item_ids": [
         "<uuid>",
         "<uuid>",
@@ -371,7 +380,13 @@
     {
       "article_ref": "Art.9(9)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -379,7 +394,13 @@
     {
       "article_ref": "Art.10(2)(f)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
       "risk_item_ids": [
         "<uuid>",
         "<uuid>"
@@ -388,7 +409,13 @@
     {
       "article_ref": "Art.13",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -396,7 +423,13 @@
     {
       "article_ref": "Art.86(1)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -404,7 +437,13 @@
     {
       "article_ref": "Art.14(1)",
       "iso42001_ref": "Clause 6.1",
+      "iso42001_refs": [
+        "Clause 6.1"
+      ],
       "nist_rmf_ref": "MAP 3.5",
+      "nist_rmf_refs": [
+        "MAP 3.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -412,7 +451,13 @@
     {
       "article_ref": "Art.4a(1)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.10",
+      "nist_rmf_refs": [
+        "MEASURE 2.10"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -420,7 +465,13 @@
     {
       "article_ref": "Art.26(11)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -428,7 +479,13 @@
     {
       "article_ref": "Art.50(1)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -436,7 +493,13 @@
     {
       "article_ref": "Art.14(4)(e)",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MANAGE 2.4",
+      "nist_rmf_refs": [
+        "MANAGE 2.4"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -444,7 +507,13 @@
     {
       "article_ref": "Art.9(6)",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MEASURE 2.5",
+      "nist_rmf_refs": [
+        "MEASURE 2.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -452,7 +521,13 @@
     {
       "article_ref": "Art.15",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MEASURE 2.5",
+      "nist_rmf_refs": [
+        "MEASURE 2.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -460,7 +535,13 @@
     {
       "article_ref": "Art.10(2)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MAP 2.3",
+      "nist_rmf_refs": [
+        "MAP 2.3"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -468,7 +549,13 @@
     {
       "article_ref": "Art.10(2)(b)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MAP 2.3",
+      "nist_rmf_refs": [
+        "MAP 2.3"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]

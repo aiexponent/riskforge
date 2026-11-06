@@ -105,27 +105,35 @@ class ExportResult:
     checkpoint: AuditEntry | None
 
 
+def _framework_refs(refs: list[str], legacy: str) -> list[str]:
+    """An item's non-empty references to one framework: its list, or its legacy single field."""
+    return [ref for ref in (refs or [legacy]) if ref]
+
+
 def build_cross_references(items: list[RiskItem]) -> list[CrossReference]:
-    """One cluster per article reference, with the first NIST and ISO reference seen for it."""
+    """One cluster per article reference, with every distinct NIST and ISO reference of it.
+
+    References keep the order of the items, then the order within each item. The single
+    ``nist_rmf_ref`` and ``iso42001_ref`` fields carry the first of each list (D4 of the
+    2.0.0 independent test, ADR-05).
+    """
     clusters: OrderedDict[str, dict] = OrderedDict()
     for item in items:
+        nist = _framework_refs(item.nist_rmf_refs, item.nist_rmf_ref)
+        iso = _framework_refs(item.iso42001_refs, item.iso42001_ref)
         for art in item.article_refs:
-            cluster = clusters.setdefault(art, {"ids": [], "nist": "", "iso": ""})
+            cluster = clusters.setdefault(art, {"ids": [], "nist": {}, "iso": {}})
             cluster["ids"].append(item.id)
-            if not cluster["nist"]:
-                cluster["nist"] = (
-                    item.nist_rmf_refs[0] if item.nist_rmf_refs else ""
-                ) or item.nist_rmf_ref
-            if not cluster["iso"]:
-                cluster["iso"] = (
-                    item.iso42001_refs[0] if item.iso42001_refs else ""
-                ) or item.iso42001_ref
+            cluster["nist"].update(dict.fromkeys(nist))
+            cluster["iso"].update(dict.fromkeys(iso))
     return [
         CrossReference(
             article_ref=art,
             risk_item_ids=cluster["ids"],
-            nist_rmf_ref=cluster["nist"],
-            iso42001_ref=cluster["iso"],
+            nist_rmf_ref=next(iter(cluster["nist"]), ""),
+            iso42001_ref=next(iter(cluster["iso"]), ""),
+            nist_rmf_refs=list(cluster["nist"]),
+            iso42001_refs=list(cluster["iso"]),
         )
         for art, cluster in clusters.items()
     ]

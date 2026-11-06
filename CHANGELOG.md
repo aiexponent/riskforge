@@ -11,12 +11,14 @@ Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 doe
 ### Changed
 
 - The JSON export is RMF schema 1.2.0 ([ADR-05](docs/adr/ADR-05-rmf-validation-block.md)). It adds one required block, `validation`: the result of every validation gate as it ran on the exported register (id, description, `PASS`, `WARN` or `FAIL`, and details), and an overall `status`, the most severe of them. The content digest covers it, so the digest and any signature over it now vouch for the gate results. The schema is published at `https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`. Two exports of one register state by one release still share a digest.
+- Each cross-reference in the JSON export lists every distinct NIST AI RMF and ISO/IEC 42001 reference of its risk items, in the new required fields `nist_rmf_refs` and `iso42001_refs` of RMF schema 1.2.0. `nist_rmf_ref` and `iso42001_ref` keep the first of each.
 - The `rmf.exported` audit entry lists the failing gates as `failing_gates` when an export is forced past them. An export that passed every gate writes the same entry as before.
 - The Markdown export has a "Validation Gates" section, and the PDF shows the gate results recorded in the file instead of running the gates again when it renders.
 
 ### Fixed
 
 - The review date is now whole calendar months after the assessment date: `assess --review-months 12` on 4 November 2026 gives 4 November 2027. It used to count 30 days a month, so 12 months came out 360 days later, on 30 October 2027 (defect D2 of the 2.0.0 independent test). A day the target month does not have becomes its last day. Registers written before keep their stored review date. `--review-months` below 1 now exits 3 instead of setting a review date on or before the assessment, and `RiskEngine.create_register()` raises `ValueError` for it.
+- A cross-reference group showed the NIST AI RMF and ISO/IEC 42001 references of one of its risk items only, so the `Art.9(2)(a)` group of the 2.0.0 independent test showed `MEASURE 2.11` and `Annex A.7` while it also held items citing `GOVERN 1.1` and `MAP 5.1` (defect D4). The new lists name every reference of the group.
 - An export forced past a failing gate with `--force` was invisible in the signed JSON and the Markdown export, and the PDF's "Exported with failing gates" line was not covered by the digest it printed (defect D1 of the 2.0.0 independent test, `verification/REPORT.md`). All three formats now show the failing gates, under the content digest.
 - `riskforge verify --file` reads RMF schema 1.2.0, and fails a 1.2.0 file with exit 2 when its `validation` status is not the most severe gate status or a gate is listed twice, so a file cannot report PASS over a failing gate even when its signer redoes the digest and the signature.
 
