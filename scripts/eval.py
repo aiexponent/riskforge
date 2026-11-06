@@ -92,6 +92,25 @@ async def _accept_open_items(project_dir: Path, sid: str) -> None:
         )
 
 
+def _description_args(config: dict) -> list[str]:
+    """The optional system description in config.yaml as `riskforge init` options."""
+    args: list[str] = []
+    for key, flag in (
+        ("intended_users", "--intended-user"),
+        ("inputs", "--input"),
+        ("outputs", "--output"),
+    ):
+        for value in config.get(key, []):
+            args += [flag, value]
+    for key, flag in (
+        ("deployment_context", "--deployment-context"),
+        ("provider_contact", "--provider-contact"),
+    ):
+        if config.get(key):
+            args += [flag, config[key]]
+    return args
+
+
 def _run_example(example_dir: Path) -> dict:
     config = yaml.safe_load((example_dir / "config.yaml").read_text())
     with tempfile.TemporaryDirectory() as tmp:
@@ -109,6 +128,7 @@ def _run_example(example_dir: Path) -> dict:
                 config["provider"],
                 "-c",
                 config["category"],
+                *_description_args(config),
                 "--project-dir",
                 str(d),
                 "--non-interactive",

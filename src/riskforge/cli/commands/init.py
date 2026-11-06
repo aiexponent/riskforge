@@ -23,6 +23,21 @@ def cmd(
         help="Annex III category: biometric, critical_infrastructure, education, employment, "
         "essential_services, law_enforcement, migration or justice",
     ),
+    intended_user: Optional[list[str]] = typer.Option(
+        None, "--intended-user", help="Who uses the system's output. Repeatable."
+    ),
+    input_: Optional[list[str]] = typer.Option(
+        None, "--input", help="What the system takes in. Repeatable."
+    ),
+    output: Optional[list[str]] = typer.Option(
+        None, "--output", help="What the system produces. Repeatable."
+    ),
+    deployment_context: str = typer.Option(
+        "", "--deployment-context", help="Where and how the system is deployed"
+    ),
+    provider_contact: str = typer.Option(
+        "", "--provider-contact", help="Contact for the provider, such as an email address"
+    ),
     project_dir: Path = typer.Option(Path("."), "--project-dir", help="Project directory"),
     non_interactive: bool = typer.Option(
         False, "--non-interactive", help="Skip interactive prompts"
@@ -32,7 +47,8 @@ def cmd(
 
     Creates .riskforge/ directory, riskforge.yaml manifest, and an initial
     system record with its first audit entry. Run this once per AI system you
-    are documenting.
+    are documenting. The description options can also be set later with
+    `riskforge system describe`; gate G5 warns while any of them is empty.
     """
     import asyncio
     import uuid
@@ -55,6 +71,11 @@ def cmd(
         purpose=purpose,
         provider_name=provider,
         annex_iii_category=parse_category(category),
+        intended_users=list(intended_user or []),
+        inputs=list(input_ or []),
+        outputs=list(output or []),
+        deployment_context=deployment_context,
+        provider_contact=provider_contact,
     )
 
     async def _init() -> None:
