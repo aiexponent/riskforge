@@ -756,7 +756,7 @@ make lint        # ruff check + format
 RiskForge makes **zero outbound network connections** in CLI mode. Your risk registers, architecture descriptions, mitigation plans, and audit logs remain strictly on your local machine.
 
 ```
-RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com
+RiskForge v2.1.0 | Apache 2.0 | Zero telemetry | aiexponent.com
 ```
 
 *Zero-network guarantee enforced in automated CI via `pytest-socket --disable-socket`.*
@@ -767,7 +767,8 @@ RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com
 
 | Version | Highlights |
 |---|---|
-| **[v2.0.0](https://github.com/aiexponent/riskforge/releases/tag/v2.0.0)** | Interactive assess works; verify catches edited registers, cut or deleted logs and deleted files; atomic writes under one project lock; Ed25519 signing, receipts and RMF schema 1.1.0; a styled PDF with the full structure; one-line errors with exit code 3; a supported Python API and storage contract suite. Breaking: GPG signing, the `serve` command and the Docker image are gone. RiskForge 1.x reports a project 2.0.0 has changed as tampered (exit 2), and `verify --file` in 1.1.x reports a 2.0.0 JSON export the same way: upgrade every machine and every reviewer together, do not downgrade, and see the upgrade note in CHANGELOG.md. |
+| **[v2.1.0](https://github.com/aiexponent/riskforge/releases/tag/v2.1.0)** | Fixes from the independent test of 2.0.0: every export records each validation gate under its content digest (RMF schema 1.2.0, ADR-05), so an export forced past a failing gate says so in JSON, Markdown and PDF; the review date is whole calendar months after the assessment. RiskForge 2.0.0 cannot read a 1.2.0 file: upgrade every reviewer together. |
+| [v2.0.0](https://github.com/aiexponent/riskforge/releases/tag/v2.0.0) | Interactive assess works; verify catches edited registers, cut or deleted logs and deleted files; atomic writes under one project lock; Ed25519 signing, receipts and RMF schema 1.1.0; a styled PDF with the full structure; one-line errors with exit code 3; a supported Python API and storage contract suite. Breaking: GPG signing, the `serve` command and the Docker image are gone. RiskForge 1.x reports a project 2.0.0 has changed as tampered (exit 2), and `verify --file` in 1.1.x reports a 2.0.0 JSON export the same way: upgrade every machine and every reviewer together, do not downgrade, and see the upgrade note in CHANGELOG.md. |
 | [v1.1.3](https://github.com/aiexponent/riskforge/releases/tag/v1.1.3) | Resilient dependency ranges, multi-OS CI runner matrix (Ubuntu/macOS) with WeasyPrint test coverage, 5-tool reciprocal ecosystem footer, flat-square badges & Dependabot. |
 | [v1.1.2](https://github.com/aiexponent/riskforge/releases/tag/v1.1.2) | Documentation now points at the in-repo guides (full user guide, Article 9 mapping, audit-chain design with diagrams); the PyPI docs link is absolute and a `docs/` index was added. |
 | [v1.1.1](https://github.com/aiexponent/riskforge/releases/tag/v1.1.1) | Schema hardening: the mandatory not-legal-advice disclosure is now enforced by the RMF JSON Schema (required, non-empty), not only injected at export. |

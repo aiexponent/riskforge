@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-06
+
 Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 does not read: its `riskforge verify --file` exits 3 on a 1.2.0 file. Upgrade every reviewer who checks exported files at the same time. Files written by 2.0.0 (schema 1.1.0) and 1.1.3 (schema 1.0.0) keep verifying.
 
 ### Changed
