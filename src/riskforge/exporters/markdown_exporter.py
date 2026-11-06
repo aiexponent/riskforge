@@ -98,6 +98,9 @@ class MarkdownExporter(Exporter):
                 lines.append(f"> {_md(item.description)}")
                 if item.article_refs:
                     lines.append(f"> *Article refs: {_md(', '.join(item.article_refs))}*")
+                if item.knowledge_gap:
+                    reason = item.knowledge_gap_reason or "Answered unknown; no reason recorded."
+                    lines.append(f"> *Knowledge gap: {_md(reason)}*")
                 for m in item.mitigations:
                     vague = " (flagged: generic language)" if m.is_vague else ""
                     who = f"Owner: {_md(m.owner)}"
