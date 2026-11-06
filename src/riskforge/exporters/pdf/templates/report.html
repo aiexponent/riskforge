@@ -158,7 +158,7 @@
         <tbody>
           {% for t in rmf.test_requirements %}
             <tr><td><code>{{ t.risk_item_id | string | truncate(8, True, '') }}</code></td>
-              <td>{{ t.metric_type }}</td><td><code>{{ t.threshold_range }}</code></td><td>{{ t.article_ref }}</td></tr>
+              <td><strong>{{ t.metric_type }}</strong><br>{{ t.description }}</td><td>{{ t.threshold_range }}</td><td>{{ t.article_ref }}</td></tr>
           {% endfor %}
         </tbody>
       </table>

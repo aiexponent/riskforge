@@ -80,3 +80,16 @@ def test_every_hint_is_on_the_1_to_5_scale(question: dict, dimension: RiskDimens
         hint = question.get(name)
         is_score = isinstance(hint, int) and not isinstance(hint, bool)
         assert hint is None or (is_score and 1 <= hint <= 5), question["id"]
+
+
+@pytest.mark.parametrize(("question", "dimension"), QUESTIONS)
+def test_every_question_suggests_a_test_metric(question: dict, dimension: RiskDimension) -> None:
+    """D5: each question names the metric a test of its risk would measure."""
+    metric, measure = question.get("test_metric_type", ""), question.get("test_measure", "")
+    assert metric and metric == metric.lower() and " " not in metric, question["id"]
+    assert measure and not measure.endswith("."), question["id"]
+
+
+def test_test_metrics_are_unique() -> None:
+    metrics = [q.values[0]["test_metric_type"] for q in QUESTIONS]
+    assert len(set(metrics)) == len(metrics)

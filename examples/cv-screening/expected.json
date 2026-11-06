@@ -950,84 +950,84 @@
     "test_requirements": [
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Proxy discrimination in automated CV screening' via demographic_parity measurement. Target: <= 0.10.",
+        "description": "Risk: Proxy discrimination in automated CV screening. Measure: Largest difference in positive-outcome rate between protected groups. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "demographic_parity",
+        "metric_type": "demographic_parity_gap",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "<= 0.10"
-      },
-      {
-        "article_ref": "Art.13",
-        "description": "Validate 'Lack of explainability for rejection decisions' via explanation_coverage measurement. Target: >= 0.90.",
-        "id": "<uuid>",
-        "metric_type": "explanation_coverage",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.90"
-      },
-      {
-        "article_ref": "Art.14",
-        "description": "Validate 'Automation bias in recruiter review of shortlisted candidates' via override_latency_ms measurement. Target: <= 500.",
-        "id": "<uuid>",
-        "metric_type": "override_latency_ms",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": "<= 500"
-      },
-      {
-        "article_ref": "Art.9(2)(a)",
-        "description": "Validate 'No fundamental rights impact assessment before deployment' via fundamental_rights_impact_score measurement. Target: = 0.",
-        "id": "<uuid>",
-        "metric_type": "fundamental_rights_impact_score",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": "= 0"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Training data not audited for representation imbalance across protected groups' via demographic_parity measurement. Target: <= 0.10.",
+        "description": "Risk: Lack of explainability for rejection decisions. Measure: Share of explanation requests answered with the decision logic within the set time. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "demographic_parity",
+        "metric_type": "explanation_request_fulfilment",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "<= 0.10"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'System processes personal or special category data' via pii_leakage_rate measurement. Target: = 0.00.",
+        "description": "Risk: Automation bias in recruiter review of shortlisted candidates. Measure: Share of test overrides that stop or change the output in real time. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "pii_leakage_rate",
+        "metric_type": "override_success_rate",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "= 0.00"
-      },
-      {
-        "article_ref": "Art.14",
-        "description": "Validate 'Operators cannot readily override or stop the output in real time' via override_latency_ms measurement. Target: <= 500.",
-        "id": "<uuid>",
-        "metric_type": "override_latency_ms",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": "<= 500"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Not tested on out-of-distribution, edge-case and adversarial inputs' via faithfulness measurement. Target: >= 0.85.",
+        "description": "Risk: No fundamental rights impact assessment before deployment. Measure: Share of deployment contexts covered by a completed fundamental rights impact assessment. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "faithfulness",
+        "metric_type": "rights_impact_assessment_coverage",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.85"
+        "threshold_range": "set by the provider before testing"
       },
       {
-        "article_ref": "Art.10",
-        "description": "Validate 'Dataset provenance not documented' via data_quality_score measurement. Target: >= 0.95.",
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "data_quality_score",
+        "metric_type": "representation_gap",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.95"
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: System processes personal or special category data. Measure: Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "unprotected_personal_data_rate",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Operators cannot readily override or stop the output in real time. Measure: Share of test overrides that stop or change the output in real time. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "override_success_rate",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Not tested on out-of-distribution, edge-case and adversarial inputs. Measure: Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "stress_set_accuracy",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Dataset provenance not documented. Measure: Share of training, validation and test datasets with a documented source, collection date, licence and version. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "dataset_provenance_coverage",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
       }
     ]
   },
@@ -1038,84 +1038,84 @@
   "test_requirements": [
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Proxy discrimination in automated CV screening' via demographic_parity measurement. Target: <= 0.10.",
+      "description": "Risk: Proxy discrimination in automated CV screening. Measure: Largest difference in positive-outcome rate between protected groups. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "demographic_parity",
+      "metric_type": "demographic_parity_gap",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "<= 0.10"
-    },
-    {
-      "article_ref": "Art.13",
-      "description": "Validate 'Lack of explainability for rejection decisions' via explanation_coverage measurement. Target: >= 0.90.",
-      "id": "<uuid>",
-      "metric_type": "explanation_coverage",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.90"
-    },
-    {
-      "article_ref": "Art.14",
-      "description": "Validate 'Automation bias in recruiter review of shortlisted candidates' via override_latency_ms measurement. Target: <= 500.",
-      "id": "<uuid>",
-      "metric_type": "override_latency_ms",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": "<= 500"
-    },
-    {
-      "article_ref": "Art.9(2)(a)",
-      "description": "Validate 'No fundamental rights impact assessment before deployment' via fundamental_rights_impact_score measurement. Target: = 0.",
-      "id": "<uuid>",
-      "metric_type": "fundamental_rights_impact_score",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": "= 0"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Training data not audited for representation imbalance across protected groups' via demographic_parity measurement. Target: <= 0.10.",
+      "description": "Risk: Lack of explainability for rejection decisions. Measure: Share of explanation requests answered with the decision logic within the set time. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "demographic_parity",
+      "metric_type": "explanation_request_fulfilment",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "<= 0.10"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'System processes personal or special category data' via pii_leakage_rate measurement. Target: = 0.00.",
+      "description": "Risk: Automation bias in recruiter review of shortlisted candidates. Measure: Share of test overrides that stop or change the output in real time. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "pii_leakage_rate",
+      "metric_type": "override_success_rate",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "= 0.00"
-    },
-    {
-      "article_ref": "Art.14",
-      "description": "Validate 'Operators cannot readily override or stop the output in real time' via override_latency_ms measurement. Target: <= 500.",
-      "id": "<uuid>",
-      "metric_type": "override_latency_ms",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": "<= 500"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Not tested on out-of-distribution, edge-case and adversarial inputs' via faithfulness measurement. Target: >= 0.85.",
+      "description": "Risk: No fundamental rights impact assessment before deployment. Measure: Share of deployment contexts covered by a completed fundamental rights impact assessment. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "faithfulness",
+      "metric_type": "rights_impact_assessment_coverage",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.85"
+      "threshold_range": "set by the provider before testing"
     },
     {
-      "article_ref": "Art.10",
-      "description": "Validate 'Dataset provenance not documented' via data_quality_score measurement. Target: >= 0.95.",
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "data_quality_score",
+      "metric_type": "representation_gap",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.95"
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: System processes personal or special category data. Measure: Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "unprotected_personal_data_rate",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Operators cannot readily override or stop the output in real time. Measure: Share of test overrides that stop or change the output in real time. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "override_success_rate",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Not tested on out-of-distribution, edge-case and adversarial inputs. Measure: Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "stress_set_accuracy",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Dataset provenance not documented. Measure: Share of training, validation and test datasets with a documented source, collection date, licence and version. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "dataset_provenance_coverage",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
     }
   ],
   "validation": {

@@ -472,7 +472,9 @@ requirements.
 - `riskforge tests generate` derives Article 9(6) to 9(8) test requirements
   and saves them on the register as an audited change; the export carries
   the saved requirements. It derives them from knowledge-gap risks and from
-  risks whose inherent score is 9 or more, one requirement per item.
+  risks whose inherent score is 9 or more, one requirement per item, with the
+  metric of the item's bank question (`test_metric_type` and `test_measure`) or of
+  its dimension.
 - Robustness questions RO-001 through RO-005 force the assessor to record
   which tests have been run: out-of-distribution testing, slice-level metrics,
   performance floors, drift response procedures, adversarial robustness
@@ -546,9 +548,10 @@ before going live. No ex-post threshold-fitting.
 **What RiskForge does.** Question RO-003 forces an answer on whether a
 performance floor (a *prior-defined* threshold) exists below which the system
 is taken offline. RO-002 forces slice-level metric documentation. Each test
-requirement from `riskforge tests generate` names a metric type and a target
-threshold: the "prior defined metrics and probabilistic thresholds" of
-Article 9(8).
+requirement from `riskforge tests generate` names a metric and what it measures,
+chosen for the bank question that made the risk, and cites Article 9(8). It names
+no threshold: the threshold must suit the intended purpose, so the provider sets it
+before testing, and the requirement says so.
 
 **What RiskForge does NOT do.** It does not enforce that the metrics were
 defined *before* the test: there is no time-stamping of metric definition vs

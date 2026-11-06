@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.8"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "ai_disclosure_coverage"
+    test_measure: "Share of interactions and assessments that tell the person an AI system is involved"
 
   - id: TR-002
     text: "Is an explanation of the system's decision-making logic available to affected individuals upon request?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.8"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "explanation_request_fulfilment"
+    test_measure: "Share of explanation requests answered with the decision logic within the set time"
 
   - id: TR-003
     text: "Does the system documentation include clear capability limitations, known failure modes, and out-of-distribution behaviour?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.8"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "documented_failure_mode_coverage"
+    test_measure: "Share of failure modes found in testing that the documentation describes"
 
   - id: TR-004
     text: "Are system confidence scores or uncertainty estimates communicated to human operators making decisions based on system output?"
@@ -48,3 +54,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.9"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "operator_confidence_display_coverage"
+    test_measure: "Share of outputs shown to operators with a confidence score or uncertainty estimate"

@@ -31,6 +31,8 @@ Open the appropriate YAML file and add a block:
   nist_rmf_ref: "MAP 5.1"
   iso42001_ref: "Clause 6.1"
   regulatory_status: settled    # or "pending_implementing_act"
+  test_metric_type: "override_success_rate"   # snake_case, unique in the bank
+  test_measure: "Share of test overrides that stop or change the output in real time"
 ```
 
 ## Step 3: Test your question
@@ -41,7 +43,10 @@ make test
 ```
 
 `tests/unit/test_bank_risk_titles.py` checks that the question has a `risk_title` of at
-most 120 characters that is not itself a question, and that each hint is null or 1 to 5.
+most 120 characters that is not itself a question, that each hint is null or 1 to 5,
+and that the question names a unique `test_metric_type` and a `test_measure`: the
+metric `riskforge tests generate` suggests for a test of the risk. Name no threshold,
+because the provider sets it.
 Write the title as the risk the item records when the assessor answers `yes`: for a
 question that asks whether a control is in place, that is the control missing, for
 example "Bias tests not repeated at each model update". The item's description is the

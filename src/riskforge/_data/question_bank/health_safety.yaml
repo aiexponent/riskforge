@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MAP 3.5"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "unreviewed_critical_decision_rate"
+    test_measure: "Share of clinical, safety or physical decisions acted on without human review"
 
   - id: HS-002
     text: "Could a system failure (incorrect output, unavailability) cause physical harm to end users or third parties?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MAP 5.1"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "harmful_failure_rate"
+    test_measure: "Rate of incorrect outputs or outages in safety-critical test scenarios"
 
   - id: HS-003
     text: "Are there documented emergency override procedures that allow a human operator to immediately halt or override the system's decisions?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MANAGE 2.4"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "emergency_stop_time_s"
+    test_measure: "Seconds from an operator's halt command to the system stopping"
 
   - id: HS-004
     text: "Has a failure mode and effects analysis (FMEA) or equivalent been conducted to identify safety-critical failure paths?"
@@ -48,6 +54,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.6"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "failure_path_coverage"
+    test_measure: "Share of identified safety-critical failure paths with an analysed effect and a control"
 
   - id: HS-005
     text: "Are system performance metrics (accuracy, error rates, latency) monitored in production with alerts for degradation?"
@@ -60,6 +68,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.4"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "degradation_alert_time_min"
+    test_measure: "Minutes from an injected performance drop to the alert"
 
   - id: HS-006
     text: "Could vulnerable populations (elderly, children, people with disabilities) be disproportionately harmed by system errors?"
@@ -72,3 +82,5 @@ questions:
     nist_rmf_ref: "MAP 5.1"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "vulnerable_group_error_gap"
+    test_measure: "Largest difference in error rate between vulnerable groups and other people affected"

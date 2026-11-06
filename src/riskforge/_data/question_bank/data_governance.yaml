@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MAP 2.3"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "dataset_provenance_coverage"
+    test_measure: "Share of training, validation and test datasets with a documented source, collection date, licence and version"
 
   - id: DG-002
     text: "Have dataset licenses been reviewed to confirm lawful use for the intended AI application (including commercial use rights)?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MAP 4.1"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "dataset_licence_review_coverage"
+    test_measure: "Share of datasets whose licence has been reviewed for the intended use"
 
   - id: DG-003
     text: "Are data quality checks (completeness, consistency, accuracy) applied and documented before training and fine-tuning?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MAP 2.3"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "data_quality_check_pass_rate"
+    test_measure: "Share of completeness, consistency and accuracy checks passed before training"
 
   - id: DG-004
     text: "Is there a data retention and deletion schedule that covers both training data and inference logs?"
@@ -48,6 +54,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "retention_schedule_coverage"
+    test_measure: "Share of training data stores and inference logs covered by a retention and deletion schedule"
 
   - id: DG-005
     text: "Is there a data pipeline version control system ensuring reproducibility of training runs from a specific dataset version?"
@@ -60,3 +68,5 @@ questions:
     nist_rmf_ref: "MAP 2.3"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "training_run_reproducibility"
+    test_measure: "Share of training runs reproduced from their recorded dataset version within a set tolerance"
