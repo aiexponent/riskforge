@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import calendar
 import hashlib
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Literal, NamedTuple
 
 from riskforge.engine.actor import require_actor_name
@@ -75,6 +76,18 @@ def duplicate_origins(items: list[RiskItem]) -> dict[str, list[RiskItem]]:
     return {key: group for key, group in by_origin.items() if len(group) > 1}
 
 
+def add_months(moment: datetime, months: int) -> datetime:
+    """``moment`` moved forward by ``months`` calendar months, on the same day of the month.
+
+    A day the target month does not have becomes its last day, so 31 January plus one
+    month is 28 or 29 February. The time of day and the time zone are kept.
+    """
+    index = moment.month - 1 + months
+    year, month = moment.year + index // 12, index % 12 + 1
+    day = min(moment.day, calendar.monthrange(year, month)[1])
+    return moment.replace(year=year, month=month, day=day)
+
+
 class RiskEngine:
     """CRUD and scoring for risk items.
 
@@ -94,12 +107,17 @@ class RiskEngine:
         """Return the system's register, creating and recording one when there is none.
 
         The bool is True when this call created the register (event ``register.created``).
+        Its review date is ``review_months`` calendar months after the assessment date.
 
         Raises
         ------
+        ValueError
+            If ``review_months`` is less than 1.
         SystemNotFoundError
             If the project has no system with this id.
         """
+        if review_months < 1:
+            raise ValueError(f"review_months must be at least 1, not {review_months}.")
         async with self._audit.unit_of_work():
             try:
                 return await self._audit.read_register(system_id), False
@@ -112,7 +130,7 @@ class RiskEngine:
                 assessor_name=assessor_name,
                 assessor_role=assessor_role,
                 assessment_date=now,
-                review_date=now + timedelta(days=30 * review_months),
+                review_date=add_months(now, review_months),
                 question_bank_version="1.0.0",
             )
             await self._storage.write_register(system_id, register)
