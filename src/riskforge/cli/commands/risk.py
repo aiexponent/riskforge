@@ -62,6 +62,7 @@ def list_risks(
     table.add_column("Title", max_width=40)
     table.add_column("Score")
     table.add_column("Band")
+    table.add_column("Residual")
     table.add_column("Accepted")
 
     for item in items:
@@ -72,6 +73,7 @@ def list_risks(
             item.title[:40],
             str(item.risk_score),
             f"[{band_colour.get(item.risk_band, 'white')}]{item.risk_band}[/]",
+            str(item.residual_risk_score),
             "Yes" if item.accepted else "No",
         )
 

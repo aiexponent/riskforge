@@ -16,7 +16,13 @@ def cmd(
     version: str = typer.Option(..., "--sys-version", "-s", help="AI system version (e.g. '1.0')"),
     purpose: str = typer.Option(..., "--purpose", "-p", help="One-sentence purpose statement"),
     provider: str = typer.Option(..., "--provider", help="Provider organisation name"),
-    category: Optional[str] = typer.Option(None, "--category", "-c", help="Annex III category"),
+    category: Optional[str] = typer.Option(
+        None,
+        "--category",
+        "-c",
+        help="Annex III category: biometric, critical_infrastructure, education, employment, "
+        "essential_services, law_enforcement, migration or justice",
+    ),
     project_dir: Path = typer.Option(Path("."), "--project-dir", help="Project directory"),
     non_interactive: bool = typer.Option(
         False, "--non-interactive", help="Skip interactive prompts"

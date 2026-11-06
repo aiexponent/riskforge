@@ -16,7 +16,12 @@ def generate_tests(
     system_id: str = typer.Argument(..., help="System ID"),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
-    """Derive test requirements from the risk register and save them on it."""
+    """Derive test requirements from the risk register and save them on it.
+
+    Each knowledge gap (a question answered unknown) and each risk whose inherent score
+    is 9 or more gets one requirement. Run it again after the register changes: gate G4
+    warns while the saved requirements are out of date.
+    """
     from riskforge.cli.project import read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine

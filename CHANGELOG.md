@@ -10,6 +10,9 @@ Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 doe
 
 ### Changed
 
+- The Markdown export has a "Test Requirements" table and a "Change Log" of the audit entries the file carries, as the PDF does. The user guide describes what each export format holds (usability finding 8 of the 2.0.0 independent test).
+- `riskforge risk list` shows the residual score, the score gate G3 uses, beside the inherent score (finding 7).
+- `riskforge init --help` lists the allowed `--category` values (finding 3), and `riskforge tests generate --help` says which risks get a requirement (finding 6). The user guide notes that `-r` and `-d` mean different things in different commands and recommends the long forms in scripts (finding 4).
 - The JSON export is RMF schema 1.2.0 ([ADR-05](docs/adr/ADR-05-rmf-validation-block.md)). It adds one required block, `validation`: the result of every validation gate as it ran on the exported register (id, description, `PASS`, `WARN` or `FAIL`, and details), and an overall `status`, the most severe of them. The content digest covers it, so the digest and any signature over it now vouch for the gate results. The schema is published at `https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`. Two exports of one register state by one release still share a digest.
 - The `rmf.exported` audit entry lists the failing gates as `failing_gates` when an export is forced past them. An export that passed every gate writes the same entry as before.
 - The Markdown export has a "Validation Gates" section, and the PDF shows the gate results recorded in the file instead of running the gates again when it renders.

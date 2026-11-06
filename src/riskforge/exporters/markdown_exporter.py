@@ -42,6 +42,54 @@ def _validation_lines(validation: ValidationRecord) -> list[str]:
     return lines
 
 
+def _test_requirement_lines(rmf: RiskManagementFile) -> list[str]:
+    """The saved test requirements, as the PDF lists them in its section 5.
+
+    ``_md`` escapes a pipe in a cell, so a cell cannot split the table row.
+    """
+    lines = ["---", "", "## Test Requirements", ""]
+    if not rmf.test_requirements:
+        lines += [
+            "No test requirements saved. Run `riskforge tests generate` to derive them "
+            "from the risk items.",
+            "",
+        ]
+        return lines
+    lines += [
+        "| Risk item | Metric | Test | Threshold | Article |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for t in rmf.test_requirements:
+        cells = [
+            f"`{str(t.risk_item_id)[:8]}`",
+            _md(t.metric_type),
+            _md(t.description),
+            _md(t.threshold_range),
+            _md(t.article_ref),
+        ]
+        lines.append("| " + " | ".join(cells) + " |")
+    lines.append("")
+    return lines
+
+
+def _change_log_lines(rmf: RiskManagementFile) -> list[str]:
+    """The audit entries the file carries in its chain proof, as the PDF lists them."""
+    lines = ["---", "", "## Change Log", ""]
+    if rmf.chain_proof is None or not rmf.chain_proof.entries:
+        return [*lines, "This export carries no chain proof.", ""]
+    lines += ["| Seq | Time (UTC) | Event | Actor |", "| --- | --- | --- | --- |"]
+    for e in rmf.chain_proof.entries:
+        cells = [
+            str(e.seq),
+            e.timestamp.strftime("%Y-%m-%d %H:%M"),
+            _md(e.event),
+            _md(e.actor.identity),
+        ]
+        lines.append("| " + " | ".join(cells) + " |")
+    lines.append("")
+    return lines
+
+
 class MarkdownExporter(Exporter):
     """Exports the RiskManagementFile as a Markdown document.
 
@@ -115,6 +163,8 @@ class MarkdownExporter(Exporter):
                     lines.append(f"> *Accepted by: {_md(item.accepted_by or 'not recorded')}*")
                 lines.append("")
 
+        lines.extend(_test_requirement_lines(rmf))
+        lines.extend(_change_log_lines(rmf))
         lines.append("---")
         lines.append("")
         lines.append("## Disclosure")

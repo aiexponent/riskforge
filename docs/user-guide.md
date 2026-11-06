@@ -198,7 +198,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge system show <id>` | Print the system record as JSON. |
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
 | `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE] [--review-months N]` | Run the assessment, interactive or from an answers file. The first run creates the register, with its review date `N` calendar months after the assessment (default 12, at least 1): 4 November 2026 plus 12 months is 4 November 2027, and a day the month does not have becomes its last day. |
-| `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
+| `riskforge risk list <id> [-d DIMENSION]` | List risk items: id, dimension, title, inherent score and band, residual score (the score gate G3 compares with the risk-appetite threshold) and whether it is accepted. |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
 | `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register. Run it before `export`: the export carries the saved requirements. |
@@ -211,6 +211,12 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
 Risk ids accept the first 8 characters shown by `riskforge risk list`.
+
+Two short options mean different things in different commands: `-r` is the assessor
+role in `assess` and the rationale in `risk accept`, and `-d` is the project folder in
+`assess` and the dimension in `risk list`. They stay as they are so existing scripts keep
+working; in a script, write the long form (`--assessor-role`, `--rationale`,
+`--project-dir`, `--dimension`).
 
 ### Exporting the RMF
 
@@ -240,6 +246,14 @@ If anything fails before step 6, such as a missing output directory, no file is 
 and nothing is recorded, not even the checkpoint. A temporary file left by an
 interrupted export (its name starts with `.riskforge-export-`) is removed by a later
 export to the same directory if it is older than that export's hold on the project lock.
+
+The three formats hold the same content. The JSON export is the full document that
+`riskforge verify --file` checks. The PDF is the report for readers: system description,
+validation gates, risk register by dimension, residual risk summary, test requirements and
+the audit trail. The Markdown export, for a repository or wiki, has the system and
+assessor, the validation gates, each risk with its inherent and residual score, references,
+knowledge-gap reason, mitigations and acceptance, the test requirements, and the change log
+of the audit entries the file carries.
 
 The JSON, PDF and Markdown exports of one register state show the same content digest,
 and two exports of an unchanged register share it, so a PDF can be matched to the JSON
