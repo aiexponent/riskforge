@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "unprotected_personal_data_rate"
+    test_measure: "Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation"
 
   - id: PR-002
     text: "Has a Data Protection Impact Assessment (DPIA) been carried out, with the advice of the Data Protection Officer where one is designated?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "dpia_coverage"
+    test_measure: "Share of processing operations covered by a completed Data Protection Impact Assessment"
 
   - id: PR-003
     text: "Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "unneeded_personal_data_fields"
+    test_measure: "Number of personal data fields the model uses that its purpose does not need"
 
   - id: PR-004
     text: "Has the training data been scanned for inadvertent PII inclusion, and is PII redaction/pseudonymisation applied before training?"
@@ -48,6 +54,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "residual_personal_data_rate"
+    test_measure: "Share of sampled training records still holding personal data after redaction or pseudonymisation"
 
   - id: PR-005
     text: "Are model outputs screened to prevent accidental reproduction of training data PII (membership inference / data extraction attacks)?"
@@ -60,3 +68,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "training_data_extraction_rate"
+    test_measure: "Share of extraction and membership inference probes that recover training data"

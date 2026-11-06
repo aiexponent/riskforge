@@ -423,3 +423,10 @@ def test_pdf_verify_line_names_what_to_check(rendered) -> None:
     _rmf, text, _pages = rendered
     assert "riskforge verify --file <JSON export>" in _flat(text)
     assert "verify --file ." not in _flat(text)
+
+
+def test_pdf_test_requirements_say_what_each_metric_measures(rendered) -> None:
+    """A metric name alone did not say what to measure (D5 of the 2.0.0 independent test)."""
+    rmf, text, _pages = rendered
+    for requirement in rmf.test_requirements:
+        assert f"{requirement.metric_type} {requirement.description}" in _flat(text)

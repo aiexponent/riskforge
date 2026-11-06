@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "stress_set_accuracy"
+    test_measure: "Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs"
 
   - id: RO-002
     text: "Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "subgroup_performance_gap"
+    test_measure: "Largest difference in accuracy, precision, recall or calibration between demographic subgroups"
 
   - id: RO-003
     text: "Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MANAGE 1.3"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "floor_breach_response_time_min"
+    test_measure: "Minutes from a breach of the performance floor to the system being taken offline"
 
   - id: RO-004
     text: "Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response procedures?"
@@ -48,6 +54,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.4"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "drift_detection_time_h"
+    test_measure: "Hours from an injected data or concept drift to its detection"
 
   - id: RO-005
     text: "Has the system been tested for resistance to prompt injection, model inversion, or membership inference attacks (if applicable)?"
@@ -60,3 +68,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.7"
     iso42001_ref: "Annex A.9"
     regulatory_status: pending_implementing_act
+    test_metric_type: "attack_success_rate"
+    test_measure: "Share of prompt injection, model inversion and membership inference attempts that succeed"

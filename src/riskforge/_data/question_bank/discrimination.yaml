@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "representation_gap"
+    test_measure: "Largest gap between a protected group's share of the training data and its share of the people the system serves"
 
   - id: DI-002
     text: "Have demographic parity, equalised odds, or other fairness metrics been computed and documented for each protected group?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "demographic_parity_gap"
+    test_measure: "Largest difference in positive-outcome rate between protected groups"
 
   - id: DI-003
     text: "Does the system use proxy variables that may correlate with protected characteristics (e.g. postcode, school name, employment gaps)?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "proxy_correlation"
+    test_measure: "Strongest correlation between an input feature and a protected characteristic"
 
   - id: DI-004
     text: "Are bias test results documented and reviewed at each model update, not just at initial deployment?"
@@ -48,3 +54,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "bias_retest_coverage"
+    test_measure: "Share of model updates released with a documented bias test"
