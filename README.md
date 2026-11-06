@@ -274,7 +274,7 @@ The system record `riskforge init` writes to `.riskforge/systems/<system-id>/sys
 after `riskforge system classify --confirm`.
 
 ```yaml
-id: f52f3c08-5efb-4afc-8742-fd137f0106e0
+id: 6c95a35e-12a1-48d3-9527-f9df7063bfda
 name: Loan Scoring Model
 version: '2.1'
 purpose: Automated credit scoring for retail loan applications.
@@ -286,7 +286,7 @@ annex_iii_category: essential_services
 annex_iii_self_classification_documented: true
 provider_name: Acme Financial Services
 provider_contact: ''
-created_at: '2026-11-06T14:20:17.632057Z'
+created_at: '2026-11-06T17:38:53.961599Z'
 schema_version: 1.0.0
 ```
 </details>
@@ -303,12 +303,12 @@ its digest, signature, chain proof and receipt verify.
 
 ```json
 {
-  "id": "316fab86-8d05-4e82-b125-39aa2326224a",
+  "id": "f3e546aa-51fd-4f0e-9862-71664281fe2a",
   "rmf_schema_version": "1.2.0",
   "register": {
-    "id": "315a32f0-cd6a-445f-8d8e-df21602cdfdd",
+    "id": "7400631c-3f53-4926-87ae-ec7c275c501c",
     "system": {
-      "id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+      "id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
       "name": "Loan Scoring Model",
       "version": "2.1",
       "purpose": "Automated credit scoring for retail loan applications.",
@@ -320,15 +320,15 @@ its digest, signature, chain proof and receipt verify.
       "annex_iii_self_classification_documented": true,
       "provider_name": "Acme Financial Services",
       "provider_contact": "",
-      "created_at": "2026-11-06T14:20:17.632057Z",
+      "created_at": "2026-11-06T17:38:53.961599Z",
       "schema_version": "1.0.0"
     },
     "items": [
       {
-        "id": "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f",
+        "id": "34921692-17ef-47d4-8aab-640954fe1d1e",
         "dimension": "discrimination",
-        "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,",
-        "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
+        "title": "Training data not audited for representation imbalance across protected groups",
+        "description": "Question DI-001: Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity, age, disability)? Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
         "source": "question_bank",
         "likelihood": 4,
         "severity": 5,
@@ -338,7 +338,7 @@ its digest, signature, chain proof and receipt verify.
         "accepted": true,
         "acceptance_rationale": "Residual within appetite after documented controls.",
         "accepted_by": "Alice Chen, AI Governance Lead",
-        "identified_at": "2026-11-06T14:20:18.636772Z",
+        "identified_at": "2026-11-06T17:38:54.854970Z",
         "article_refs": [
           "Art.10(2)(f)",
           "Art.9(2)(a)"
@@ -364,17 +364,17 @@ its digest, signature, chain proof and receipt verify.
     "risk_appetite_threshold": 9,
     "assessor_name": "Alice Chen",
     "assessor_role": "AI Governance Lead",
-    "assessment_date": "2026-11-06T14:20:18.597556Z",
-    "review_date": "2027-11-06T14:20:18.597556Z",
+    "assessment_date": "2026-11-06T17:38:54.816576Z",
+    "review_date": "2027-11-06T17:38:54.816576Z",
     "question_bank_version": "1.0.0",
     "schema_version": "1.0.0",
     "test_requirements": [
       {
-        "id": "3fa76464-ec2d-557f-9fa6-46dc6cecbcc3",
-        "risk_item_id": "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f",
-        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
-        "metric_type": "demographic_parity",
-        "threshold_range": "<= 0.10",
+        "id": "ead74621-9cfa-5c46-afa8-3cc25d2eca3b",
+        "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
+        "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
+        "metric_type": "representation_gap",
+        "threshold_range": "set by the provider before testing",
         "article_ref": "Art.9(8)",
         "nist_rmf_ref": ""
       }
@@ -382,11 +382,11 @@ its digest, signature, chain proof and receipt verify.
   },
   "test_requirements": [
     {
-      "id": "3fa76464-ec2d-557f-9fa6-46dc6cecbcc3",
-      "risk_item_id": "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f",
-      "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
-      "metric_type": "demographic_parity",
-      "threshold_range": "<= 0.10",
+      "id": "ead74621-9cfa-5c46-afa8-3cc25d2eca3b",
+      "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
+      "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
+      "metric_type": "representation_gap",
+      "threshold_range": "set by the provider before testing",
       "article_ref": "Art.9(8)",
       "nist_rmf_ref": ""
     }
@@ -395,22 +395,34 @@ its digest, signature, chain proof and receipt verify.
     {
       "article_ref": "Art.10(2)(f)",
       "risk_item_ids": [
-        "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f"
+        "34921692-17ef-47d4-8aab-640954fe1d1e"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
-      "iso42001_ref": "Annex A.7"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
+      "iso42001_refs": [
+        "Annex A.7"
+      ]
     },
     {
       "article_ref": "Art.9(2)(a)",
       "risk_item_ids": [
-        "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f"
+        "34921692-17ef-47d4-8aab-640954fe1d1e"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
-      "iso42001_ref": "Annex A.7"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
+      "iso42001_refs": [
+        "Annex A.7"
+      ]
     }
   ],
-  "generated_at": "2026-11-06T14:20:20.518943Z",
-  "sha256_hash": "54ee333fac3cf55a9b3ba9a49027f93aea1be8ba52000ffee9e9abff10c33a6f",
+  "generated_at": "2026-11-06T17:38:56.753326Z",
+  "sha256_hash": "3bb3c96a66514887d15b59a87ddf38bfbf0c97e7924b21b0511e4fa59afbfd9d",
   "disclosure": "This document was produced using RiskForge v2.0.0, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
   "validation": {
     "status": "FAIL",
@@ -419,7 +431,7 @@ its digest, signature, chain proof and receipt verify.
         "gate_id": "G1",
         "description": "All 8 risk dimensions have entries",
         "status": "FAIL",
-        "details": "Missing: data_governance, fundamental_rights, health_safety, human_oversight, privacy, robustness, transparency. Add a risk item for each: `riskforge assess f52f3c08-5efb-4afc-8742-fd137f0106e0 -a NAME -r ROLE --dimension <dimension>`."
+        "details": "Missing: data_governance, fundamental_rights, health_safety, human_oversight, privacy, robustness, transparency. Add a risk item for each: `riskforge assess 6c95a35e-12a1-48d3-9527-f9df7063bfda -a NAME -r ROLE --dimension <dimension>`."
       },
       {
         "gate_id": "G2",
@@ -468,17 +480,17 @@ its digest, signature, chain proof and receipt verify.
   "signoffs": [],
   "signatures": [
     {
-      "key_id": "ed25519:9f3a9d7e8dfb563d",
+      "key_id": "ed25519:fdbf6e54b90ca478",
       "algorithm": "ed25519",
-      "signed_at": "2026-11-06T14:20:20.519543Z",
-      "signature": "oO7lhRPJ1CbhRPMKjMUNxAR5i2jBzhEbcssyg9aRTNBjwPKrwPNTVcGYbLaC6rLibpJhVxNvcQwwNSRA6TL5Bg=="
+      "signed_at": "2026-11-06T17:38:56.754591Z",
+      "signature": "iPyGz2dmJhmHvhWY5/b5YrTwIhlyquu6z/0BBAc5nsRkyOyNhHK/q2iYyvbaTg+BlWtNHQXVW6BQsSIqu6WwAg=="
     }
   ],
   "public_keys": [
     {
-      "key_id": "ed25519:9f3a9d7e8dfb563d",
+      "key_id": "ed25519:fdbf6e54b90ca478",
       "algorithm": "ed25519",
-      "public_key": "2giqEYK80VRwkvEN/+c89QKrKA4SvwMqrZ2CNt/CJM4="
+      "public_key": "rB6NnMEzDpTFLwXSAcBJXHXfn2xc9yn40+7ox4DRQVU="
     }
   ],
   "chain_proof": {
@@ -487,122 +499,122 @@ its digest, signature, chain proof and receipt verify.
       {
         "seq": 0,
         "event": "system.created",
-        "timestamp": "2026-11-06T14:20:17.652375Z",
+        "timestamp": "2026-11-06T17:38:53.976587Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "name": "Loan Scoring Model",
           "version": "2.1",
           "annex_iii_category": "essential_services"
         },
         "prev_hash": "0000000000",
-        "entry_hash": "a5bbf621b9599949fafaff399e2838f54362fb1f0c2249cd14f38eac5ab6d420"
+        "entry_hash": "fc54b6e8be50f3bdbd97cf8853114ca970d71d2bcc688423e01b2501f2bdc636"
       },
       {
         "seq": 1,
         "event": "system.classified",
-        "timestamp": "2026-11-06T14:20:18.167416Z",
+        "timestamp": "2026-11-06T17:38:54.411140Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "annex_iii_self_classification_documented": true,
           "annex_iii_category": "essential_services"
         },
-        "prev_hash": "a5bbf621b9599949fafaff399e2838f54362fb1f0c2249cd14f38eac5ab6d420",
-        "entry_hash": "ce966bd2f33c7464f9a97e8de9f937d3a16004ce68cc01f0e937044003af3fe6"
+        "prev_hash": "fc54b6e8be50f3bdbd97cf8853114ca970d71d2bcc688423e01b2501f2bdc636",
+        "entry_hash": "1926bb5c68c299a648d9d4631f65e7766a9668bfa4ee9285b43b244d7c93c417"
       },
       {
         "seq": 2,
         "event": "register.created",
-        "timestamp": "2026-11-06T14:20:18.607031Z",
+        "timestamp": "2026-11-06T17:38:54.824478Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "assessor_name": "Alice Chen",
           "assessor_role": "AI Governance Lead",
-          "review_date": "2027-11-06T14:20:18.597556+00:00"
+          "review_date": "2027-11-06T17:38:54.816576+00:00"
         },
-        "prev_hash": "ce966bd2f33c7464f9a97e8de9f937d3a16004ce68cc01f0e937044003af3fe6",
-        "entry_hash": "0093bb1b9b4e9e49c6aa37c5ff7e7c8ab00d1675129132a6989289c1d4615c27",
-        "register_fingerprint": "742f12906a43a267fbf82d3a6ccb5af0b96e46291e665235bc69e2457e79f45f"
+        "prev_hash": "1926bb5c68c299a648d9d4631f65e7766a9668bfa4ee9285b43b244d7c93c417",
+        "entry_hash": "2ce976486b4803e1b5e5b8d9a1cd4c4cc74f27e05da1ade8748e2188d3bc2e86",
+        "register_fingerprint": "862df4bb3a2f851e793a0ec2b11767650d0637b27a6ad7bc644ff3131488cdac"
       },
       {
         "seq": 3,
         "event": "risk_item.created",
-        "timestamp": "2026-11-06T14:20:18.648805Z",
+        "timestamp": "2026-11-06T17:38:54.866421Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
-          "risk_item_id": "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f",
+          "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
           "dimension": "discrimination",
           "score": 20
         },
-        "prev_hash": "0093bb1b9b4e9e49c6aa37c5ff7e7c8ab00d1675129132a6989289c1d4615c27",
-        "entry_hash": "cba645cc3e618af23c37833157f9aa5274eae045c8790e00a90b0c7e032ced83",
-        "register_fingerprint": "b2f0550e852006b6ed3c7a0409c2f6ab7790db2d0b6d62c977cbc416fa096186"
+        "prev_hash": "2ce976486b4803e1b5e5b8d9a1cd4c4cc74f27e05da1ade8748e2188d3bc2e86",
+        "entry_hash": "c7057dfaa43221afe6fd3bca4e6e1cc9d9d7aa756f6acc7f7f87ed98fb03baaa",
+        "register_fingerprint": "e4ff27988c8f7545c0546d9566c583d0d3d05d9d4807fdc6ea3bc8007d1f1111"
       },
       {
         "seq": 4,
         "event": "risk.accepted",
-        "timestamp": "2026-11-06T14:20:19.170991Z",
+        "timestamp": "2026-11-06T17:38:55.414094Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen, AI Governance Lead"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
-          "risk_item_id": "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f",
+          "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
           "old_accepted": false,
           "rationale_hash": "72e990650636afae",
           "actor": "Alice Chen, AI Governance Lead"
         },
-        "prev_hash": "cba645cc3e618af23c37833157f9aa5274eae045c8790e00a90b0c7e032ced83",
-        "entry_hash": "6e1d7376e10297b486fd4334e45309ebb1d3777947a98930d88bdfc763c12af6",
-        "register_fingerprint": "b72bc3949f0ae5821e6a961ace6ff382fcd2c775c7b1e695d2742916a62e7e15"
+        "prev_hash": "c7057dfaa43221afe6fd3bca4e6e1cc9d9d7aa756f6acc7f7f87ed98fb03baaa",
+        "entry_hash": "a56dbb573dfc1d04ac6c735d743216087153824d067c83ce7058495c5a5437e9",
+        "register_fingerprint": "900a2579164762ec00f8022d40dd7a22e82fdc3a9fcfac9707d646e63fb25d24"
       },
       {
         "seq": 5,
         "event": "tests.generated",
-        "timestamp": "2026-11-06T14:20:19.607050Z",
+        "timestamp": "2026-11-06T17:38:55.866978Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "count": 1,
           "risk_item_ids": [
-            "c3e7ad45-8918-4ba6-86f4-35f5e8027b1f"
+            "34921692-17ef-47d4-8aab-640954fe1d1e"
           ]
         },
-        "prev_hash": "6e1d7376e10297b486fd4334e45309ebb1d3777947a98930d88bdfc763c12af6",
-        "entry_hash": "0c3b3ac46c0fdd8c16c8fec5400eb7ea535b9d3320ac17b4ee39b2803aa2c584",
-        "register_fingerprint": "93fcb79d7d98162a23d1a56f4c1961b18316c7d69a17a8a380e0842867b3def3"
+        "prev_hash": "a56dbb573dfc1d04ac6c735d743216087153824d067c83ce7058495c5a5437e9",
+        "entry_hash": "0956348f4bffc393a02e02cdf12e590eaed040def084a25433139aebe5804b13",
+        "register_fingerprint": "ecb3ef1710410a2bd0fbb84afc4bf1271675da8f700e98c68f753f306c6faa2f"
       }
     ]
   },
   "receipt": {
     "receipt_version": "1",
-    "system_id": "f52f3c08-5efb-4afc-8742-fd137f0106e0",
+    "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
     "seq": 5,
-    "entry_hash": "0c3b3ac46c0fdd8c16c8fec5400eb7ea535b9d3320ac17b4ee39b2803aa2c584",
-    "register_fingerprint": "93fcb79d7d98162a23d1a56f4c1961b18316c7d69a17a8a380e0842867b3def3",
-    "issued_at": "2026-11-06T14:20:20.519229Z",
-    "key_id": "ed25519:9f3a9d7e8dfb563d",
-    "public_key": "2giqEYK80VRwkvEN/+c89QKrKA4SvwMqrZ2CNt/CJM4=",
-    "signature": "AdOLVoCvU3aQ7Mqmj0YrIlaxQ90MAOHTS/5iD+5xqoyE7MQ+4TxPm42wq6K5+3Uqw9blykM4x2V+I5ETZDKYDw=="
+    "entry_hash": "0956348f4bffc393a02e02cdf12e590eaed040def084a25433139aebe5804b13",
+    "register_fingerprint": "ecb3ef1710410a2bd0fbb84afc4bf1271675da8f700e98c68f753f306c6faa2f",
+    "issued_at": "2026-11-06T17:38:56.753610Z",
+    "key_id": "ed25519:fdbf6e54b90ca478",
+    "public_key": "rB6NnMEzDpTFLwXSAcBJXHXfn2xc9yn40+7ox4DRQVU=",
+    "signature": "PLDRBpN+h04LVUL/2D/UX0XVhema8ySgrltbSiGrGEuDuwHZ3If9W5BI4zC+s/QzsFQ1+KsaYJnBtWMIUnXGCg=="
   }
 }
 ```
