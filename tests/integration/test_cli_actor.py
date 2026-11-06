@@ -53,6 +53,7 @@ def _actors_by_command(project: Path, env: dict[str, str] | None) -> dict[str, s
     answers.write_text("add_patterns: false\nanswers:\n  DI-001: { applies: unknown }\n")
     system_id = UUID_RE.search(rf("init", *INIT)).group(0)
     rf("classify", "system", "classify", system_id, "--confirm")
+    rf("describe", "system", "describe", system_id, "--deployment-context", "Branches")
     rf("assess", "assess", system_id, "-a", "Alice Chen", "-r", "Lead", "--answers", str(answers))
     rf("tests", "tests", "generate", system_id)
     rf("export", "export", system_id, "-o", str(project / "rmf.json"), "--force")
