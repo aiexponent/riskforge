@@ -130,3 +130,35 @@ def test_g3_says_what_clears_it() -> None:
     item.accepted = False
     item.residual_likelihood, item.residual_severity = Likelihood(3), Severity(3)
     assert _g3(item).status == GateStatus.PASS
+
+
+# --- G5: the system description (D7 of the 2.0.0 independent test) --------------------
+
+
+def _g5(register: RiskRegister):
+    return next(g for g in ValidateEngine().run(register) if g.gate_id == "G5")
+
+
+def test_g5_warns_and_names_each_empty_description_field() -> None:
+    register = make_register()
+    register.system.intended_users = ["Underwriters"]
+    gate = _g5(register)
+    assert gate.status == GateStatus.WARN
+    assert gate.details == (
+        "The system description has no inputs, outputs, deployment_context, provider_contact. "
+        "Set them with `riskforge system describe`."
+    )
+
+
+def test_g5_passes_with_a_full_description() -> None:
+    register = make_register()
+    system = register.system
+    system.intended_users, system.inputs, system.outputs = ["U"], ["I"], ["O"]
+    system.deployment_context, system.provider_contact = "Branches", "a@example.com"
+    assert _g5(register).status == GateStatus.PASS
+
+
+def test_g5_still_fails_without_a_required_field() -> None:
+    register = make_register()
+    register.system.purpose = ""
+    assert _g5(register).status == GateStatus.FAIL
