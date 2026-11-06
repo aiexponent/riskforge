@@ -50,10 +50,9 @@ def classify_system(
     This records that determination and writes an audit entry. Re-run with --confirm.
     """
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import parse_category, read_system_or_fail, run_checked
+    from riskforge.cli.project import cli_actor, parse_category, read_system_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.system import SystemEngine
-    from riskforge.models.audit import AuditActor
 
     if not confirm:
         fail(
@@ -65,7 +64,7 @@ def classify_system(
 
     async def _classify(store: FileStore) -> None:
         await read_system_or_fail(store, system_id)
-        audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+        audit = AuditEngine(store, cli_actor())
         await SystemEngine(store, audit).classify(system_id, cat_enum)
 
     run_checked(project_dir, _classify)
