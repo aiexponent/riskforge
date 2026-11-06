@@ -4,3 +4,15 @@ version: "3.2.0"
 purpose: "Automated resume screening and candidate ranking for hiring decisions in recruitment."
 provider: "Northwind HR Technologies GmbH"
 category: employment
+# system description (riskforge init --intended-user, --input, --output, ...)
+intended_users:
+  - "Recruiters"
+  - "Hiring managers"
+inputs:
+  - "CVs"
+  - "Job descriptions"
+outputs:
+  - "Candidate ranking"
+  - "Shortlist recommendation"
+deployment_context: "Applicant tracking system used by in-house recruitment teams in the EU"
+provider_contact: "compliance@example.com"

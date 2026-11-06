@@ -194,9 +194,10 @@ question or pattern risk and lists the others so you can review them.
 
 | Command | What it does |
 |---|---|
-| `riskforge init -n NAME -s VERSION -p PURPOSE --provider ORG [-c CATEGORY]` | Create a project and register a system; prints the system id. |
+| `riskforge init -n NAME -s VERSION -p PURPOSE --provider ORG [-c CATEGORY] [--intended-user U]... [--input I]... [--output O]... [--deployment-context TEXT] [--provider-contact TEXT]` | Create a project and register a system; prints the system id. The description options are repeatable where marked and can be set later with `system describe`. |
 | `riskforge system show <id>` | Print the system record as JSON. |
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
+| `riskforge system describe <id> [--intended-user U]... [--input I]... [--output O]... [--deployment-context TEXT] [--provider-contact TEXT]` | Set the system description on the system and its register, audited as `system.described`. Only the options given change, and a repeatable option replaces its list. Gate G5 warns while any of these fields is empty. |
 | `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE] [--review-months N]` | Run the assessment, interactive or from an answers file. The first run creates the register, with its review date `N` calendar months after the assessment (default 12, at least 1): 4 November 2026 plus 12 months is 4 November 2027, and a day the month does not have becomes its last day. |
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
@@ -328,7 +329,7 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
 | G2 | Article 6(2) self-classification documented | FAIL |
 | G3 | Residual score above the risk-appetite threshold must be reduced (re-scored with `risk mitigate --residual-likelihood`/`--residual-severity`) or accepted; adding a mitigation without re-scoring does not clear it | FAIL |
 | G4 | Knowledge gaps have test requirements | WARN |
-| G5 | System metadata complete | FAIL |
+| G5 | System metadata complete: FAIL without a name, version, purpose or provider; WARN while the intended users, inputs, outputs, deployment context or provider contact is empty | FAIL / WARN |
 | G6 | Assessor identity recorded | FAIL |
 | G7 | Risk-score distribution plausible | WARN |
 | G8 | No vague mitigation language | WARN |
@@ -344,7 +345,7 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | 0 | Success or valid |
 | 1 | A validation gate that fails without `--force`; `validate` finding a change in progress or unfinished; `verify` finding a change in progress (`txn.json`) whose recovered state has no finding; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
 | 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, a change in progress whose recovered state has a finding, a `txn.json` that RiskForge did not write, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export of a project with a signed audit entry whose public key was not given with `--public-key`, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, `system describe` without an option, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export of a project with a signed audit entry whose public key was not given with `--public-key`, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any integrity finding, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
