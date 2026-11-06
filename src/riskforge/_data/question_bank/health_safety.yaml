@@ -3,6 +3,7 @@ dimension: health_safety
 questions:
   - id: HS-001
     text: "Could the system's outputs directly influence a clinical, safety, or physical decision without mandatory human review?"
+    risk_title: "Outputs drive clinical, safety or physical decisions without human review"
     guidance: "Consider decisions about medication dosing, surgical planning, vehicle operation, equipment control, or emergency dispatch."
     annex_iii_categories: [essential_services, critical_infrastructure, biometric]
     default_likelihood_hint: 3
@@ -14,6 +15,7 @@ questions:
 
   - id: HS-002
     text: "Could a system failure (incorrect output, unavailability) cause physical harm to end users or third parties?"
+    risk_title: "System failure could cause physical harm"
     guidance: "Failure modes include false negatives in medical screening, incorrect routing in emergency services, or missed safety-critical alerts."
     annex_iii_categories: [critical_infrastructure, essential_services]
     default_likelihood_hint: 2
@@ -25,6 +27,7 @@ questions:
 
   - id: HS-003
     text: "Are there documented emergency override procedures that allow a human operator to immediately halt or override the system's decisions?"
+    risk_title: "No emergency procedure to halt or override the system's decisions"
     guidance: "Article 14 requires human oversight mechanisms; this question checks whether the technical implementation exists."
     annex_iii_categories: [biometric, critical_infrastructure, law_enforcement]
     default_likelihood_hint: null
@@ -36,6 +39,7 @@ questions:
 
   - id: HS-004
     text: "Has a failure mode and effects analysis (FMEA) or equivalent been conducted to identify safety-critical failure paths?"
+    risk_title: "Safety-critical failure paths not analysed"
     guidance: "Systematic safety analysis documents are expected as part of the technical documentation under Article 11 and Annex IV."
     annex_iii_categories: [critical_infrastructure, essential_services, biometric]
     default_likelihood_hint: null
@@ -47,6 +51,7 @@ questions:
 
   - id: HS-005
     text: "Are system performance metrics (accuracy, error rates, latency) monitored in production with alerts for degradation?"
+    risk_title: "Production performance not monitored for degradation"
     guidance: "Post-market monitoring under Article 72 requires tracking of actual performance against stated specifications."
     annex_iii_categories: [critical_infrastructure, essential_services, employment]
     default_likelihood_hint: 2
@@ -58,6 +63,7 @@ questions:
 
   - id: HS-006
     text: "Could vulnerable populations (elderly, children, people with disabilities) be disproportionately harmed by system errors?"
+    risk_title: "System errors may harm vulnerable groups disproportionately"
     guidance: "Article 9(9) requires explicit consideration of impacts on children and other vulnerable groups."
     annex_iii_categories: [essential_services, education, law_enforcement]
     default_likelihood_hint: 3

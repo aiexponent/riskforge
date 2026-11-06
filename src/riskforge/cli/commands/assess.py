@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 needs Op
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.rule import Rule
 from rich.table import Table
 
@@ -271,6 +272,8 @@ async def _run_assess(
                 console.print(f"  [dim italic]{question['guidance']}[/dim italic]")
             if question.get("article_refs"):
                 console.print(f"  [dim]Refs: {', '.join(question['article_refs'])}[/dim]")
+            if question.get("risk_title"):
+                console.print(f"  Risk: {escape(question['risk_title'])}")
 
             # ── Answer prompt ───────────────────────────────────────────────
             answer = await questionary.select(

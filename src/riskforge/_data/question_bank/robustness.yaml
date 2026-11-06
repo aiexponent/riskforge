@@ -3,6 +3,7 @@ dimension: robustness
 questions:
   - id: RO-001
     text: "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?"
+    risk_title: "Not tested on out-of-distribution, edge-case and adversarial inputs"
     guidance: "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples."
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services, biometric]
     default_likelihood_hint: 2
@@ -14,6 +15,7 @@ questions:
 
   - id: RO-002
     text: "Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?"
+    risk_title: "Performance metrics not documented for each demographic subgroup"
     guidance: "Aggregate metrics can mask poor performance for subpopulations. Slice-level evaluation is required for high-risk systems."
     annex_iii_categories: [employment, education, law_enforcement, essential_services]
     default_likelihood_hint: 2
@@ -25,6 +27,7 @@ questions:
 
   - id: RO-003
     text: "Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?"
+    risk_title: "No performance floor below which the system is taken offline"
     guidance: "A defined performance floor ensures degraded models do not remain in production. This is a key operational control."
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services]
     default_likelihood_hint: 2
@@ -36,6 +39,7 @@ questions:
 
   - id: RO-004
     text: "Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response procedures?"
+    risk_title: "Drift not monitored, or no procedure to respond to it"
     guidance: "Models degrade over time as real-world data distributions shift. Post-market monitoring under Article 72 requires detection and response."
     annex_iii_categories: [essential_services, employment, law_enforcement]
     default_likelihood_hint: 3
@@ -47,6 +51,7 @@ questions:
 
   - id: RO-005
     text: "Has the system been tested for resistance to prompt injection, model inversion, or membership inference attacks (if applicable)?"
+    risk_title: "Not tested against prompt injection, model inversion or membership inference"
     guidance: "LLM-based and generative AI systems face specific adversarial risks not covered by traditional ML robustness testing."
     annex_iii_categories: [law_enforcement, critical_infrastructure, biometric]
     default_likelihood_hint: 2
