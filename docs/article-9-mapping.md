@@ -109,7 +109,7 @@ sense without flipping files:
 | G2 | Article 6(2) self-classification documented | FAIL |
 | G3 | Residual score above the risk-appetite threshold must be reduced or accepted | FAIL |
 | G4 | Knowledge gaps have saved test requirements | WARN |
-| G5 | System metadata complete (name, version, purpose, provider) | FAIL |
+| G5 | System metadata complete: name, version, purpose and provider (FAIL); intended users, inputs, outputs, deployment context and provider contact (WARN) | FAIL / WARN |
 | G6 | Assessor identity recorded | FAIL |
 | G7 | Risk score distribution plausible (catches all-low-score whitewash) | WARN |
 | G8 | No vague mitigations | WARN |
@@ -162,7 +162,9 @@ to be set up, run, written down, and kept up to date.
 
 - **G5** enforces system metadata completeness (name, version, purpose,
   provider_name). Without these the RMF is not a "documented" artefact in any
-  defensible sense.
+  defensible sense. It warns while the intended users, inputs, outputs,
+  deployment context or provider contact is empty; set them with `riskforge init`
+  or `riskforge system describe`.
 - **G2** enforces that Annex III self-classification under Article 6(2) is
   documented before export.
 

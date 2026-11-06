@@ -4,3 +4,15 @@ version: "2.1.0"
 purpose: "Automated credit scoring for retail loan and mortgage underwriting decisions."
 provider: "Acme Financial Services"
 category: essential_services
+# system description (riskforge init --intended-user, --input, --output, ...)
+intended_users:
+  - "Underwriters"
+  - "Credit risk analysts"
+inputs:
+  - "Loan application data"
+  - "Credit bureau report"
+outputs:
+  - "Credit score"
+  - "Approve or refer recommendation"
+deployment_context: "Retail lending, with an underwriter reviewing every referred application"
+provider_contact: "ai-governance@example.com"

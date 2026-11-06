@@ -8,9 +8,14 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 does not read: its `riskforge verify --file` exits 3 on a 1.2.0 file. Upgrade every reviewer who checks exported files at the same time. Files written by 2.0.0 (schema 1.1.0) and 1.1.3 (schema 1.0.0) keep verifying.
 
+### Added
+
+- `riskforge init` takes `--intended-user`, `--input` and `--output` (each repeatable), `--deployment-context` and `--provider-contact`, and the new `riskforge system describe <id>` sets them later. A change is written to the system record and its register together and recorded as `system.described`, with the fields that changed. Library API: `SystemEngine.describe()`. The worked examples now fill these fields.
+
 ### Changed
 
 - Question bank change, for regulatory review: each of the 37 questions has a `risk_title`, the risk it records phrased as the risk ("Bias tests not repeated at each model update"), and risk items made from the bank take it as their title. The item's description is now the full question followed by its guidance. The interactive `assess` prints the risk under each question, and the user guide says that `applies: yes` means the risk applies. Items already in a register keep their title and description. A question without a `risk_title`, as in a bank written for an earlier release, gives the earlier title and description.
+- Gate G5 "System metadata complete" warns, naming the fields, while the intended users, inputs, outputs, deployment context or provider contact is empty. It used to pass with all of them empty, and `init` could not set them (defect D7 of the 2.0.0 independent test). It still fails without a name, version, purpose or provider. A warning does not block an export, and the export records it in its `validation` block.
 - The JSON export is RMF schema 1.2.0 ([ADR-05](docs/adr/ADR-05-rmf-validation-block.md)). It adds one required block, `validation`: the result of every validation gate as it ran on the exported register (id, description, `PASS`, `WARN` or `FAIL`, and details), and an overall `status`, the most severe of them. The content digest covers it, so the digest and any signature over it now vouch for the gate results. The schema is published at `https://aiexponent.com/schemas/riskforge/rmf/1.2.0.json`. Two exports of one register state by one release still share a digest.
 - The `rmf.exported` audit entry lists the failing gates as `failing_gates` when an export is forced past them. An export that passed every gate writes the same entry as before.
 - The Markdown export has a "Validation Gates" section, and the PDF shows the gate results recorded in the file instead of running the gates again when it renders.
