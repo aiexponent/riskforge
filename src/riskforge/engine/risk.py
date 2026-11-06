@@ -303,7 +303,7 @@ class RiskEngine:
         """Add ``proposed``, or update the item that came from the same question or pattern.
 
         The same answer changes nothing and records nothing. A changed answer updates the
-        likelihood, severity and knowledge-gap flag of the first matching item and
+        likelihood, severity, knowledge-gap flag and reason of the first matching item and
         records ``risk_item.updated`` with ``reason: "reassessment"``. Residual scores
         follow the new scores only while the item has no mitigation and its residual
         scores still equal its inherent ones. An acceptance is kept. Nothing is removed:
@@ -351,6 +351,7 @@ class RiskEngine:
             existing.likelihood = proposed.likelihood
             existing.severity = proposed.severity
             existing.knowledge_gap = proposed.knowledge_gap
+            existing.knowledge_gap_reason = proposed.knowledge_gap_reason
             if residual_follows:
                 existing.residual_likelihood = proposed.likelihood
                 existing.residual_severity = proposed.severity

@@ -262,3 +262,44 @@ def test_a_review_period_under_one_month_is_refused(tmp_path: Path, months: str)
     assert result.returncode == 3, result.output
     assert "review-months" in result.output
     assert not _register_path(tmp_path, sid).exists()
+
+
+def test_an_unknown_answer_records_and_shows_how_it_was_scored(tmp_path: Path) -> None:
+    """D6 of the 2.0.0 independent test: a 3 x 3 knowledge gap looked like a judged score."""
+    sid, _ = _init_and_assess(tmp_path)
+    answers = tmp_path / "unknown.yaml"
+    answers.write_text(
+        "add_patterns: false\nanswers:\n"
+        "  PR-001: { applies: yes, likelihood: 4, severity: 4 }\n"
+        "  TR-001: { applies: unknown }\n  DG-001: { applies: unknown }\n"
+    )
+    assess = run_rf(
+        ["assess", sid, "-a", "A", "-r", "B", "--answers", str(answers)]
+        + ["--project-dir", str(tmp_path)]
+    )
+    assert assess.returncode == 0, assess.output
+    items = {item["tags"][0]: item for item in _register(tmp_path, sid)["items"]}
+    assert items["PR-001"]["knowledge_gap_reason"] == ""
+    no_hints = items["TR-001"]
+    assert (no_hints["likelihood"], no_hints["severity"]) == (3, 3)
+    assert "the default, likelihood 3 and severity 3" in no_hints["knowledge_gap_reason"]
+    assert "the question's hint" in items["DG-001"]["knowledge_gap_reason"]
+
+    out = tmp_path / "rmf.md"
+    export = run_rf(
+        ["export", sid, "-f", "markdown", "-o", str(out), "--force"]
+        + ["--project-dir", str(tmp_path)]
+    )
+    assert export.returncode == 0, export.output
+    assert "Knowledge gap: Answered unknown, so the provider has not judged" in out.read_text()
+
+    answers.write_text(
+        "add_patterns: false\nanswers:\n  TR-001: { applies: yes, likelihood: 2, severity: 2 }\n"
+    )
+    again = run_rf(
+        ["assess", sid, "-a", "A", "-r", "B", "--answers", str(answers)]
+        + ["--project-dir", str(tmp_path)]
+    )
+    assert again.returncode == 0, again.output
+    item = next(i for i in _register(tmp_path, sid)["items"] if i["tags"][0] == "TR-001")
+    assert (item["knowledge_gap"], item["knowledge_gap_reason"]) == (False, "")
