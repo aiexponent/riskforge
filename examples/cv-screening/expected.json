@@ -935,13 +935,22 @@
       "annex_iii_category": "employment",
       "annex_iii_self_classification_documented": true,
       "created_at": "<timestamp>",
-      "deployment_context": "",
+      "deployment_context": "Applicant tracking system used by in-house recruitment teams in the EU",
       "id": "<uuid>",
-      "inputs": [],
-      "intended_users": [],
+      "inputs": [
+        "CVs",
+        "Job descriptions"
+      ],
+      "intended_users": [
+        "Recruiters",
+        "Hiring managers"
+      ],
       "name": "TalentScreen CV Ranker",
-      "outputs": [],
-      "provider_contact": "",
+      "outputs": [
+        "Candidate ranking",
+        "Shortlist recommendation"
+      ],
+      "provider_contact": "compliance@example.com",
       "provider_name": "Northwind HR Technologies GmbH",
       "purpose": "Automated resume screening and candidate ranking for hiring decisions in recruitment.",
       "schema_version": "1.0.0",
