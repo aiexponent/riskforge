@@ -167,6 +167,12 @@ answers:
 
 `applies: yes` adds a scored risk item (likelihood and severity required).
 `applies: unknown` flags a knowledge gap; `riskforge tests generate` then saves a test requirement for it.
+A knowledge gap is not a judged score. Its likelihood and severity are the question's
+`default_likelihood_hint` and `default_severity_hint`, and 3 for any it does not give, so
+a question with no hints scores 3 x 3 = 9. The item's `knowledge_gap_reason` says which
+it used, and the Markdown and PDF exports show it next to the item. Answer the question
+with `applies: yes` and your own scores once you know them; re-running `assess` updates
+the item.
 Question ids come from the bundled question bank (see the files under
 `src/riskforge/_data/question_bank/`).
 

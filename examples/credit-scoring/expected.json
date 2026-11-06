@@ -824,7 +824,7 @@
         "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": true,
-        "knowledge_gap_reason": "",
+        "knowledge_gap_reason": "Answered unknown, so the provider has not judged this risk yet. It is scored at the question's hint, likelihood 2 and severity 3, until it is assessed.",
         "likelihood": 2,
         "mitigations": [],
         "nist_rmf_ref": "MAP 2.3",
