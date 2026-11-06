@@ -3,6 +3,7 @@ dimension: human_oversight
 questions:
   - id: HO-001
     text: "Can a human operator override or stop the AI system's output in real time without significant technical barriers?"
+    risk_title: "Operators cannot readily override or stop the output in real time"
     guidance: "Article 14(4)(e) requires the ability to intervene on or interrupt AI system operation. This must be technically implemented, not just policy-stated."
     annex_iii_categories: [critical_infrastructure, law_enforcement, biometric]
     default_likelihood_hint: null
@@ -14,6 +15,7 @@ questions:
 
   - id: HO-002
     text: "Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on its output?"
+    risk_title: "Reviewers not trained on the system's capabilities, limitations and known biases"
     guidance: "Untrained human reviewers provide illusory oversight. Article 26(2) requires deployers to assign human oversight to natural persons who have the necessary competence, training and authority."
     annex_iii_categories: [employment, law_enforcement, essential_services, education]
     default_likelihood_hint: 3
@@ -25,6 +27,7 @@ questions:
 
   - id: HO-003
     text: "Is the human oversight load (volume of cases reviewed per reviewer per day) realistic for meaningful review, not rubber-stamping?"
+    risk_title: "Review workload too high for meaningful human oversight"
     guidance: "Automation bias and review fatigue cause human oversight to become nominal. Workload design is a technical control."
     annex_iii_categories: [employment, law_enforcement, essential_services]
     default_likelihood_hint: 3
@@ -36,6 +39,7 @@ questions:
 
   - id: HO-004
     text: "Is the system designed to make its reasoning interpretable to human reviewers (e.g. via explainability methods, confidence scores, supporting evidence)?"
+    risk_title: "System reasoning not interpretable to human reviewers"
     guidance: "Human oversight is only meaningful if the reviewer can understand what the system decided and why."
     annex_iii_categories: [law_enforcement, employment, essential_services, education]
     default_likelihood_hint: 2
