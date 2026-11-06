@@ -3,6 +3,7 @@ dimension: robustness
 questions:
   - id: RO-001
     text: "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?"
+    risk_title: "Not tested on out-of-distribution, edge-case and adversarial inputs"
     guidance: "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples."
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services, biometric]
     default_likelihood_hint: 2
@@ -11,9 +12,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "stress_set_accuracy"
+    test_measure: "Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs"
 
   - id: RO-002
     text: "Are accuracy, precision, recall, and calibration metrics documented across all relevant demographic subgroups?"
+    risk_title: "Performance metrics not documented for each demographic subgroup"
     guidance: "Aggregate metrics can mask poor performance for subpopulations. Slice-level evaluation is required for high-risk systems."
     annex_iii_categories: [employment, education, law_enforcement, essential_services]
     default_likelihood_hint: 2
@@ -22,9 +26,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "subgroup_performance_gap"
+    test_measure: "Largest difference in accuracy, precision, recall or calibration between demographic subgroups"
 
   - id: RO-003
     text: "Is there a defined performance floor (minimum acceptable metric threshold) below which the system is taken offline?"
+    risk_title: "No performance floor below which the system is taken offline"
     guidance: "A defined performance floor ensures degraded models do not remain in production. This is a key operational control."
     annex_iii_categories: [critical_infrastructure, law_enforcement, essential_services]
     default_likelihood_hint: 2
@@ -33,9 +40,12 @@ questions:
     nist_rmf_ref: "MANAGE 1.3"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "floor_breach_response_time_min"
+    test_measure: "Minutes from a breach of the performance floor to the system being taken offline"
 
   - id: RO-004
     text: "Are model degradation scenarios (data drift, concept drift, distribution shift) monitored and have defined response procedures?"
+    risk_title: "Drift not monitored, or no procedure to respond to it"
     guidance: "Models degrade over time as real-world data distributions shift. Post-market monitoring under Article 72 requires detection and response."
     annex_iii_categories: [essential_services, employment, law_enforcement]
     default_likelihood_hint: 3
@@ -44,9 +54,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.4"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "drift_detection_time_h"
+    test_measure: "Hours from an injected data or concept drift to its detection"
 
   - id: RO-005
     text: "Has the system been tested for resistance to prompt injection, model inversion, or membership inference attacks (if applicable)?"
+    risk_title: "Not tested against prompt injection, model inversion or membership inference"
     guidance: "LLM-based and generative AI systems face specific adversarial risks not covered by traditional ML robustness testing."
     annex_iii_categories: [law_enforcement, critical_infrastructure, biometric]
     default_likelihood_hint: 2
@@ -55,3 +68,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.7"
     iso42001_ref: "Annex A.9"
     regulatory_status: pending_implementing_act
+    test_metric_type: "attack_success_rate"
+    test_measure: "Share of prompt injection, model inversion and membership inference attempts that succeed"

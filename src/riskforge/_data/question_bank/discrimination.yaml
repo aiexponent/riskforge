@@ -3,6 +3,7 @@ dimension: discrimination
 questions:
   - id: DI-001
     text: "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity, age, disability)?"
+    risk_title: "Training data not audited for representation imbalance across protected groups"
     guidance: "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases."
     annex_iii_categories: [employment, education, essential_services, law_enforcement]
     default_likelihood_hint: 3
@@ -11,9 +12,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "representation_gap"
+    test_measure: "Largest gap between a protected group's share of the training data and its share of the people the system serves"
 
   - id: DI-002
     text: "Have demographic parity, equalised odds, or other fairness metrics been computed and documented for each protected group?"
+    risk_title: "Fairness metrics not computed for each protected group"
     guidance: "Quantified fairness metrics are required for meaningful bias assessment. Select metrics appropriate to the use case."
     annex_iii_categories: [employment, education, essential_services]
     default_likelihood_hint: 2
@@ -22,9 +26,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "demographic_parity_gap"
+    test_measure: "Largest difference in positive-outcome rate between protected groups"
 
   - id: DI-003
     text: "Does the system use proxy variables that may correlate with protected characteristics (e.g. postcode, school name, employment gaps)?"
+    risk_title: "Proxy variables may encode protected characteristics"
     guidance: "Proxy discrimination occurs when facially neutral features encode protected characteristics. Legal exposure exists even without intent."
     annex_iii_categories: [employment, education, essential_services, law_enforcement]
     default_likelihood_hint: 3
@@ -33,9 +40,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "proxy_correlation"
+    test_measure: "Strongest correlation between an input feature and a protected characteristic"
 
   - id: DI-004
     text: "Are bias test results documented and reviewed at each model update, not just at initial deployment?"
+    risk_title: "Bias tests not repeated at each model update"
     guidance: "Data drift and concept drift can re-introduce bias after initial mitigation. Continuous monitoring is required."
     annex_iii_categories: [employment, education, essential_services]
     default_likelihood_hint: 2
@@ -44,3 +54,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.11"
     iso42001_ref: "Clause 9.1"
     regulatory_status: settled
+    test_metric_type: "bias_retest_coverage"
+    test_measure: "Share of model updates released with a documented bias test"

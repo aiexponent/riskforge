@@ -3,6 +3,7 @@ dimension: privacy
 questions:
   - id: PR-001
     text: "Does the system process personal data or special category data (health, biometric, ethnicity, religion)?"
+    risk_title: "System processes personal or special category data"
     guidance: "Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction."
     annex_iii_categories: [biometric, health, law_enforcement, employment]
     default_likelihood_hint: null
@@ -11,9 +12,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "unprotected_personal_data_rate"
+    test_measure: "Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation"
 
   - id: PR-002
     text: "Has a Data Protection Impact Assessment (DPIA) been carried out, with the advice of the Data Protection Officer where one is designated?"
+    risk_title: "No Data Protection Impact Assessment carried out"
     guidance: "GDPR Article 35 requires a DPIA for high-risk processing. High-risk AI systems typically trigger this threshold."
     annex_iii_categories: [biometric, law_enforcement, employment, essential_services]
     default_likelihood_hint: null
@@ -22,9 +26,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "dpia_coverage"
+    test_measure: "Share of processing operations covered by a completed Data Protection Impact Assessment"
 
   - id: PR-003
     text: "Is data minimisation enforced: does the model use only the minimum personal data necessary for the intended purpose?"
+    risk_title: "Model uses more personal data than its purpose needs"
     guidance: "GDPR data minimisation and purpose limitation principles (GDPR Article 5(1)(b) and (c)) apply to AI systems processing personal data."
     annex_iii_categories: [biometric, employment, essential_services, education]
     default_likelihood_hint: 2
@@ -33,9 +40,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "unneeded_personal_data_fields"
+    test_measure: "Number of personal data fields the model uses that its purpose does not need"
 
   - id: PR-004
     text: "Has the training data been scanned for inadvertent PII inclusion, and is PII redaction/pseudonymisation applied before training?"
+    risk_title: "Personal data in training data not found and redacted or pseudonymised"
     guidance: "Training data containing real PII creates privacy risk. Automated PII detection tools (e.g. TraceForge) can surface this."
     annex_iii_categories: [biometric, employment, health]
     default_likelihood_hint: 3
@@ -44,9 +54,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.7"
     regulatory_status: settled
+    test_metric_type: "residual_personal_data_rate"
+    test_measure: "Share of sampled training records still holding personal data after redaction or pseudonymisation"
 
   - id: PR-005
     text: "Are model outputs screened to prevent accidental reproduction of training data PII (membership inference / data extraction attacks)?"
+    risk_title: "Outputs may reproduce personal data from the training data"
     guidance: "Large models can memorise and reproduce training data verbatim. This is an active attack surface requiring specific mitigations."
     annex_iii_categories: [biometric, law_enforcement, employment]
     default_likelihood_hint: 2
@@ -55,3 +68,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.10"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "training_data_extraction_rate"
+    test_measure: "Share of extraction and membership inference probes that recover training data"

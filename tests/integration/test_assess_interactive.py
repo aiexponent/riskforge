@@ -187,3 +187,35 @@ def test_rerun_after_interrupt_adds_no_duplicates(tmp_path: Path) -> None:
     assert logs[1] == logs[0]
     verify = run_rf(["verify", "--project-dir", str(tmp_path)])
     assert verify.returncode == 0, verify.output
+
+
+def test_each_question_shows_the_risk_it_records(tmp_path: Path) -> None:
+    """The prompt asks whether the risk applies, so the risk is shown, not only the question.
+
+    D3 and usability finding 1 of the 2.0.0 independent test: most questions ask whether a
+    control is in place, which left it unclear what `yes` meant.
+    """
+    system_id = _init(tmp_path)
+    child = _spawn_assess(tmp_path, system_id)
+    try:
+        child.expect(r"Add pattern-derived risk items.*\(Y/n\)")
+        child.send("\r")
+        child.expect(MARKER)
+        child.expect("Risk: System processes personal or special category data")
+        child.expect(r"4\) skip")
+        child.send(APPLIES_KEY["yes"])
+        child.send("\r")
+        for prompt in ("Likelihood", "Severity"):
+            child.expect(prompt)
+            child.expect(r"5\) ")
+            child.send("3")
+            child.send("\r")
+        for _ in range(4):
+            _answer(child, "no")
+        child.expect("Assessment Session Complete")
+        _finish(child)
+    finally:
+        child.close(force=True)
+    [item] = [i for i in _items(tmp_path) if i["source"] == "question_bank"]
+    assert item["title"] == "System processes personal or special category data"
+    assert item["description"].startswith("Question PR-001: Does the system process")

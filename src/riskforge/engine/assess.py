@@ -40,6 +40,32 @@ def keyword_matches(keyword: str, purpose: str) -> bool:
     return re.search(rf"(?<![a-z0-9]){re.escape(needle)}", _normalise(purpose)) is not None
 
 
+# The likelihood and severity of an unknown answer when the question gives no hint.
+DEFAULT_GAP_SCORE = 3
+
+
+def question_risk_title(question: dict[str, Any]) -> str:
+    """The title of a question's risk item: its ``risk_title``, phrased as the risk.
+
+    A question without one, as in a bank written for an earlier release, gives its text
+    cut to ``QUESTION_TITLE_MAX_LENGTH`` as before.
+    """
+    return question.get("risk_title") or question["text"][:QUESTION_TITLE_MAX_LENGTH]
+
+
+def question_description(question: dict[str, Any]) -> str:
+    """The description of a question's risk item: the full question, then its guidance.
+
+    A question without a ``risk_title`` keeps the earlier description, its guidance alone,
+    because its title already is the question.
+    """
+    guidance = question.get("guidance", "")
+    if not question.get("risk_title"):
+        return guidance or question["text"]
+    label = f"Question {question['id']}" if question.get("id") else "Question"
+    return f"{label}: {question['text']} {guidance}".rstrip()
+
+
 class AssessEngine:
     """Loads question banks, runs questions interactively, matches patterns.
 
@@ -102,6 +128,32 @@ class AssessEngine:
                 matched.append(pattern)
         return matched
 
+    def knowledge_gap_item(self, question: dict[str, Any], dimension: RiskDimension) -> RiskItem:
+        """The risk item for a question answered ``unknown``, flagged as a knowledge gap.
+
+        Each score is the question's default hint, or 3 when it has none.
+        ``knowledge_gap_reason`` says so, so a reader can tell the score was not judged.
+        """
+        sources: dict[str, tuple[int, str]] = {}
+        for name in ("likelihood", "severity"):
+            hint = question.get(f"default_{name}_hint")
+            sources[name] = (
+                (int(hint), "the question's hint") if hint else (DEFAULT_GAP_SCORE, "the default")
+            )
+        (likelihood, l_source), (severity, s_source) = sources["likelihood"], sources["severity"]
+        item = self.question_to_risk_item(
+            question, dimension, likelihood, severity, answer_unknown=True
+        )
+        if l_source == s_source:
+            basis = f"{l_source}, likelihood {likelihood} and severity {severity}"
+        else:
+            basis = f"likelihood {likelihood} ({l_source}) and severity {severity} ({s_source})"
+        item.knowledge_gap_reason = (
+            f"Answered unknown, so the provider has not judged this risk yet. It is scored at "
+            f"{basis}, until it is assessed."
+        )
+        return item
+
     def question_to_risk_item(
         self,
         question: dict[str, Any],
@@ -115,8 +167,8 @@ class AssessEngine:
         sv = Severity(min(max(severity, 1), 5))
         return RiskItem(
             dimension=dimension,
-            title=question["text"][:QUESTION_TITLE_MAX_LENGTH],
-            description=question.get("guidance", question["text"]),
+            title=question_risk_title(question),
+            description=question_description(question),
             source="question_bank",
             likelihood=lh,
             severity=sv,
