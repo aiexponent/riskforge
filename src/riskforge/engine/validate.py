@@ -24,6 +24,15 @@ class GateResult:
     details: str = field(default="")
 
 
+# The system description fields `init` and `system describe` set. G5 warns while any is empty.
+_DESCRIPTION_FIELDS = (
+    "intended_users",
+    "inputs",
+    "outputs",
+    "deployment_context",
+    "provider_contact",
+)
+
 # Re-scoring the residual with `risk mitigate` clears G3; a mitigation alone does not.
 _G3 = "Every risk's residual score at or below the risk-appetite threshold, or accepted"
 
@@ -120,6 +129,15 @@ class ValidateEngine:
                 "System metadata complete",
                 GateStatus.FAIL,
                 "Missing required fields: name, version, purpose, or provider_name.",
+            )
+        empty = [name for name in _DESCRIPTION_FIELDS if not getattr(r.system, name)]
+        if empty:
+            return GateResult(
+                "G5",
+                "System metadata complete",
+                GateStatus.WARN,
+                f"The system description has no {', '.join(empty)}. "
+                "Set them with `riskforge system describe`.",
             )
         return GateResult("G5", "System metadata complete", GateStatus.PASS)
 

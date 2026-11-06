@@ -854,13 +854,22 @@
       "annex_iii_category": "essential_services",
       "annex_iii_self_classification_documented": true,
       "created_at": "<timestamp>",
-      "deployment_context": "",
+      "deployment_context": "Retail lending, with an underwriter reviewing every referred application",
       "id": "<uuid>",
-      "inputs": [],
-      "intended_users": [],
+      "inputs": [
+        "Loan application data",
+        "Credit bureau report"
+      ],
+      "intended_users": [
+        "Underwriters",
+        "Credit risk analysts"
+      ],
       "name": "CreditFlow Scoring Engine",
-      "outputs": [],
-      "provider_contact": "",
+      "outputs": [
+        "Credit score",
+        "Approve or refer recommendation"
+      ],
+      "provider_contact": "ai-governance@example.com",
       "provider_name": "Acme Financial Services",
       "purpose": "Automated credit scoring for retail loan and mortgage underwriting decisions.",
       "schema_version": "1.0.0",
