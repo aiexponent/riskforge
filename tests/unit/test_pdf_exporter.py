@@ -396,3 +396,10 @@ def test_risk_cross_references_render_independently(refs: dict, expected: str) -
     rmf.register.items[0] = item
     html = PDFExporter().render_html(rmf)
     assert expected in html
+
+
+def test_pdf_test_requirements_say_what_each_metric_measures(rendered) -> None:
+    """A metric name alone did not say what to measure (D5 of the 2.0.0 independent test)."""
+    rmf, text, _pages = rendered
+    for requirement in rmf.test_requirements:
+        assert f"{requirement.metric_type} {requirement.description}" in _flat(text)
