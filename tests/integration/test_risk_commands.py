@@ -234,3 +234,31 @@ def test_v113_project_accepts_with_by_and_still_verifies(v113_project: tuple[Pat
     for item_id in others:
         assert "accepted_by" not in after[item_id]
         assert all("recorded_by" not in m for m in after[item_id]["mitigations"])
+
+
+def test_a_12_month_review_falls_on_the_same_day_a_year_later(tmp_path: Path) -> None:
+    """D2 of the 2.0.0 independent test: 12 months gave a date 360 days on."""
+    from datetime import datetime
+
+    sid, _ = _init_and_assess(tmp_path)
+    register = _register(tmp_path, sid)
+    assessed = datetime.fromisoformat(str(register["assessment_date"]).replace("Z", "+00:00"))
+    review = datetime.fromisoformat(str(register["review_date"]).replace("Z", "+00:00"))
+    day = assessed.day if (assessed.month, assessed.day) != (2, 29) else 28
+    assert review == assessed.replace(year=assessed.year + 1, day=day)
+
+
+@pytest.mark.parametrize("months", ["0", "-3"])
+def test_a_review_period_under_one_month_is_refused(tmp_path: Path, months: str) -> None:
+    init = run_rf(
+        ["init", "-n", "X", "-s", "1", "-p", "credit scoring", "--provider", "P"]
+        + ["--project-dir", str(tmp_path)]
+    )
+    sid = UUID_RE.search(init.output).group(0)
+    result = run_rf(
+        ["assess", sid, "-a", "A", "-r", "B", "--review-months", months]
+        + ["--answers", str(tmp_path / "missing.yaml"), "--project-dir", str(tmp_path)]
+    )
+    assert result.returncode == 3, result.output
+    assert "review-months" in result.output
+    assert not _register_path(tmp_path, sid).exists()

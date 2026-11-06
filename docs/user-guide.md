@@ -191,7 +191,7 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge init -n NAME -s VERSION -p PURPOSE --provider ORG [-c CATEGORY]` | Create a project and register a system; prints the system id. |
 | `riskforge system show <id>` | Print the system record as JSON. |
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
-| `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE]` | Run the assessment, interactive or from an answers file. |
+| `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE] [--review-months N]` | Run the assessment, interactive or from an answers file. The first run creates the register, with its review date `N` calendar months after the assessment (default 12, at least 1): 4 November 2026 plus 12 months is 4 November 2027, and a day the month does not have becomes its last day. |
 | `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |

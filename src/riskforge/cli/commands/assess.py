@@ -55,7 +55,12 @@ def cmd(
     dimension: Optional[str] = typer.Option(
         None, "--dimension", help="Scope to a single dimension (e.g. privacy)"
     ),
-    review_months: int = typer.Option(12, "--review-months", help="Months until next review"),
+    review_months: int = typer.Option(
+        12,
+        "--review-months",
+        min=1,
+        help="Calendar months from the assessment to the next review (at least 1)",
+    ),
     answers: Optional[Path] = typer.Option(
         None, "--answers", help="YAML answers file for a non-interactive assessment (for CI)"
     ),

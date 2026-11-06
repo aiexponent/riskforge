@@ -16,6 +16,7 @@ Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 doe
 
 ### Fixed
 
+- The review date is now whole calendar months after the assessment date: `assess --review-months 12` on 4 November 2026 gives 4 November 2027. It used to count 30 days a month, so 12 months came out 360 days later, on 30 October 2027 (defect D2 of the 2.0.0 independent test). A day the target month does not have becomes its last day. Registers written before keep their stored review date. `--review-months` below 1 now exits 3 instead of setting a review date on or before the assessment, and `RiskEngine.create_register()` raises `ValueError` for it.
 - An export forced past a failing gate with `--force` was invisible in the signed JSON and the Markdown export, and the PDF's "Exported with failing gates" line was not covered by the digest it printed (defect D1 of the 2.0.0 independent test, `verification/REPORT.md`). All three formats now show the failing gates, under the content digest.
 - `riskforge verify --file` reads RMF schema 1.2.0, and fails a 1.2.0 file with exit 2 when its `validation` status is not the most severe gate status or a gate is listed twice, so a file cannot report PASS over a failing gate even when its signer redoes the digest and the signature.
 
