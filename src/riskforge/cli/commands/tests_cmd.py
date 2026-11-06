@@ -43,6 +43,6 @@ def generate_tests(
     )
     for req in requirements:
         console.print(
-            f"  • [bold]{req.metric_type}[/bold] {req.threshold_range} "
+            f"  • [bold]{req.metric_type}[/bold], threshold {req.threshold_range} "
             f"({req.article_ref}), risk {str(req.risk_item_id)[:8]}"
         )

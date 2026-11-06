@@ -12,6 +12,8 @@ questions:
     nist_rmf_ref: "MANAGE 2.4"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "override_success_rate"
+    test_measure: "Share of test overrides that stop or change the output in real time"
 
   - id: HO-002
     text: "Are human reviewers trained on the system's capabilities, limitations, and known biases before making decisions based on its output?"
@@ -24,6 +26,8 @@ questions:
     nist_rmf_ref: "MAP 3.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "reviewer_training_coverage"
+    test_measure: "Share of human reviewers trained on the system's capabilities, limitations and known biases"
 
   - id: HO-003
     text: "Is the human oversight load (volume of cases reviewed per reviewer per day) realistic for meaningful review, not rubber-stamping?"
@@ -36,6 +40,8 @@ questions:
     nist_rmf_ref: "MAP 3.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "review_time_per_case_s"
+    test_measure: "Median seconds a reviewer spends on each case"
 
   - id: HO-004
     text: "Is the system designed to make its reasoning interpretable to human reviewers (e.g. via explainability methods, confidence scores, supporting evidence)?"
@@ -48,3 +54,5 @@ questions:
     nist_rmf_ref: "MEASURE 2.9"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "reviewer_explanation_coverage"
+    test_measure: "Share of outputs shown to reviewers with an explanation, confidence score or supporting evidence"
