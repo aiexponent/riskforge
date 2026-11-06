@@ -360,7 +360,16 @@
     {
       "article_ref": "Art.9(2)(a)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7",
+        "Clause 6.1"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11",
+        "MAP 3.5",
+        "GOVERN 1.1"
+      ],
       "risk_item_ids": [
         "<uuid>",
         "<uuid>",
@@ -371,7 +380,13 @@
     {
       "article_ref": "Art.9(9)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -379,7 +394,13 @@
     {
       "article_ref": "Art.10(2)(f)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.11",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
       "risk_item_ids": [
         "<uuid>",
         "<uuid>"
@@ -388,7 +409,13 @@
     {
       "article_ref": "Art.13",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -396,7 +423,13 @@
     {
       "article_ref": "Art.86(1)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -404,7 +437,13 @@
     {
       "article_ref": "Art.14(1)",
       "iso42001_ref": "Clause 6.1",
+      "iso42001_refs": [
+        "Clause 6.1"
+      ],
       "nist_rmf_ref": "MAP 3.5",
+      "nist_rmf_refs": [
+        "MAP 3.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -412,7 +451,13 @@
     {
       "article_ref": "Art.4a(1)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MEASURE 2.10",
+      "nist_rmf_refs": [
+        "MEASURE 2.10"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -420,7 +465,13 @@
     {
       "article_ref": "Art.26(11)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -428,7 +479,13 @@
     {
       "article_ref": "Art.50(1)",
       "iso42001_ref": "Annex A.6",
+      "iso42001_refs": [
+        "Annex A.6"
+      ],
       "nist_rmf_ref": "MEASURE 2.8",
+      "nist_rmf_refs": [
+        "MEASURE 2.8"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -436,7 +493,13 @@
     {
       "article_ref": "Art.14(4)(e)",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MANAGE 2.4",
+      "nist_rmf_refs": [
+        "MANAGE 2.4"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -444,7 +507,13 @@
     {
       "article_ref": "Art.9(6)",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MEASURE 2.5",
+      "nist_rmf_refs": [
+        "MEASURE 2.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -452,7 +521,13 @@
     {
       "article_ref": "Art.15",
       "iso42001_ref": "Annex A.9",
+      "iso42001_refs": [
+        "Annex A.9"
+      ],
       "nist_rmf_ref": "MEASURE 2.5",
+      "nist_rmf_refs": [
+        "MEASURE 2.5"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -460,7 +535,13 @@
     {
       "article_ref": "Art.10(2)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MAP 2.3",
+      "nist_rmf_refs": [
+        "MAP 2.3"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -468,7 +549,13 @@
     {
       "article_ref": "Art.10(2)(b)",
       "iso42001_ref": "Annex A.7",
+      "iso42001_refs": [
+        "Annex A.7"
+      ],
       "nist_rmf_ref": "MAP 2.3",
+      "nist_rmf_refs": [
+        "MAP 2.3"
+      ],
       "risk_item_ids": [
         "<uuid>"
       ]
@@ -571,7 +658,7 @@
           "Art.9(2)(a)",
           "Art.14(1)"
         ],
-        "description": "Consider decisions about medication dosing, surgical planning, vehicle operation, equipment control, or emergency dispatch.",
+        "description": "Question HS-001: Could the system's outputs directly influence a clinical, safety, or physical decision without mandatory human review? Consider decisions about medication dosing, surgical planning, vehicle operation, equipment control, or emergency dispatch.",
         "dimension": "health_safety",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -597,7 +684,7 @@
         "tags": [
           "HS-001"
         ],
-        "title": "Could the system's outputs directly influence a clinical, safety, or physical decision without mandatory human review?"
+        "title": "Outputs drive clinical, safety or physical decisions without human review"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -606,7 +693,7 @@
         "article_refs": [
           "Art.9(2)(a)"
         ],
-        "description": "Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this.",
+        "description": "Question FR-001: Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment? Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this.",
         "dimension": "fundamental_rights",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -632,7 +719,7 @@
         "tags": [
           "FR-001"
         ],
-        "title": "Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?"
+        "title": "No fundamental rights impact assessment before deployment"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -642,7 +729,7 @@
           "Art.10(2)(f)",
           "Art.9(2)(a)"
         ],
-        "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
+        "description": "Question DI-001: Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity, age, disability)? Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
         "dimension": "discrimination",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -668,7 +755,7 @@
         "tags": [
           "DI-001"
         ],
-        "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,"
+        "title": "Training data not audited for representation imbalance across protected groups"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -677,7 +764,7 @@
         "article_refs": [
           "Art.4a(1)"
         ],
-        "description": "Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
+        "description": "Question PR-001: Does the system process personal data or special category data (health, biometric, ethnicity, religion)? Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
         "dimension": "privacy",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -703,7 +790,7 @@
         "tags": [
           "PR-001"
         ],
-        "title": "Does the system process personal data or special category data (health, biometric, ethnicity, religion)?"
+        "title": "System processes personal or special category data"
       },
       {
         "acceptance_rationale": "",
@@ -712,7 +799,7 @@
           "Art.26(11)",
           "Art.50(1)"
         ],
-        "description": "Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
+        "description": "Question TR-001: Are users notified that they are interacting with or being assessed by an AI system? Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -738,7 +825,7 @@
         "tags": [
           "TR-001"
         ],
-        "title": "Are users notified that they are interacting with or being assessed by an AI system?"
+        "title": "Users not told they are interacting with or assessed by an AI system"
       },
       {
         "acceptance_rationale": "",
@@ -746,7 +833,7 @@
         "article_refs": [
           "Art.14(4)(e)"
         ],
-        "description": "Article 14(4)(e) requires the ability to intervene on or interrupt AI system operation. This must be technically implemented, not just policy-stated.",
+        "description": "Question HO-001: Can a human operator override or stop the AI system's output in real time without significant technical barriers? Article 14(4)(e) requires the ability to intervene on or interrupt AI system operation. This must be technically implemented, not just policy-stated.",
         "dimension": "human_oversight",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -772,7 +859,7 @@
         "tags": [
           "HO-001"
         ],
-        "title": "Can a human operator override or stop the AI system's output in real time without significant technical barriers?"
+        "title": "Operators cannot readily override or stop the output in real time"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -782,7 +869,7 @@
           "Art.9(6)",
           "Art.15"
         ],
-        "description": "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
+        "description": "Question RO-001: Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations? Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
         "dimension": "robustness",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -808,7 +895,7 @@
         "tags": [
           "RO-001"
         ],
-        "title": "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?"
+        "title": "Not tested on out-of-distribution, edge-case and adversarial inputs"
       },
       {
         "acceptance_rationale": "",
@@ -817,14 +904,14 @@
           "Art.10(2)",
           "Art.10(2)(b)"
         ],
-        "description": "Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
+        "description": "Question DG-001: Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)? Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
         "dimension": "data_governance",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
         "iso42001_ref": "Annex A.7",
         "iso42001_refs": [],
         "knowledge_gap": true,
-        "knowledge_gap_reason": "",
+        "knowledge_gap_reason": "Answered unknown, so the provider has not judged this risk yet. It is scored at the question's hint, likelihood 2 and severity 3, until it is assessed.",
         "likelihood": 2,
         "mitigations": [],
         "nist_rmf_ref": "MAP 2.3",
@@ -843,7 +930,7 @@
         "tags": [
           "DG-001"
         ],
-        "title": "Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?"
+        "title": "Dataset provenance not documented"
       }
     ],
     "question_bank_version": "1.0.0",
@@ -854,13 +941,22 @@
       "annex_iii_category": "essential_services",
       "annex_iii_self_classification_documented": true,
       "created_at": "<timestamp>",
-      "deployment_context": "",
+      "deployment_context": "Retail lending, with an underwriter reviewing every referred application",
       "id": "<uuid>",
-      "inputs": [],
-      "intended_users": [],
+      "inputs": [
+        "Loan application data",
+        "Credit bureau report"
+      ],
+      "intended_users": [
+        "Underwriters",
+        "Credit risk analysts"
+      ],
       "name": "CreditFlow Scoring Engine",
-      "outputs": [],
-      "provider_contact": "",
+      "outputs": [
+        "Credit score",
+        "Approve or refer recommendation"
+      ],
+      "provider_contact": "ai-governance@example.com",
       "provider_name": "Acme Financial Services",
       "purpose": "Automated credit scoring for retail loan and mortgage underwriting decisions.",
       "schema_version": "1.0.0",
@@ -869,75 +965,75 @@
     "test_requirements": [
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
+        "description": "Risk: Demographic bias in credit scoring outputs. Measure: Largest difference in positive-outcome rate between protected groups. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "demographic_parity",
+        "metric_type": "demographic_parity_gap",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "<= 0.10"
-      },
-      {
-        "article_ref": "Art.13",
-        "description": "Validate 'Lack of explanation for credit decisions' via explanation_coverage measurement. Target: >= 0.90.",
-        "id": "<uuid>",
-        "metric_type": "explanation_coverage",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.90"
-      },
-      {
-        "article_ref": "Art.9(2)(a)",
-        "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
-        "id": "<uuid>",
-        "metric_type": "fundamental_rights_impact_score",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": "= 0"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+        "description": "Risk: Lack of explanation for credit decisions. Measure: Share of explanation requests answered with the decision logic within the set time. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "demographic_parity",
+        "metric_type": "explanation_request_fulfilment",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "<= 0.10"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+        "description": "Risk: No fundamental rights impact assessment before deployment. Measure: Share of deployment contexts covered by a completed fundamental rights impact assessment. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "pii_leakage_rate",
+        "metric_type": "rights_impact_assessment_coverage",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": "= 0.00"
-      },
-      {
-        "article_ref": "Art.13",
-        "description": "Validate 'Are users notified that they are interacting with or being assessed by an AI system?' via explanation_coverage measurement. Target: >= 0.90.",
-        "id": "<uuid>",
-        "metric_type": "explanation_coverage",
-        "nist_rmf_ref": "",
-        "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.90"
+        "threshold_range": "set by the provider before testing"
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+        "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "faithfulness",
+        "metric_type": "representation_gap",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.85"
+        "threshold_range": "set by the provider before testing"
       },
       {
-        "article_ref": "Art.10",
-        "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+        "article_ref": "Art.9(8)",
+        "description": "Risk: System processes personal or special category data. Measure: Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation. Set the threshold before testing, appropriate to the intended purpose.",
         "id": "<uuid>",
-        "metric_type": "data_quality_score",
+        "metric_type": "unprotected_personal_data_rate",
         "nist_rmf_ref": "",
         "risk_item_id": "<uuid>",
-        "threshold_range": ">= 0.95"
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Users not told they are interacting with or assessed by an AI system. Measure: Share of interactions and assessments that tell the person an AI system is involved. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "ai_disclosure_coverage",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Not tested on out-of-distribution, edge-case and adversarial inputs. Measure: Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "stress_set_accuracy",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
+      },
+      {
+        "article_ref": "Art.9(8)",
+        "description": "Risk: Dataset provenance not documented. Measure: Share of training, validation and test datasets with a documented source, collection date, licence and version. Set the threshold before testing, appropriate to the intended purpose.",
+        "id": "<uuid>",
+        "metric_type": "dataset_provenance_coverage",
+        "nist_rmf_ref": "",
+        "risk_item_id": "<uuid>",
+        "threshold_range": "set by the provider before testing"
       }
     ]
   },
@@ -948,75 +1044,75 @@
   "test_requirements": [
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Demographic bias in credit scoring outputs' via demographic_parity measurement. Target: <= 0.10.",
+      "description": "Risk: Demographic bias in credit scoring outputs. Measure: Largest difference in positive-outcome rate between protected groups. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "demographic_parity",
+      "metric_type": "demographic_parity_gap",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "<= 0.10"
-    },
-    {
-      "article_ref": "Art.13",
-      "description": "Validate 'Lack of explanation for credit decisions' via explanation_coverage measurement. Target: >= 0.90.",
-      "id": "<uuid>",
-      "metric_type": "explanation_coverage",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.90"
-    },
-    {
-      "article_ref": "Art.9(2)(a)",
-      "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
-      "id": "<uuid>",
-      "metric_type": "fundamental_rights_impact_score",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": "= 0"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+      "description": "Risk: Lack of explanation for credit decisions. Measure: Share of explanation requests answered with the decision logic within the set time. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "demographic_parity",
+      "metric_type": "explanation_request_fulfilment",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "<= 0.10"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+      "description": "Risk: No fundamental rights impact assessment before deployment. Measure: Share of deployment contexts covered by a completed fundamental rights impact assessment. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "pii_leakage_rate",
+      "metric_type": "rights_impact_assessment_coverage",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": "= 0.00"
-    },
-    {
-      "article_ref": "Art.13",
-      "description": "Validate 'Are users notified that they are interacting with or being assessed by an AI system?' via explanation_coverage measurement. Target: >= 0.90.",
-      "id": "<uuid>",
-      "metric_type": "explanation_coverage",
-      "nist_rmf_ref": "",
-      "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.90"
+      "threshold_range": "set by the provider before testing"
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+      "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "faithfulness",
+      "metric_type": "representation_gap",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.85"
+      "threshold_range": "set by the provider before testing"
     },
     {
-      "article_ref": "Art.10",
-      "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+      "article_ref": "Art.9(8)",
+      "description": "Risk: System processes personal or special category data. Measure: Share of personal data records stored or sent without the planned protection, such as encryption, access control or pseudonymisation. Set the threshold before testing, appropriate to the intended purpose.",
       "id": "<uuid>",
-      "metric_type": "data_quality_score",
+      "metric_type": "unprotected_personal_data_rate",
       "nist_rmf_ref": "",
       "risk_item_id": "<uuid>",
-      "threshold_range": ">= 0.95"
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Users not told they are interacting with or assessed by an AI system. Measure: Share of interactions and assessments that tell the person an AI system is involved. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "ai_disclosure_coverage",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Not tested on out-of-distribution, edge-case and adversarial inputs. Measure: Accuracy on a held-out set of edge-case, out-of-distribution and perturbed inputs. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "stress_set_accuracy",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
+    },
+    {
+      "article_ref": "Art.9(8)",
+      "description": "Risk: Dataset provenance not documented. Measure: Share of training, validation and test datasets with a documented source, collection date, licence and version. Set the threshold before testing, appropriate to the intended purpose.",
+      "id": "<uuid>",
+      "metric_type": "dataset_provenance_coverage",
+      "nist_rmf_ref": "",
+      "risk_item_id": "<uuid>",
+      "threshold_range": "set by the provider before testing"
     }
   ],
   "validation": {

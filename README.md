@@ -274,7 +274,7 @@ The system record `riskforge init` writes to `.riskforge/systems/<system-id>/sys
 after `riskforge system classify --confirm`.
 
 ```yaml
-id: 2d751730-a007-4049-9ebf-76b2bb317be7
+id: 6c95a35e-12a1-48d3-9527-f9df7063bfda
 name: Loan Scoring Model
 version: '2.1'
 purpose: Automated credit scoring for retail loan applications.
@@ -286,7 +286,7 @@ annex_iii_category: essential_services
 annex_iii_self_classification_documented: true
 provider_name: Acme Financial Services
 provider_contact: ''
-created_at: '2026-11-05T18:19:33.484888Z'
+created_at: '2026-11-06T17:38:53.961599Z'
 schema_version: 1.0.0
 ```
 </details>
@@ -296,18 +296,19 @@ schema_version: 1.0.0
 
 A complete export from a one-risk project, signed with a throwaway key from `riskforge keygen`
 and made with `--force` because a real assessment covers all eight dimensions. Its `validation`
-block records that: gate G1 is FAIL, so its status is FAIL.
+block records that: gate G1 is FAIL, so its status is FAIL. Gate G5 warns because the system
+description (intended users, inputs, outputs, deployment context, provider contact) is empty.
 `tests/contract/test_readme_samples.py` checks that it validates against the schema and that
 its digest, signature, chain proof and receipt verify.
 
 ```json
 {
-  "id": "f5080d6e-37e5-44f8-b3a7-c8edd60ef590",
+  "id": "f3e546aa-51fd-4f0e-9862-71664281fe2a",
   "rmf_schema_version": "1.2.0",
   "register": {
-    "id": "cba79e59-e563-4222-8aa9-8709920e77c1",
+    "id": "7400631c-3f53-4926-87ae-ec7c275c501c",
     "system": {
-      "id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+      "id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
       "name": "Loan Scoring Model",
       "version": "2.1",
       "purpose": "Automated credit scoring for retail loan applications.",
@@ -319,15 +320,15 @@ its digest, signature, chain proof and receipt verify.
       "annex_iii_self_classification_documented": true,
       "provider_name": "Acme Financial Services",
       "provider_contact": "",
-      "created_at": "2026-11-05T18:19:33.484888Z",
+      "created_at": "2026-11-06T17:38:53.961599Z",
       "schema_version": "1.0.0"
     },
     "items": [
       {
-        "id": "968563ea-d163-4277-893f-1e4baa883aca",
+        "id": "34921692-17ef-47d4-8aab-640954fe1d1e",
         "dimension": "discrimination",
-        "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,",
-        "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
+        "title": "Training data not audited for representation imbalance across protected groups",
+        "description": "Question DI-001: Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity, age, disability)? Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
         "source": "question_bank",
         "likelihood": 4,
         "severity": 5,
@@ -337,7 +338,7 @@ its digest, signature, chain proof and receipt verify.
         "accepted": true,
         "acceptance_rationale": "Residual within appetite after documented controls.",
         "accepted_by": "Alice Chen, AI Governance Lead",
-        "identified_at": "2026-11-05T18:19:34.362438Z",
+        "identified_at": "2026-11-06T17:38:54.854970Z",
         "article_refs": [
           "Art.10(2)(f)",
           "Art.9(2)(a)"
@@ -363,17 +364,17 @@ its digest, signature, chain proof and receipt verify.
     "risk_appetite_threshold": 9,
     "assessor_name": "Alice Chen",
     "assessor_role": "AI Governance Lead",
-    "assessment_date": "2026-11-05T18:19:34.319599Z",
-    "review_date": "2027-10-31T18:19:34.319599Z",
+    "assessment_date": "2026-11-06T17:38:54.816576Z",
+    "review_date": "2027-11-06T17:38:54.816576Z",
     "question_bank_version": "1.0.0",
     "schema_version": "1.0.0",
     "test_requirements": [
       {
-        "id": "ce1db44b-8f25-52f4-a680-0e8024977f88",
-        "risk_item_id": "968563ea-d163-4277-893f-1e4baa883aca",
-        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
-        "metric_type": "demographic_parity",
-        "threshold_range": "<= 0.10",
+        "id": "ead74621-9cfa-5c46-afa8-3cc25d2eca3b",
+        "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
+        "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
+        "metric_type": "representation_gap",
+        "threshold_range": "set by the provider before testing",
         "article_ref": "Art.9(8)",
         "nist_rmf_ref": ""
       }
@@ -381,11 +382,11 @@ its digest, signature, chain proof and receipt verify.
   },
   "test_requirements": [
     {
-      "id": "ce1db44b-8f25-52f4-a680-0e8024977f88",
-      "risk_item_id": "968563ea-d163-4277-893f-1e4baa883aca",
-      "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
-      "metric_type": "demographic_parity",
-      "threshold_range": "<= 0.10",
+      "id": "ead74621-9cfa-5c46-afa8-3cc25d2eca3b",
+      "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
+      "description": "Risk: Training data not audited for representation imbalance across protected groups. Measure: Largest gap between a protected group's share of the training data and its share of the people the system serves. Set the threshold before testing, appropriate to the intended purpose.",
+      "metric_type": "representation_gap",
+      "threshold_range": "set by the provider before testing",
       "article_ref": "Art.9(8)",
       "nist_rmf_ref": ""
     }
@@ -394,22 +395,34 @@ its digest, signature, chain proof and receipt verify.
     {
       "article_ref": "Art.10(2)(f)",
       "risk_item_ids": [
-        "968563ea-d163-4277-893f-1e4baa883aca"
+        "34921692-17ef-47d4-8aab-640954fe1d1e"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
-      "iso42001_ref": "Annex A.7"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
+      "iso42001_refs": [
+        "Annex A.7"
+      ]
     },
     {
       "article_ref": "Art.9(2)(a)",
       "risk_item_ids": [
-        "968563ea-d163-4277-893f-1e4baa883aca"
+        "34921692-17ef-47d4-8aab-640954fe1d1e"
       ],
       "nist_rmf_ref": "MEASURE 2.11",
-      "iso42001_ref": "Annex A.7"
+      "iso42001_ref": "Annex A.7",
+      "nist_rmf_refs": [
+        "MEASURE 2.11"
+      ],
+      "iso42001_refs": [
+        "Annex A.7"
+      ]
     }
   ],
-  "generated_at": "2026-11-05T18:19:47.128913Z",
-  "sha256_hash": "27d246d111ec03f659706a6bbd33471bd8358d3705a920e744a17526cecbaad9",
+  "generated_at": "2026-11-06T17:38:56.753326Z",
+  "sha256_hash": "3bb3c96a66514887d15b59a87ddf38bfbf0c97e7924b21b0511e4fa59afbfd9d",
   "disclosure": "This document was produced using RiskForge v2.0.0, question bank version 1.0.0. It represents the team's documented risk assessment and has not been reviewed by a qualified legal professional. It does not constitute legal advice under the EU AI Act or any other regulation.",
   "validation": {
     "status": "FAIL",
@@ -418,7 +431,7 @@ its digest, signature, chain proof and receipt verify.
         "gate_id": "G1",
         "description": "All 8 risk dimensions have entries",
         "status": "FAIL",
-        "details": "Missing: data_governance, fundamental_rights, health_safety, human_oversight, privacy, robustness, transparency. Add a risk item for each: `riskforge assess 2d751730-a007-4049-9ebf-76b2bb317be7 -a NAME -r ROLE --dimension <dimension>`."
+        "details": "Missing: data_governance, fundamental_rights, health_safety, human_oversight, privacy, robustness, transparency. Add a risk item for each: `riskforge assess 6c95a35e-12a1-48d3-9527-f9df7063bfda -a NAME -r ROLE --dimension <dimension>`."
       },
       {
         "gate_id": "G2",
@@ -441,8 +454,8 @@ its digest, signature, chain proof and receipt verify.
       {
         "gate_id": "G5",
         "description": "System metadata complete",
-        "status": "PASS",
-        "details": ""
+        "status": "WARN",
+        "details": "The system description has no intended_users, inputs, outputs, deployment_context, provider_contact. Set them with `riskforge system describe`."
       },
       {
         "gate_id": "G6",
@@ -467,17 +480,17 @@ its digest, signature, chain proof and receipt verify.
   "signoffs": [],
   "signatures": [
     {
-      "key_id": "ed25519:ae9c25ba8049c430",
+      "key_id": "ed25519:fdbf6e54b90ca478",
       "algorithm": "ed25519",
-      "signed_at": "2026-11-05T18:19:47.129811Z",
-      "signature": "FQSFOEib8ibgi7nHFegAK7E/00mVQQ/nAWQLvpF5wFoevQiJlupW+V3zmZ7TcOG4AdxaUtAqvgc1YUqDCIDqCg=="
+      "signed_at": "2026-11-06T17:38:56.754591Z",
+      "signature": "iPyGz2dmJhmHvhWY5/b5YrTwIhlyquu6z/0BBAc5nsRkyOyNhHK/q2iYyvbaTg+BlWtNHQXVW6BQsSIqu6WwAg=="
     }
   ],
   "public_keys": [
     {
-      "key_id": "ed25519:ae9c25ba8049c430",
+      "key_id": "ed25519:fdbf6e54b90ca478",
       "algorithm": "ed25519",
-      "public_key": "53IxHbUuX+G7yyUhTToaY6U2kOFAkHlCDUNnKH1uUsw="
+      "public_key": "rB6NnMEzDpTFLwXSAcBJXHXfn2xc9yn40+7ox4DRQVU="
     }
   ],
   "chain_proof": {
@@ -486,122 +499,122 @@ its digest, signature, chain proof and receipt verify.
       {
         "seq": 0,
         "event": "system.created",
-        "timestamp": "2026-11-05T18:19:33.495479Z",
+        "timestamp": "2026-11-06T17:38:53.976587Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "name": "Loan Scoring Model",
           "version": "2.1",
           "annex_iii_category": "essential_services"
         },
         "prev_hash": "0000000000",
-        "entry_hash": "8b82e4d6556e906a76e7c2267dfe1ed4f280570b4f76325f7d5c449e8e9891a9"
+        "entry_hash": "fc54b6e8be50f3bdbd97cf8853114ca970d71d2bcc688423e01b2501f2bdc636"
       },
       {
         "seq": 1,
         "event": "system.classified",
-        "timestamp": "2026-11-05T18:19:33.921903Z",
+        "timestamp": "2026-11-06T17:38:54.411140Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "annex_iii_self_classification_documented": true,
           "annex_iii_category": "essential_services"
         },
-        "prev_hash": "8b82e4d6556e906a76e7c2267dfe1ed4f280570b4f76325f7d5c449e8e9891a9",
-        "entry_hash": "3ff02d6a67b4d1e81f8b70f354c309d8e4fbb15bed544cd0d54114aa1365bcef"
+        "prev_hash": "fc54b6e8be50f3bdbd97cf8853114ca970d71d2bcc688423e01b2501f2bdc636",
+        "entry_hash": "1926bb5c68c299a648d9d4631f65e7766a9668bfa4ee9285b43b244d7c93c417"
       },
       {
         "seq": 2,
         "event": "register.created",
-        "timestamp": "2026-11-05T18:19:34.326731Z",
+        "timestamp": "2026-11-06T17:38:54.824478Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "assessor_name": "Alice Chen",
           "assessor_role": "AI Governance Lead",
-          "review_date": "2027-10-31T18:19:34.319599+00:00"
+          "review_date": "2027-11-06T17:38:54.816576+00:00"
         },
-        "prev_hash": "3ff02d6a67b4d1e81f8b70f354c309d8e4fbb15bed544cd0d54114aa1365bcef",
-        "entry_hash": "f6bbf8c819f5692da1897b8f0c5397d4fa11247b5019a00ef96d0825d4dfdaba",
-        "register_fingerprint": "c092e31ce1be47dcea331a45aa951964b41d9a5d34fd5ab022b5b5bf6cf95ba2"
+        "prev_hash": "1926bb5c68c299a648d9d4631f65e7766a9668bfa4ee9285b43b244d7c93c417",
+        "entry_hash": "2ce976486b4803e1b5e5b8d9a1cd4c4cc74f27e05da1ade8748e2188d3bc2e86",
+        "register_fingerprint": "862df4bb3a2f851e793a0ec2b11767650d0637b27a6ad7bc644ff3131488cdac"
       },
       {
         "seq": 3,
         "event": "risk_item.created",
-        "timestamp": "2026-11-05T18:19:34.373260Z",
+        "timestamp": "2026-11-06T17:38:54.866421Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
-          "risk_item_id": "968563ea-d163-4277-893f-1e4baa883aca",
+          "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
           "dimension": "discrimination",
           "score": 20
         },
-        "prev_hash": "f6bbf8c819f5692da1897b8f0c5397d4fa11247b5019a00ef96d0825d4dfdaba",
-        "entry_hash": "2cf39263368a6623f3d1a45e663c628e25c261400007cccf36faf0efa54747bb",
-        "register_fingerprint": "069bba6305ed741f9bf1816f2d2cc696ce22ad9030a0e5df12ebed93f1a8936d"
+        "prev_hash": "2ce976486b4803e1b5e5b8d9a1cd4c4cc74f27e05da1ade8748e2188d3bc2e86",
+        "entry_hash": "c7057dfaa43221afe6fd3bca4e6e1cc9d9d7aa756f6acc7f7f87ed98fb03baaa",
+        "register_fingerprint": "e4ff27988c8f7545c0546d9566c583d0d3d05d9d4807fdc6ea3bc8007d1f1111"
       },
       {
         "seq": 4,
         "event": "risk.accepted",
-        "timestamp": "2026-11-05T18:19:45.794161Z",
+        "timestamp": "2026-11-06T17:38:55.414094Z",
         "actor": {
           "type": "human",
           "identity": "Alice Chen, AI Governance Lead"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
-          "risk_item_id": "968563ea-d163-4277-893f-1e4baa883aca",
+          "risk_item_id": "34921692-17ef-47d4-8aab-640954fe1d1e",
           "old_accepted": false,
           "rationale_hash": "72e990650636afae",
           "actor": "Alice Chen, AI Governance Lead"
         },
-        "prev_hash": "2cf39263368a6623f3d1a45e663c628e25c261400007cccf36faf0efa54747bb",
-        "entry_hash": "2f299a14763b958b25a9d688652996510a6878ab6b8bcd559df234196ccb42dd",
-        "register_fingerprint": "b11cd61ca4f03ed5e68136fd9616cc6643beb9886fdd7041358dd1f1b8ebd184"
+        "prev_hash": "c7057dfaa43221afe6fd3bca4e6e1cc9d9d7aa756f6acc7f7f87ed98fb03baaa",
+        "entry_hash": "a56dbb573dfc1d04ac6c735d743216087153824d067c83ce7058495c5a5437e9",
+        "register_fingerprint": "900a2579164762ec00f8022d40dd7a22e82fdc3a9fcfac9707d646e63fb25d24"
       },
       {
         "seq": 5,
         "event": "tests.generated",
-        "timestamp": "2026-11-05T18:19:46.232220Z",
+        "timestamp": "2026-11-06T17:38:55.866978Z",
         "actor": {
           "type": "human",
           "identity": "cli"
         },
-        "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+        "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
         "payload": {
           "count": 1,
           "risk_item_ids": [
-            "968563ea-d163-4277-893f-1e4baa883aca"
+            "34921692-17ef-47d4-8aab-640954fe1d1e"
           ]
         },
-        "prev_hash": "2f299a14763b958b25a9d688652996510a6878ab6b8bcd559df234196ccb42dd",
-        "entry_hash": "9ac14c24ae7f7033116879fa093cf4fe6d74cb5a8f858bc6f0e55eba69d4cd5d",
-        "register_fingerprint": "7d08988f96a006cd89e25ed1030392f2ff397386e0ed412de0e67b384f949901"
+        "prev_hash": "a56dbb573dfc1d04ac6c735d743216087153824d067c83ce7058495c5a5437e9",
+        "entry_hash": "0956348f4bffc393a02e02cdf12e590eaed040def084a25433139aebe5804b13",
+        "register_fingerprint": "ecb3ef1710410a2bd0fbb84afc4bf1271675da8f700e98c68f753f306c6faa2f"
       }
     ]
   },
   "receipt": {
     "receipt_version": "1",
-    "system_id": "2d751730-a007-4049-9ebf-76b2bb317be7",
+    "system_id": "6c95a35e-12a1-48d3-9527-f9df7063bfda",
     "seq": 5,
-    "entry_hash": "9ac14c24ae7f7033116879fa093cf4fe6d74cb5a8f858bc6f0e55eba69d4cd5d",
-    "register_fingerprint": "7d08988f96a006cd89e25ed1030392f2ff397386e0ed412de0e67b384f949901",
-    "issued_at": "2026-11-05T18:19:47.129391Z",
-    "key_id": "ed25519:ae9c25ba8049c430",
-    "public_key": "53IxHbUuX+G7yyUhTToaY6U2kOFAkHlCDUNnKH1uUsw=",
-    "signature": "eMBRkBCH4IX3j/UrIlqxccHgiPhVlNG6bpEehJDDwmXdQS5/yb5hFLSw9+MX3c1b7VB2aNjYE1XO6Bn5AehwAA=="
+    "entry_hash": "0956348f4bffc393a02e02cdf12e590eaed040def084a25433139aebe5804b13",
+    "register_fingerprint": "ecb3ef1710410a2bd0fbb84afc4bf1271675da8f700e98c68f753f306c6faa2f",
+    "issued_at": "2026-11-06T17:38:56.753610Z",
+    "key_id": "ed25519:fdbf6e54b90ca478",
+    "public_key": "rB6NnMEzDpTFLwXSAcBJXHXfn2xc9yn40+7ox4DRQVU=",
+    "signature": "PLDRBpN+h04LVUL/2D/UX0XVhema8ySgrltbSiGrGEuDuwHZ3If9W5BI4zC+s/QzsFQ1+KsaYJnBtWMIUnXGCg=="
   }
 }
 ```
@@ -646,7 +659,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `0` | **PASS / VALID** | Success: the command succeeded, or what it checked is intact. |
 | `1` | **GATE FAILURE** | One or more validation gates failed (unmitigated high risks, missing assessor, unclassified system). Also exits 1: `verify` or `validate` finding a change in progress or unfinished, a command that waited more than 120 seconds for another `riskforge` process to release the project, and an unexpected crash (prints a traceback). |
 | `2` | **TAMPER DETECTED** | Integrity failure: the audit chain is corrupt or tampered, a register or system file was changed outside RiskForge, the log was deleted or cut off, or an exported RMF file fails `verify --file` (its digest, a signature, its chain proof or its receipt). `verify` exits 2 (with `--strict`, also on any integrity warning), and every command that changes or exports data exits 2 on such a project without changing it. |
-| `3` | **USAGE / INPUT ERROR** | Usage or input error: unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not a receipt, a `--trusted-key` file that is not an Ed25519 public key, a `keygen` or `receipt --output` file that already exists, or interactive `assess` without a terminal. Prints one line saying what to do. |
+| `3` | **USAGE / INPUT ERROR** | Usage or input error: unknown option or command, missing required option, bad option value, missing or malformed input file, unknown system or risk ID, no project in the directory, no risk register yet, project already exists, `system classify` without `--confirm`, `system describe` without an option, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not a receipt, a `--trusted-key` file that is not an Ed25519 public key, a `keygen` or `receipt --output` file that already exists, or interactive `assess` without a terminal. Prints one line saying what to do. |
 
 ---
 
@@ -657,6 +670,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 | `riskforge init` | Create a project and register the AI system; prints the system id. |
 | `riskforge system show <id>` | Print the system record. |
 | `riskforge system classify <id>` | Document and confirm Article 6(2) Annex III self-classification. |
+| `riskforge system describe <id>` | Set the intended users, inputs, outputs, deployment context and provider contact (also `init` options); gate G5 warns while any is empty. |
 | `riskforge assess <id>` | Run the interactive 8-dimension guided assessment (supports `--answers`). |
 | `riskforge risk mitigate <id> <risk-id> --by NAME` | Document preventive/corrective mitigation controls and re-score residual risk. `--by` (or `RISKFORGE_ACTOR`) names who recorded it; the name is self-declared and not verified. |
 | `riskforge risk accept <id> <risk-id> --by NAME` | Formally accept residual risk with documented business/technical rationale. `--by` (or `RISKFORGE_ACTOR`) names who accepted it; the name is self-declared and not verified. |
@@ -699,7 +713,7 @@ RiskForge implements deterministic UNIX exit codes for automated CI/CD gating:
 
 ```yaml
 # src/riskforge/_data/question_bank/privacy.yaml
-- id: PRIV-007
+- id: PR-006          # dimension code PR, next free number
   text: "Does the system process special category data under GDPR Article 9?"
   guidance: "Special category data includes data revealing racial or ethnic origin or political opinions, health data, and biometric data processed to uniquely identify a person (GDPR Article 9(1))."
   annex_iii_categories: [essential_services, employment]

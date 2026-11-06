@@ -165,8 +165,20 @@ answers:
   # questions omitted from the file default to "skip"
 ```
 
-`applies: yes` adds a scored risk item (likelihood and severity required).
+`applies: yes` means the risk applies to the system, and adds a scored risk item
+(likelihood and severity required). Each question names its risk, which becomes the
+item's title: DI-004 asks "Are bias test results documented and reviewed at each model
+update...?" and records the risk "Bias tests not repeated at each model update". So for a
+question about a control, `yes` means the control is missing or not enough. The
+interactive `assess` prints the risk under each question, and the item's description
+keeps the full question and its guidance.
 `applies: unknown` flags a knowledge gap; `riskforge tests generate` then saves a test requirement for it.
+A knowledge gap is not a judged score. Its likelihood and severity are the question's
+`default_likelihood_hint` and `default_severity_hint`, and 3 for any it does not give, so
+a question with no hints scores 3 x 3 = 9. The item's `knowledge_gap_reason` says which
+it used, and the Markdown and PDF exports show it next to the item. Answer the question
+with `applies: yes` and your own scores once you know them; re-running `assess` updates
+the item.
 Question ids come from the bundled question bank (see the files under
 `src/riskforge/_data/question_bank/`).
 
@@ -188,15 +200,16 @@ question or pattern risk and lists the others so you can review them.
 
 | Command | What it does |
 |---|---|
-| `riskforge init -n NAME -s VERSION -p PURPOSE --provider ORG [-c CATEGORY]` | Create a project and register a system; prints the system id. |
+| `riskforge init -n NAME -s VERSION -p PURPOSE --provider ORG [-c CATEGORY] [--intended-user U]... [--input I]... [--output O]... [--deployment-context TEXT] [--provider-contact TEXT]` | Create a project and register a system; prints the system id. The description options are repeatable where marked and can be set later with `system describe`. |
 | `riskforge system show <id>` | Print the system record as JSON. |
 | `riskforge system classify <id> --confirm [-c CATEGORY]` | Record the Article 6(2) Annex III self-classification (clears gate G2), audited. |
+| `riskforge system describe <id> [--intended-user U]... [--input I]... [--output O]... [--deployment-context TEXT] [--provider-contact TEXT]` | Set the system description on the system and its register, audited as `system.described`. Only the options given change, and a repeatable option replaces its list. Gate G5 warns while any of these fields is empty. |
 | `riskforge assess <id> -a NAME -r ROLE [--dimension DIM] [--answers FILE] [--review-months N]` | Run the assessment, interactive or from an answers file. The first run creates the register, with its review date `N` calendar months after the assessment (default 12, at least 1): 4 November 2026 plus 12 months is 4 November 2027, and a day the month does not have becomes its last day. |
-| `riskforge risk list <id> [-d DIMENSION]` | List risk items (id, dimension, score, band, accepted). |
+| `riskforge risk list <id> [-d DIMENSION]` | List risk items: id, dimension, title, inherent score and band, residual score (the score gate G3 compares with the risk-appetite threshold) and whether it is accepted. |
 | `riskforge risk mitigate <id> <risk-id> -m DESC -c TYPE --owner OWNER --by NAME [--status S] [--residual-likelihood N] [--residual-severity N]` | Add a mitigation and optionally re-score residual risk, audited, with who recorded it. |
 | `riskforge risk accept <id> <risk-id> -r RATIONALE --by NAME` | Accept a residual risk with a documented rationale, audited, with who accepted it. |
-| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register. Run it before `export`: the export carries the saved requirements. |
-| `riskforge validate <id> [--force]` | Run the 8 readiness gates. |
+| `riskforge tests generate <id>` | Derive Article 9(6) to 9(8) test requirements from knowledge-gap risks and risks whose inherent score is 9 or more, and save them on the register. Each names a metric and what it measures: the metric of the bank question that made the risk, or of its dimension for a pattern or manual risk. The threshold is yours to set before testing, so each reads "set by the provider before testing", and each cites Art.9(8). Run it before `export`: the export carries the saved requirements. |
+| `riskforge validate <id> [--force]` | Run the 8 readiness gates. A FAIL gate exits 1; `--force` makes it exit 0 instead. `validate` never exports: `export` takes its own `--force`. |
 | `riskforge export <id> [-f json\|pdf\|markdown] [-o PATH] [--sign KEYFILE] [--public-key PUBFILE] [--force]` | Export the RMF, see [Exporting the RMF](#exporting-the-rmf). |
 | `riskforge verify [--file rmf.json] [--strict] [--receipt FILE]... [--trusted-key PUBFILE]... [--project-dir DIR]` | Verify the audit chain, or a standalone exported RMF with `--file` (see [Verifying an exported file](#verifying-an-exported-file)). `--strict` fails on integrity warnings too. `--receipt` and `--trusted-key` are described under [Receipts](#receipts-a-record-kept-outside-the-project). |
 | `riskforge keygen --output KEYFILE` | Create an Ed25519 key pair: `KEYFILE` (mode 600 on Linux and macOS, not encrypted) and `KEYFILE.pub`. Never overwrites a file. |
@@ -205,6 +218,12 @@ question or pattern risk and lists the others so you can review them.
 | `riskforge import <id> -a ADAPTER -r REPORT.json` | Import an upstream tool report (adapters: `rag-benchmarking`, `traceforge`). |
 
 Risk ids accept the first 8 characters shown by `riskforge risk list`.
+
+Two short options mean different things in different commands: `-r` is the assessor
+role in `assess` and the rationale in `risk accept`, and `-d` is the project folder in
+`assess` and the dimension in `risk list`. They stay as they are so existing scripts keep
+working; in a script, write the long form (`--assessor-role`, `--rationale`,
+`--project-dir`, `--dimension`).
 
 ### Exporting the RMF
 
@@ -234,6 +253,15 @@ If anything fails before step 6, such as a missing output directory, no file is 
 and nothing is recorded, not even the checkpoint. A temporary file left by an
 interrupted export (its name starts with `.riskforge-export-`) is removed by a later
 export to the same directory if it is older than that export's hold on the project lock.
+
+The JSON export is the full document that `riskforge verify --file` checks. The PDF and
+Markdown exports summarise it and leave some fields out, such as the cross-references and
+the sign-offs. The PDF is the report for readers: system description,
+validation gates, risk register by dimension, residual risk summary, test requirements and
+the audit trail. The Markdown export, for a repository or wiki, has the system and
+assessor, the validation gates, each risk with its inherent and residual score, references,
+knowledge-gap reason, mitigations and acceptance, the test requirements, and the change log
+of the audit entries the file carries.
 
 The JSON, PDF and Markdown exports of one register state show the same content digest,
 and two exports of an unchanged register share it, so a PDF can be matched to the JSON
@@ -267,6 +295,15 @@ as `accepted_by` or on the mitigation as `recorded_by`. The Markdown and PDF
 exports show it as "Accepted by" and "Recorded by", and the JSON export (RMF schema
 1.1.0 and later) holds both fields, so the content digest every format shows covers them.
 Acceptances recorded before 2.0.0 show "Accepted by: not recorded".
+
+Every audit entry names an actor. `assess` records the `-a` name, and `risk accept`
+and `risk mitigate` record the `--by` name. Every other command that writes (`init`,
+`system classify`, `system describe`, `tests generate`, `export` and `import`)
+records `RISKFORGE_ACTOR` when it is set, and `cli` (`cli-import` for `import`)
+otherwise. Set `RISKFORGE_ACTOR` once per session or CI job, as a name only, so the
+audit log names the same person for each of their changes. The same rules for plain
+text apply: a value with a line break or control character exits 3 and writes
+nothing. Entries written before 2.1.0 keep `cli`.
 
 ### Receipts: a record kept outside the project
 
@@ -322,7 +359,7 @@ riskforge verify --receipt receipt-2026-q4.json --trusted-key k.pem.pub
 | G2 | Article 6(2) self-classification documented | FAIL |
 | G3 | Residual score above the risk-appetite threshold must be reduced (re-scored with `risk mitigate --residual-likelihood`/`--residual-severity`) or accepted; adding a mitigation without re-scoring does not clear it | FAIL |
 | G4 | Knowledge gaps have test requirements | WARN |
-| G5 | System metadata complete | FAIL |
+| G5 | System metadata complete: FAIL without a name, version, purpose or provider; WARN while the intended users, inputs, outputs, deployment context or provider contact is empty | FAIL / WARN |
 | G6 | Assessor identity recorded | FAIL |
 | G7 | Risk-score distribution plausible | WARN |
 | G8 | No vague mitigation language | WARN |
@@ -338,7 +375,7 @@ FAIL gates block export unless you pass `--force`. WARN gates are advisory.
 | 0 | Success or valid |
 | 1 | A validation gate that fails without `--force`; `validate` finding a change in progress or unfinished; `verify` finding a change in progress (`txn.json`) whose recovered state has no finding; a command that waited more than 120 seconds for another `riskforge` process to release the project; an export that could not be built (nothing is written); or an unexpected crash (prints a traceback) |
 | 2 | Integrity failure: audit chain corrupt or tampered, a register or system file changed outside RiskForge, a deleted or cut-off log, an RMF file that does not match its digest, signatures, chain proof or receipt, a receipt the audit log or the file's chain proof no longer holds, a change in progress whose recovered state has a finding, a `txn.json` that RiskForge did not write, or a receipt, RMF, sign-off or audit entry signature that fails or is not from a trusted key; with `verify --strict`, also any integrity warning. Commands that change or export data exit 2 on such a project and change nothing |
-| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export of a project with a signed audit entry whose public key was not given with `--public-key`, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
+| 3 | Usage or input error: unknown option or command, bad option value, missing or malformed input file, unknown system or risk id, no project, no risk register yet, project already exists, `system classify` without `--confirm`, `system describe` without an option, an `export --sign` or `--public-key` value that is not a usable Ed25519 key file, an export of a project with a signed audit entry whose public key was not given with `--public-key`, an export output directory that is missing or cannot be written, `verify --strict` with `--file`, a receipt file that is not JSON or not a receipt, a `--trusted-key` file that is not an Ed25519 public key, an existing `receipt -o` file, or interactive `assess` without a terminal |
 
 `verify` returns 2 on any integrity finding, which makes it usable as a CI gate. A typo in a flag
 exits 3, never 2, so a usage error cannot be mistaken for tampering.
@@ -414,6 +451,12 @@ exported with `--force` past a failing gate, and the `rmf.exported` audit entry 
 lists the failing gates as `failing_gates`. The content digest covers `validation`, so
 a signature over the digest covers the gate results too. The Markdown export shows them
 under "Validation Gates" and the PDF on its cover and in its method section.
+
+`cross_references` groups the risk items by the article each cites. A group lists
+every distinct NIST AI RMF reference of its items in `nist_rmf_refs` and every distinct
+ISO/IEC 42001 reference in `iso42001_refs`, in item order. `nist_rmf_ref` and
+`iso42001_ref` hold the first of each, as in schema 1.1.0. A file written by RiskForge
+2.0.0 has only the single fields, which name the references of one item of the group.
 
 `chain_proof` holds every entry of the project audit log up to the export (the export's
 own `rmf.exported` entry is recorded after the file is written, so it is never in the

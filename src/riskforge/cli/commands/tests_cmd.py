@@ -16,19 +16,23 @@ def generate_tests(
     system_id: str = typer.Argument(..., help="System ID"),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
 ) -> None:
-    """Derive test requirements from the risk register and save them on it."""
-    from riskforge.cli.project import read_register_or_fail, run_checked
+    """Derive test requirements from the risk register and save them on it.
+
+    Each knowledge gap (a question answered unknown) and each risk whose inherent score
+    is 9 or more gets one requirement. Run it again after the register changes: gate G4
+    warns while the saved requirements are out of date.
+    """
+    from riskforge.cli.project import cli_actor, read_register_or_fail, run_checked
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.risk import RiskEngine
     from riskforge.engine.tests import TestDerivationEngine
-    from riskforge.models.audit import AuditActor
     from riskforge.models.requirements import TestRequirement
     from riskforge.storage.filesystem import FileStore
 
     async def _generate(store: FileStore) -> tuple[list[TestRequirement], bool]:
         register = await read_register_or_fail(store, system_id)
         requirements = TestDerivationEngine().derive(register.items)
-        engine = RiskEngine(store, AuditEngine(store, AuditActor(type="human", identity="cli")))
+        engine = RiskEngine(store, AuditEngine(store, cli_actor()))
         return requirements, await engine.set_test_requirements(system_id, requirements)
 
     requirements, changed = run_checked(project_dir, _generate)
@@ -39,6 +43,6 @@ def generate_tests(
     )
     for req in requirements:
         console.print(
-            f"  • [bold]{req.metric_type}[/bold] {req.threshold_range} "
+            f"  • [bold]{req.metric_type}[/bold], threshold {req.threshold_range} "
             f"({req.article_ref}), risk {str(req.risk_item_id)[:8]}"
         )

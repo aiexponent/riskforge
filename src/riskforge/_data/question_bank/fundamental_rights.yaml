@@ -3,6 +3,7 @@ dimension: fundamental_rights
 questions:
   - id: FR-001
     text: "Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?"
+    risk_title: "No fundamental rights impact assessment before deployment"
     guidance: "Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this."
     annex_iii_categories: [law_enforcement, migration, biometric, employment]
     default_likelihood_hint: null
@@ -11,9 +12,12 @@ questions:
     nist_rmf_ref: "GOVERN 1.1"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "rights_impact_assessment_coverage"
+    test_measure: "Share of deployment contexts covered by a completed fundamental rights impact assessment"
 
   - id: FR-002
     text: "Could the system restrict or affect access to rights protected under the EU Charter of Fundamental Rights?"
+    risk_title: "System may restrict access to rights under the EU Charter of Fundamental Rights"
     guidance: "Consider right to an effective remedy, right to a fair trial, presumption of innocence, freedom of expression, right to education."
     annex_iii_categories: [law_enforcement, justice, migration]
     default_likelihood_hint: 2
@@ -22,9 +26,12 @@ questions:
     nist_rmf_ref: "MAP 5.1"
     iso42001_ref: "Clause 6.1"
     regulatory_status: settled
+    test_metric_type: "adverse_decision_rate_gap"
+    test_measure: "Largest difference in adverse-decision rate between groups of affected people"
 
   - id: FR-003
     text: "Are affected individuals informed of the AI system's role in decisions that affect them, in a language they understand?"
+    risk_title: "Affected people not told of the AI system's role in decisions about them"
     guidance: "Transparency is a foundational right. The obligation to inform subjects is strengthened in high-risk AI contexts."
     annex_iii_categories: [essential_services, law_enforcement, employment, education]
     default_likelihood_hint: 2
@@ -33,9 +40,12 @@ questions:
     nist_rmf_ref: "MEASURE 2.8"
     iso42001_ref: "Annex A.6"
     regulatory_status: settled
+    test_metric_type: "ai_role_notice_coverage"
+    test_measure: "Share of decisions about a person that come with a notice of the AI system's role"
 
   - id: FR-004
     text: "Is there a human review mechanism for decisions that significantly affect an individual's fundamental rights?"
+    risk_title: "No human review of decisions that significantly affect fundamental rights"
     guidance: "Purely automated decisions affecting fundamental rights require meaningful human oversight under Article 14."
     annex_iii_categories: [law_enforcement, justice, employment, essential_services]
     default_likelihood_hint: null
@@ -44,3 +54,5 @@ questions:
     nist_rmf_ref: "MAP 3.5"
     iso42001_ref: "Annex A.9"
     regulatory_status: settled
+    test_metric_type: "human_review_coverage"
+    test_measure: "Share of decisions that significantly affect a person that receive human review"

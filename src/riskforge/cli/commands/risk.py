@@ -11,6 +11,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from riskforge.cli.project import ACTOR_ENV
+
 if TYPE_CHECKING:
     from riskforge.models.risk import RiskItem
     from riskforge.storage.filesystem import FileStore
@@ -18,7 +20,6 @@ if TYPE_CHECKING:
 app = typer.Typer(help="Manage risk items: list, accept, mitigate.")
 console = Console()
 
-ACTOR_ENV = "RISKFORGE_ACTOR"
 _BY_HELP = (
     'Who is doing this, as "Name, Role". Required. Falls back to the '
     f"{ACTOR_ENV} environment variable. Self-declared: RiskForge records the name "
@@ -62,6 +63,7 @@ def list_risks(
     table.add_column("Title", max_width=40)
     table.add_column("Score")
     table.add_column("Band")
+    table.add_column("Residual")
     table.add_column("Accepted")
 
     for item in items:
@@ -72,6 +74,7 @@ def list_risks(
             item.title[:40],
             str(item.risk_score),
             f"[{band_colour.get(item.risk_band, 'white')}]{item.risk_band}[/]",
+            str(item.residual_risk_score),
             "Yes" if item.accepted else "No",
         )
 

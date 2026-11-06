@@ -64,7 +64,8 @@ every change in the audit chain inside one unit of work.
   Every other refusal is an `ExportError`, such as `ValidationGateError` or
   `SchemaViolationError`; nothing is written or recorded then. `PluginRegistry` finds
   the exporters: call `load_all()` first. `build_cross_references` groups risk items
-  by the references they cite.
+  by the article they cite, with every distinct NIST AI RMF and ISO/IEC 42001 reference
+  of each group.
 
 ## Integrity and verification
 

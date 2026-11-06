@@ -14,12 +14,18 @@ console = Console()
 def cmd(
     system_id: str = typer.Argument(..., help="System ID to validate"),
     project_dir: Path = typer.Option(Path("."), "--project-dir"),
-    force: bool = typer.Option(False, "--force", help="Export even if FAIL gates present"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Exit 0 even when a gate fails. validate never exports; "
+        "use export --force to export past a failing gate.",
+    ),
 ) -> None:
     """Run the 8 Article 9 readiness gates before export.
 
-    All FAIL gates must pass before riskforge export will proceed
-    (unless --force is supplied). WARN gates are advisory.
+    A FAIL gate makes this command exit 1, and blocks riskforge export unless
+    export --force is given. WARN gates are advisory. --force here only changes
+    the exit code to 0; it does not export.
     """
     from riskforge.cli.errors import EXIT_FAILED
     from riskforge.cli.project import read_register_or_fail, run_read_checked
@@ -52,6 +58,9 @@ def cmd(
         if not force:
             raise typer.Exit(EXIT_FAILED)
         else:
-            console.print("[yellow]--force supplied: proceeding despite failures.[/yellow]")
+            console.print(
+                "[yellow]--force: exiting 0 despite failures. "
+                "riskforge export still needs its own --force.[/yellow]"
+            )
     else:
         console.print("\n[green]✓[/green] All gates passed. Ready to export.")

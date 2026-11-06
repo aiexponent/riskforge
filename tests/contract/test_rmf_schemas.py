@@ -593,3 +593,58 @@ def test_digest_covers_the_validation_block() -> None:
     gate = changed["validation"]["gates"][2]
     gate["status"] = "PASS" if gate["status"] != "PASS" else "FAIL"
     assert content_digest(changed) != content_digest(document)
+
+
+# --- 1.2.0: every framework reference of a cross-reference (D4, ADR-05) -----------------
+
+
+def _rmf_with_cross_references() -> RiskManagementFile:
+    from riskforge.engine.export import build_cross_references
+
+    register = _register()
+    item = register.items[0]
+    item.article_refs = ["Art.9(2)(a)"]
+    item.nist_rmf_refs, item.iso42001_refs = ["MEASURE 2.11", "GOVERN 1.1"], ["Annex A.7"]
+    rmf = with_validation(RiskManagementFile(register=register))
+    rmf.cross_references = build_cross_references(register.items)
+    return with_provenance(rmf)
+
+
+def test_1_2_0_cross_references_carry_every_framework_reference() -> None:
+    document = rmf_document(_rmf_with_cross_references())
+    jsonschema.validate(document, load_schema("1.2.0"))
+    [cluster] = document["cross_references"]
+    assert cluster["nist_rmf_refs"] == ["MEASURE 2.11", "GOVERN 1.1"]
+    assert cluster["iso42001_refs"] == ["Annex A.7"]
+    assert (cluster["nist_rmf_ref"], cluster["iso42001_ref"]) == ("MEASURE 2.11", "Annex A.7")
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(lambda c: c.pop("nist_rmf_refs"), id="missing-nist-list"),
+        pytest.param(lambda c: c.pop("iso42001_refs"), id="missing-iso-list"),
+        pytest.param(lambda c: c["nist_rmf_refs"].append("GOVERN 1.1"), id="repeated-reference"),
+        pytest.param(lambda c: c["iso42001_refs"].append(""), id="empty-reference"),
+        pytest.param(lambda c: c.update(nist_rmf_refs="MAP 1.1"), id="string-not-list"),
+    ],
+)
+def test_1_2_0_refuses_a_malformed_reference_list(change) -> None:
+    document = copy.deepcopy(rmf_document(_rmf_with_cross_references()))
+    change(document["cross_references"][0])
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(document, load_schema("1.2.0"))
+
+
+def test_1_1_0_cannot_carry_the_reference_lists() -> None:
+    document = read_rmf_file(V200_RMF / "rmf.json")
+    document["cross_references"][0]["nist_rmf_refs"] = ["MEASURE 2.11"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(document, load_schema("1.1.0"))
+
+
+def test_digest_covers_the_reference_lists() -> None:
+    document = rmf_document(_rmf_with_cross_references())
+    changed = copy.deepcopy(document)
+    changed["cross_references"][0]["nist_rmf_refs"].pop()
+    assert content_digest(changed) != content_digest(document)

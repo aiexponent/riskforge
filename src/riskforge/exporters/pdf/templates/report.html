@@ -99,12 +99,12 @@
             </div>
             <p class="risk-description">{{ item.description }}</p>
             <table class="risk-detail-table">
-              <tr><td>Likelihood</td><td>{{ item.likelihood.name }} ({{ item.likelihood.value }})</td>
-                <td>Severity</td><td>{{ item.severity.name }} ({{ item.severity.value }})</td></tr>
-              <tr><td>Residual likelihood</td><td>{{ item.residual_likelihood.name }} ({{ item.residual_likelihood.value }})</td>
-                <td>Residual severity</td><td>{{ item.residual_severity.name }} ({{ item.residual_severity.value }})</td></tr>
-              <tr><td>Source</td><td>{{ item.source }}</td>
-                <td>Regulatory status</td><td>{{ item.regulatory_status }}</td></tr>
+              <tr><td>Likelihood</td><td>{{ item.likelihood | label }} ({{ item.likelihood.value }})</td>
+                <td>Severity</td><td>{{ item.severity | label }} ({{ item.severity.value }})</td></tr>
+              <tr><td>Residual likelihood</td><td>{{ item.residual_likelihood | label }} ({{ item.residual_likelihood.value }})</td>
+                <td>Residual severity</td><td>{{ item.residual_severity | label }} ({{ item.residual_severity.value }})</td></tr>
+              <tr><td>Source</td><td>{{ item.source | label }}</td>
+                <td>Regulatory status</td><td>{{ item.regulatory_status | label }}</td></tr>
             </table>
             {% if item.article_refs %}<p class="article-refs"><strong>Article refs:</strong> {{ item.article_refs | join(', ') }}</p>{% endif %}
             {% set nist = item.nist_rmf_refs or ([item.nist_rmf_ref] if item.nist_rmf_ref else []) %}
@@ -123,7 +123,7 @@
               <div class="acceptance-notice"><strong>Accepted:</strong> {{ item.acceptance_rationale }}<br>
                 <strong>Accepted by:</strong> {{ item.accepted_by or 'not recorded' }}</div>
             {% endif %}
-            {% if item.knowledge_gap %}<div class="knowledge-gap-notice">Knowledge gap: its test requirements are listed in section 5.</div>{% endif %}
+            {% if item.knowledge_gap %}<div class="knowledge-gap-notice">Knowledge gap: {{ item.knowledge_gap_reason or 'answered unknown; no reason recorded.' }} Its test requirements are listed in section 5.</div>{% endif %}
           </div>
         {% endfor %}
       {% else %}
@@ -158,7 +158,7 @@
         <tbody>
           {% for t in rmf.test_requirements %}
             <tr><td><code>{{ t.risk_item_id | string | truncate(8, True, '') }}</code></td>
-              <td>{{ t.metric_type }}</td><td><code>{{ t.threshold_range }}</code></td><td>{{ t.article_ref }}</td></tr>
+              <td><strong>{{ t.metric_type }}</strong><br>{{ t.description }}</td><td>{{ t.threshold_range }}</td><td>{{ t.article_ref }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -200,7 +200,8 @@
       <p>This export carries no chain proof.</p>
     {% endif %}
     <p>Verify integrity at any time: <code>riskforge verify</code>. Check the JSON export of this
-    file with <code>riskforge verify --file</code>.</p>
+    register state with <code>riskforge verify --file &lt;JSON export&gt;</code>: it carries the
+    content digest above.</p>
   </section>
 
 </body>

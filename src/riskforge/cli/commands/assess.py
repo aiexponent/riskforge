@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional  # noqa: UP007 (Typer 0.12.3 needs Op
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.rule import Rule
 from rich.table import Table
 
@@ -271,6 +272,8 @@ async def _run_assess(
                 console.print(f"  [dim italic]{question['guidance']}[/dim italic]")
             if question.get("article_refs"):
                 console.print(f"  [dim]Refs: {', '.join(question['article_refs'])}[/dim]")
+            if question.get("risk_title"):
+                console.print(f"  Risk: {escape(question['risk_title'])}")
 
             # ── Answer prompt ───────────────────────────────────────────────
             answer = await questionary.select(
@@ -296,13 +299,12 @@ async def _run_assess(
             is_unknown = answer.startswith("unknown")
 
             if is_unknown:
-                # Use question's default hints; fall back to 3
-                likelihood = int(question.get("default_likelihood_hint") or 3)
-                severity = int(question.get("default_severity_hint") or 3)
+                item = assess.knowledge_gap_item(question, dim)
                 gaps_added += 1
                 console.print(
                     f"  [yellow]↳ Flagged as knowledge gap.[/yellow] "
-                    f"Likelihood hint: {likelihood}, Severity hint: {severity}"
+                    f"{item.knowledge_gap_reason}",
+                    soft_wrap=True,
                 )
             else:
                 # ── Likelihood ──────────────────────────────────────────────
@@ -340,11 +342,9 @@ async def _run_assess(
                 col = _BAND_COLOUR[band]
                 console.print(f"  [dim]Score: {score} → [{col}]{band.upper()}[/{col}][/dim]")
                 risks_added += 1
+                item = assess.question_to_risk_item(question, dim, likelihood, severity)
 
-            # ── Create and persist risk item ────────────────────────────────
-            item = assess.question_to_risk_item(
-                question, dim, likelihood, severity, answer_unknown=is_unknown
-            )
+            # ── Persist the risk item ───────────────────────────────────────
             await _apply(risk_engine, system_id, item, counts, attention)
 
     except KeyboardInterrupt:
@@ -543,30 +543,20 @@ async def _assess_from_answers(
                 skipped += 1
                 continue
             if applies == "unknown":
-                likelihood = int(question.get("default_likelihood_hint") or 3)
-                severity = int(question.get("default_severity_hint") or 3)
-                is_unknown = True
+                item = assess.knowledge_gap_item(question, dim)
                 gaps_added += 1
             elif applies == "yes":
                 if "likelihood" not in ans or "severity" not in ans:
                     fail(f"Answer for {qid} has applies: yes but no likelihood/severity.")
                 likelihood = _answer_score(qid, "likelihood", ans["likelihood"])
                 severity = _answer_score(qid, "severity", ans["severity"])
-                is_unknown = False
+                item = assess.question_to_risk_item(question, dim, likelihood, severity)
             else:
                 fail(
                     f"Answer for {qid} has invalid applies '{applies}' "
                     "(use yes, no, unknown, or skip)."
                 )
-            await _apply(
-                risk_engine,
-                system_id,
-                assess.question_to_risk_item(
-                    question, dim, likelihood, severity, answer_unknown=is_unknown
-                ),
-                counts,
-                attention,
-            )
+            await _apply(risk_engine, system_id, item, counts, attention)
 
     if leftover:
         console.print(
