@@ -38,12 +38,19 @@ __all__ = [
 
 
 class CrossReference(BaseModel):
-    """Maps a cluster of risk items to regulatory and framework references."""
+    """Maps a cluster of risk items to regulatory and framework references.
+
+    ``nist_rmf_refs`` and ``iso42001_refs`` hold every distinct reference of the cluster's
+    items, in item order. ``nist_rmf_ref`` and ``iso42001_ref`` hold the first of each, as
+    schema 1.1.0 did, or an empty string when there is none.
+    """
 
     article_ref: str  # e.g. "Art.9(2)(a)"
     risk_item_ids: list[UUID]
     nist_rmf_ref: str = ""  # e.g. "MAP 1.1"
     iso42001_ref: str = ""  # e.g. "Clause 6.1"
+    nist_rmf_refs: list[str] = Field(default_factory=list)  # e.g. ["MAP 1.1", "GOVERN 1.1"]
+    iso42001_refs: list[str] = Field(default_factory=list)  # e.g. ["Clause 6.1"]
 
 
 GateStatusName = Literal["PASS", "WARN", "FAIL"]

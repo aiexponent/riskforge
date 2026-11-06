@@ -452,6 +452,12 @@ lists the failing gates as `failing_gates`. The content digest covers `validatio
 a signature over the digest covers the gate results too. The Markdown export shows them
 under "Validation Gates" and the PDF on its cover and in its method section.
 
+`cross_references` groups the risk items by the article each cites. A group lists
+every distinct NIST AI RMF reference of its items in `nist_rmf_refs` and every distinct
+ISO/IEC 42001 reference in `iso42001_refs`, in item order. `nist_rmf_ref` and
+`iso42001_ref` hold the first of each, as in schema 1.1.0. A file written by RiskForge
+2.0.0 has only the single fields, which name the references of one item of the group.
+
 `chain_proof` holds every entry of the project audit log up to the export (the export's
 own `rmf.exported` entry is recorded after the file is written, so it is never in the
 file), and `receipt` names the last of those entries. `signatures` and `public_keys` are

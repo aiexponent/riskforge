@@ -541,10 +541,13 @@ def test_a_trusted_key_file_that_is_not_a_public_key_exits_3(exported) -> None:
 
 
 def _downgraded(exported: dict[str, Path], tmp_path: Path) -> Path:
-    """A signed new file rewritten as 1.0.0: provenance and validation dropped, digest redone."""
+    """A signed new file rewritten as 1.0.0: 1.2.0 and provenance fields dropped, digest redone."""
     document = _load(exported["second"])
     for name in ("validation", "signoffs", "signatures", "public_keys", "chain_proof", "receipt"):
         document.pop(name)
+    for cross_reference in document["cross_references"]:
+        cross_reference.pop("nist_rmf_refs")
+        cross_reference.pop("iso42001_refs")
     document["register"].pop("test_requirements", None)
     for item in document["register"]["items"]:
         item.pop("accepted_by", None)

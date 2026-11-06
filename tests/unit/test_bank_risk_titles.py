@@ -8,6 +8,8 @@ phrased as the risk, and the item's description keeps the full question.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from riskforge.engine.assess import AssessEngine, question_description, question_risk_title
 from riskforge.models.risk import QUESTION_TITLE_MAX_LENGTH, RiskDimension
@@ -86,7 +88,7 @@ def test_every_hint_is_on_the_1_to_5_scale(question: dict, dimension: RiskDimens
 def test_every_question_suggests_a_test_metric(question: dict, dimension: RiskDimension) -> None:
     """D5: each question names the metric a test of its risk would measure."""
     metric, measure = question.get("test_metric_type", ""), question.get("test_measure", "")
-    assert metric and metric == metric.lower() and " " not in metric, question["id"]
+    assert re.fullmatch(r"[a-z][a-z0-9]*(_[a-z0-9]+)*", metric), question["id"]
     assert measure and not measure.endswith("."), question["id"]
 
 
