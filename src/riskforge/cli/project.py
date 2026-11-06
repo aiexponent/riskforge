@@ -21,10 +21,33 @@ T = TypeVar("T")
 if TYPE_CHECKING:
     from riskforge.engine.integrity import IntegrityError, IntegrityReport
     from riskforge.integrity.signing import Ed25519Signer
+    from riskforge.models.audit import AuditActor
     from riskforge.models.register import RiskRegister
     from riskforge.models.risk import RiskDimension
     from riskforge.models.system import AISystem, AnnexIIICategory
     from riskforge.storage.filesystem import FileStore
+
+
+# The name a write command records as the audit entry's actor when it takes no name of
+# its own (D10 of the 2.0.0 independent test). Self-declared, as --by is.
+ACTOR_ENV = "RISKFORGE_ACTOR"
+
+
+def cli_actor(default: str = "cli") -> AuditActor:
+    """The actor of a write command: RISKFORGE_ACTOR when set, else ``default``.
+
+    Exits 3 when the variable holds a line break, control or invisible character.
+    """
+    import os
+
+    from riskforge.engine.actor import ActorNameError, normalise_actor_name
+    from riskforge.models.audit import AuditActor
+
+    try:
+        name = normalise_actor_name(os.environ.get(ACTOR_ENV))
+    except ActorNameError as exc:
+        fail(f"{ACTOR_ENV}: {exc}")
+    return AuditActor(type="human", identity=name or default)
 
 
 MANIFEST_MISSING_HINT = "Restore riskforge.yaml from a backup, or use another --project-dir."
