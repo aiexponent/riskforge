@@ -398,6 +398,33 @@ def test_risk_cross_references_render_independently(refs: dict, expected: str) -
     assert expected in html
 
 
+def test_pdf_shows_scores_and_sources_as_words(rendered) -> None:
+    """The PDF printed raw enum values such as "almost_certain" (D9)."""
+    _rmf, text, _pages = rendered
+    flat = _flat(text)
+    assert "Likelihood Likely (4)" in flat
+    assert "Source Manual" in flat
+    assert "Regulatory status Settled" in flat
+    assert not re.search(r"\b(likely|almost_certain|question_bank) \(\d\)", flat)
+
+
+def test_pdf_mitigation_bullets_read_in_order(rendered) -> None:
+    """A list marker was drawn after the page text, so text read from the PDF put a stray
+    bullet at the end of the page instead of before the mitigation (D9)."""
+    rmf, text, pages = rendered
+    for page in pages:
+        assert not re.search(r"•\s*$", page.split("RiskForge, EU AI Act")[0]), page
+    for mitigation in (m for item in rmf.register.items for m in item.mitigations):
+        assert f"• {mitigation.control_type.title()} [{mitigation.status}]:" in _flat(text)
+
+
+def test_pdf_verify_line_names_what_to_check(rendered) -> None:
+    """The last page ended "riskforge verify --file ." with no file (D9)."""
+    _rmf, text, _pages = rendered
+    assert "riskforge verify --file <JSON export>" in _flat(text)
+    assert "verify --file ." not in _flat(text)
+
+
 def test_pdf_test_requirements_say_what_each_metric_measures(rendered) -> None:
     """A metric name alone did not say what to measure (D5 of the 2.0.0 independent test)."""
     rmf, text, _pages = rendered

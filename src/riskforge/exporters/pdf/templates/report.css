@@ -250,12 +250,21 @@ td {
   font-size: 9pt;
 }
 
+/* An inline bullet, not a list marker: WeasyPrint draws markers after the page text,
+   so text read from the PDF (copy, screen readers) put each bullet at the page end. */
 .mitigations ul {
-  margin: 4pt 0 0 14pt;
+  margin: 4pt 0 0 0;
+  padding-left: 14pt;
+  list-style: none;
 }
 
 .mitigations li {
   margin-bottom: 3pt;
+  text-indent: -8pt;
+}
+
+.mitigations li::before {
+  content: "\2022\00a0";
 }
 
 .vague-mitigation {
