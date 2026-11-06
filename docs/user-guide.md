@@ -165,7 +165,13 @@ answers:
   # questions omitted from the file default to "skip"
 ```
 
-`applies: yes` adds a scored risk item (likelihood and severity required).
+`applies: yes` means the risk applies to the system, and adds a scored risk item
+(likelihood and severity required). Each question names its risk, which becomes the
+item's title: DI-004 asks "Are bias test results documented and reviewed at each model
+update...?" and records the risk "Bias tests not repeated at each model update". So for a
+question about a control, `yes` means the control is missing or not enough. The
+interactive `assess` prints the risk under each question, and the item's description
+keeps the full question and its guidance.
 `applies: unknown` flags a knowledge gap; `riskforge tests generate` then saves a test requirement for it.
 A knowledge gap is not a judged score. Its likelihood and severity are the question's
 `default_likelihood_hint` and `default_severity_hint`, and 3 for any it does not give, so

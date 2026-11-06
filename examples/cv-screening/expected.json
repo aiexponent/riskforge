@@ -652,7 +652,7 @@
           "Art.9(2)(a)",
           "Art.14(1)"
         ],
-        "description": "Consider decisions about medication dosing, surgical planning, vehicle operation, equipment control, or emergency dispatch.",
+        "description": "Question HS-001: Could the system's outputs directly influence a clinical, safety, or physical decision without mandatory human review? Consider decisions about medication dosing, surgical planning, vehicle operation, equipment control, or emergency dispatch.",
         "dimension": "health_safety",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -678,7 +678,7 @@
         "tags": [
           "HS-001"
         ],
-        "title": "Could the system's outputs directly influence a clinical, safety, or physical decision without mandatory human review?"
+        "title": "Outputs drive clinical, safety or physical decisions without human review"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -687,7 +687,7 @@
         "article_refs": [
           "Art.9(2)(a)"
         ],
-        "description": "Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this.",
+        "description": "Question FR-001: Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment? Article 9(2)(a) requires identification of known and foreseeable risks to fundamental rights. A FRIA is the standard mechanism for this.",
         "dimension": "fundamental_rights",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -713,7 +713,7 @@
         "tags": [
           "FR-001"
         ],
-        "title": "Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?"
+        "title": "No fundamental rights impact assessment before deployment"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -723,7 +723,7 @@
           "Art.10(2)(f)",
           "Art.9(2)(a)"
         ],
-        "description": "Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
+        "description": "Question DI-001: Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity, age, disability)? Biased training data produces biased outputs. Article 10(2)(f) requires data governance measures to address biases.",
         "dimension": "discrimination",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -749,7 +749,7 @@
         "tags": [
           "DI-001"
         ],
-        "title": "Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,"
+        "title": "Training data not audited for representation imbalance across protected groups"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -758,7 +758,7 @@
         "article_refs": [
           "Art.4a(1)"
         ],
-        "description": "Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
+        "description": "Question PR-001: Does the system process personal data or special category data (health, biometric, ethnicity, religion)? Processing of special category data triggers additional obligations under GDPR Article 9. EU AI Act Article 4a(1) allows providers of high-risk AI systems to process special categories of personal data exceptionally, to the extent strictly necessary to ensure bias detection and correction.",
         "dimension": "privacy",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -784,7 +784,7 @@
         "tags": [
           "PR-001"
         ],
-        "title": "Does the system process personal data or special category data (health, biometric, ethnicity, religion)?"
+        "title": "System processes personal or special category data"
       },
       {
         "acceptance_rationale": "",
@@ -793,7 +793,7 @@
           "Art.26(11)",
           "Art.50(1)"
         ],
-        "description": "Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
+        "description": "Question TR-001: Are users notified that they are interacting with or being assessed by an AI system? Article 26(11) requires deployers of Annex III high-risk AI systems that make or assist in making decisions related to natural persons to inform them that they are subject to the use of the system. Article 50(1) covers informing natural persons that they are interacting with an AI system.",
         "dimension": "transparency",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -819,7 +819,7 @@
         "tags": [
           "TR-001"
         ],
-        "title": "Are users notified that they are interacting with or being assessed by an AI system?"
+        "title": "Users not told they are interacting with or assessed by an AI system"
       },
       {
         "acceptance_rationale": "Residual accepted for the example fixture.",
@@ -828,7 +828,7 @@
         "article_refs": [
           "Art.14(4)(e)"
         ],
-        "description": "Article 14(4)(e) requires the ability to intervene on or interrupt AI system operation. This must be technically implemented, not just policy-stated.",
+        "description": "Question HO-001: Can a human operator override or stop the AI system's output in real time without significant technical barriers? Article 14(4)(e) requires the ability to intervene on or interrupt AI system operation. This must be technically implemented, not just policy-stated.",
         "dimension": "human_oversight",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -854,7 +854,7 @@
         "tags": [
           "HO-001"
         ],
-        "title": "Can a human operator override or stop the AI system's output in real time without significant technical barriers?"
+        "title": "Operators cannot readily override or stop the output in real time"
       },
       {
         "acceptance_rationale": "",
@@ -863,7 +863,7 @@
           "Art.9(6)",
           "Art.15"
         ],
-        "description": "Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
+        "description": "Question RO-001: Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations? Article 9(6) and (8) require testing against prior defined metrics and probabilistic thresholds appropriate to the intended purpose. Article 15(5) covers resilience against adversarial examples.",
         "dimension": "robustness",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -889,7 +889,7 @@
         "tags": [
           "RO-001"
         ],
-        "title": "Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?"
+        "title": "Not tested on out-of-distribution, edge-case and adversarial inputs"
       },
       {
         "acceptance_rationale": "",
@@ -898,7 +898,7 @@
           "Art.10(2)",
           "Art.10(2)(b)"
         ],
-        "description": "Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
+        "description": "Question DG-001: Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)? Article 10(2) requires data governance practices including documentation of dataset provenance. TraceForge can automate this.",
         "dimension": "data_governance",
         "id": "<uuid>",
         "identified_at": "<timestamp>",
@@ -924,7 +924,7 @@
         "tags": [
           "DG-001"
         ],
-        "title": "Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?"
+        "title": "Dataset provenance not documented"
       }
     ],
     "question_bank_version": "1.0.0",
@@ -977,7 +977,7 @@
       },
       {
         "article_ref": "Art.9(2)(a)",
-        "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
+        "description": "Validate 'No fundamental rights impact assessment before deployment' via fundamental_rights_impact_score measurement. Target: = 0.",
         "id": "<uuid>",
         "metric_type": "fundamental_rights_impact_score",
         "nist_rmf_ref": "",
@@ -986,7 +986,7 @@
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+        "description": "Validate 'Training data not audited for representation imbalance across protected groups' via demographic_parity measurement. Target: <= 0.10.",
         "id": "<uuid>",
         "metric_type": "demographic_parity",
         "nist_rmf_ref": "",
@@ -995,7 +995,7 @@
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+        "description": "Validate 'System processes personal or special category data' via pii_leakage_rate measurement. Target: = 0.00.",
         "id": "<uuid>",
         "metric_type": "pii_leakage_rate",
         "nist_rmf_ref": "",
@@ -1004,7 +1004,7 @@
       },
       {
         "article_ref": "Art.14",
-        "description": "Validate 'Can a human operator override or stop the AI system's output in real time without significant technical barriers?' via override_latency_ms measurement. Target: <= 500.",
+        "description": "Validate 'Operators cannot readily override or stop the output in real time' via override_latency_ms measurement. Target: <= 500.",
         "id": "<uuid>",
         "metric_type": "override_latency_ms",
         "nist_rmf_ref": "",
@@ -1013,7 +1013,7 @@
       },
       {
         "article_ref": "Art.9(8)",
-        "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+        "description": "Validate 'Not tested on out-of-distribution, edge-case and adversarial inputs' via faithfulness measurement. Target: >= 0.85.",
         "id": "<uuid>",
         "metric_type": "faithfulness",
         "nist_rmf_ref": "",
@@ -1022,7 +1022,7 @@
       },
       {
         "article_ref": "Art.10",
-        "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+        "description": "Validate 'Dataset provenance not documented' via data_quality_score measurement. Target: >= 0.95.",
         "id": "<uuid>",
         "metric_type": "data_quality_score",
         "nist_rmf_ref": "",
@@ -1065,7 +1065,7 @@
     },
     {
       "article_ref": "Art.9(2)(a)",
-      "description": "Validate 'Has a fundamental rights impact assessment (FRIA) been conducted prior to deployment?' via fundamental_rights_impact_score measurement. Target: = 0.",
+      "description": "Validate 'No fundamental rights impact assessment before deployment' via fundamental_rights_impact_score measurement. Target: = 0.",
       "id": "<uuid>",
       "metric_type": "fundamental_rights_impact_score",
       "nist_rmf_ref": "",
@@ -1074,7 +1074,7 @@
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Has the training dataset been audited for representation imbalances across protected characteristics (gender, ethnicity,' via demographic_parity measurement. Target: <= 0.10.",
+      "description": "Validate 'Training data not audited for representation imbalance across protected groups' via demographic_parity measurement. Target: <= 0.10.",
       "id": "<uuid>",
       "metric_type": "demographic_parity",
       "nist_rmf_ref": "",
@@ -1083,7 +1083,7 @@
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Does the system process personal data or special category data (health, biometric, ethnicity, religion)?' via pii_leakage_rate measurement. Target: = 0.00.",
+      "description": "Validate 'System processes personal or special category data' via pii_leakage_rate measurement. Target: = 0.00.",
       "id": "<uuid>",
       "metric_type": "pii_leakage_rate",
       "nist_rmf_ref": "",
@@ -1092,7 +1092,7 @@
     },
     {
       "article_ref": "Art.14",
-      "description": "Validate 'Can a human operator override or stop the AI system's output in real time without significant technical barriers?' via override_latency_ms measurement. Target: <= 500.",
+      "description": "Validate 'Operators cannot readily override or stop the output in real time' via override_latency_ms measurement. Target: <= 500.",
       "id": "<uuid>",
       "metric_type": "override_latency_ms",
       "nist_rmf_ref": "",
@@ -1101,7 +1101,7 @@
     },
     {
       "article_ref": "Art.9(8)",
-      "description": "Validate 'Has the system been tested against out-of-distribution inputs, edge cases, and adversarial perturbations?' via faithfulness measurement. Target: >= 0.85.",
+      "description": "Validate 'Not tested on out-of-distribution, edge-case and adversarial inputs' via faithfulness measurement. Target: >= 0.85.",
       "id": "<uuid>",
       "metric_type": "faithfulness",
       "nist_rmf_ref": "",
@@ -1110,7 +1110,7 @@
     },
     {
       "article_ref": "Art.10",
-      "description": "Validate 'Is the provenance of all training, validation, and test datasets documented (source, collection date, license, version)?' via data_quality_score measurement. Target: >= 0.95.",
+      "description": "Validate 'Dataset provenance not documented' via data_quality_score measurement. Target: >= 0.95.",
       "id": "<uuid>",
       "metric_type": "data_quality_score",
       "nist_rmf_ref": "",
