@@ -48,10 +48,9 @@ def cmd(
     import uuid
 
     from riskforge.cli.errors import fail
-    from riskforge.cli.project import MANIFEST_MISSING_HINT, parse_category
+    from riskforge.cli.project import MANIFEST_MISSING_HINT, cli_actor, parse_category
     from riskforge.engine.audit import AuditEngine
     from riskforge.engine.system import SystemEngine
-    from riskforge.models.audit import AuditActor
     from riskforge.models.system import AISystem
     from riskforge.storage.errors import ManifestMissingError, ProjectExistsError
     from riskforge.storage.filesystem import FileStore
@@ -77,7 +76,7 @@ def cmd(
             project_id,
             {"system_name": name, "created_by": "riskforge init"},
         )
-        audit = AuditEngine(store, AuditActor(type="human", identity="cli"))
+        audit = AuditEngine(store, cli_actor())
         await SystemEngine(store, audit).create(system)
 
     try:

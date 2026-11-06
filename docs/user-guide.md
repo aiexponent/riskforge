@@ -275,6 +275,15 @@ exports show it as "Accepted by" and "Recorded by", and the JSON export (RMF sch
 1.1.0 and later) holds both fields, so the content digest every format shows covers them.
 Acceptances recorded before 2.0.0 show "Accepted by: not recorded".
 
+Every audit entry names an actor. `assess` records the `-a` name, and `risk accept`
+and `risk mitigate` record the `--by` name. Every other command that writes (`init`,
+`system classify`, `system describe`, `tests generate`, `export` and `import`)
+records `RISKFORGE_ACTOR` when it is set, and `cli` (`cli-import` for `import`)
+otherwise. Set `RISKFORGE_ACTOR` once per session or CI job, as a name only, so the
+audit log names the same person for each of their changes. The same rules for plain
+text apply: a value with a line break or control character exits 3 and writes
+nothing. Entries written before 2.1.0 keep `cli`.
+
 ### Receipts: a record kept outside the project
 
 `riskforge verify` compares the audit log with `.riskforge/audit.head.json`, which
