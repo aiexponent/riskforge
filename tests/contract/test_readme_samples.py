@@ -315,5 +315,7 @@ def test_question_sample_uses_the_next_free_id_of_its_bank() -> None:
     [sample] = yaml.safe_load(block)
     bank = AssessEngine().load_questions(RiskDimension(path.group(1)))
     prefix = bank[0]["id"].split("-")[0]
-    assert sample["id"] == f"{prefix}-{len(bank) + 1:03d}"
+    numbers = [int(question["id"].split("-")[1]) for question in bank]
+    assert sample["id"] == f"{prefix}-{max(numbers) + 1:03d}"
+    assert sample["id"] not in {question["id"] for question in bank}
     assert set(sample) <= {key for question in bank for key in question}

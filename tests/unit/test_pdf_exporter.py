@@ -411,9 +411,11 @@ def test_pdf_shows_scores_and_sources_as_words(rendered) -> None:
 def test_pdf_mitigation_bullets_read_in_order(rendered) -> None:
     """A list marker was drawn after the page text, so text read from the PDF put a stray
     bullet at the end of the page instead of before the mitigation (D9)."""
-    _rmf, _text, pages = rendered
+    rmf, text, pages = rendered
     for page in pages:
         assert not re.search(r"•\s*$", page.split("RiskForge, EU AI Act")[0]), page
+    for mitigation in (m for item in rmf.register.items for m in item.mitigations):
+        assert f"• {mitigation.control_type.title()} [{mitigation.status}]:" in _flat(text)
 
 
 def test_pdf_verify_line_names_what_to_check(rendered) -> None:
