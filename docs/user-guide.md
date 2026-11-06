@@ -248,8 +248,9 @@ and nothing is recorded, not even the checkpoint. A temporary file left by an
 interrupted export (its name starts with `.riskforge-export-`) is removed by a later
 export to the same directory if it is older than that export's hold on the project lock.
 
-The three formats hold the same content. The JSON export is the full document that
-`riskforge verify --file` checks. The PDF is the report for readers: system description,
+The JSON export is the full document that `riskforge verify --file` checks. The PDF and
+Markdown exports summarise it and leave some fields out, such as the cross-references and
+the sign-offs. The PDF is the report for readers: system description,
 validation gates, risk register by dimension, residual risk summary, test requirements and
 the audit trail. The Markdown export, for a repository or wiki, has the system and
 assessor, the validation gates, each risk with its inherent and residual score, references,

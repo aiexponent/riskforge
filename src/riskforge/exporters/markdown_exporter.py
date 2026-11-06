@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC
 
 from riskforge.exporters.base import Exporter, display_title
 from riskforge.models.rmf import RiskManagementFile, ValidationRecord
@@ -79,9 +80,11 @@ def _change_log_lines(rmf: RiskManagementFile) -> list[str]:
         return [*lines, "This export carries no chain proof.", ""]
     lines += ["| Seq | Time (UTC) | Event | Actor |", "| --- | --- | --- | --- |"]
     for e in rmf.chain_proof.entries:
+        # RiskForge writes UTC; an entry written elsewhere with an offset is converted.
+        stamp = e.timestamp.astimezone(UTC) if e.timestamp.tzinfo else e.timestamp
         cells = [
             str(e.seq),
-            e.timestamp.strftime("%Y-%m-%d %H:%M"),
+            stamp.strftime("%Y-%m-%d %H:%M"),
             _md(e.event),
             _md(e.actor.identity),
         ]

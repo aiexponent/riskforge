@@ -65,3 +65,12 @@ def test_markdown_lists_the_change_log_of_the_chain_proof() -> None:
 
 def test_markdown_says_when_there_is_no_chain_proof() -> None:
     assert "This export carries no chain proof." in _markdown(_sample_rmf())
+
+
+def test_a_change_log_time_with_an_offset_is_shown_in_utc() -> None:
+    from datetime import datetime, timedelta, timezone
+
+    rmf = _with_provenance(_sample_rmf())
+    entry = rmf.chain_proof.entries[0]
+    entry.timestamp = datetime(2026, 11, 6, 12, 30, tzinfo=timezone(timedelta(hours=2)))
+    assert f"| {entry.seq} | 2026-11-06 10:30 |" in _markdown(rmf)

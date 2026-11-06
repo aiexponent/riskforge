@@ -61,8 +61,17 @@ def test_risk_list_shows_the_residual_score(tmp_path: Path) -> None:
         + ["--project-dir", str(project)]
     )
     assert assess.returncode == 0, assess.output
+    listed = run_rf(["risk", "list", system_id, "--project-dir", str(project)])
+    risk_id = next(line for line in listed.output.splitlines() if "discrimination" in line)
+    risk_id = re.search(r"[0-9a-f]{8}", risk_id).group(0)
+    mitigate = run_rf(
+        ["risk", "mitigate", system_id, risk_id, "-m", "Quarterly parity audit"]
+        + ["-c", "detective", "--residual-likelihood", "2", "--residual-severity", "3"]
+        + ["--owner", "ML team", "--by", "A", "--project-dir", str(project)]
+    )
+    assert mitigate.returncode == 0, mitigate.output
     listing = run_rf(["risk", "list", system_id, "--project-dir", str(project)])
     assert listing.returncode == 0, listing.output
     assert "Residual" in listing.output
     row = next(line for line in listing.output.splitlines() if "discrimination" in line)
-    assert re.search(r"\b20\b.*\bcritical\b.*\b20\b", row), row
+    assert re.search(r"\b20\b.*\bcritical\b.*\b6\b", row), row
