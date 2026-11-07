@@ -1,9 +1,9 @@
 {
-  "date": "2026-11-04",
+  "date": "2026-11-07",
   "versions": {
     "python": "3.13.18",
-    "platform": "Linux-6.18.44-fc-v233-x86_64-with-glibc2.39",
-    "riskforge": "RiskForge v2.0.0 | Apache 2.0 | Zero telemetry | aiexponent.com",
+    "platform": "Linux-6.18.44-fc-v310-x86_64-with-glibc2.39",
+    "riskforge": "RiskForge v2.1.0 | Apache 2.0 | Zero telemetry | aiexponent.com",
     "pypdf": "6.21.4",
     "weasyprint": "70.0"
   },
@@ -45,7 +45,7 @@
             "riskforge",
             "system",
             "classify",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "--confirm",
             "--project-dir",
             "$OUT/run-a/project"
@@ -59,7 +59,7 @@
           "argv": [
             "riskforge",
             "assess",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "--project-dir",
             "$OUT/run-a/project",
             "--assessor-name",
@@ -67,7 +67,7 @@
             "--assessor-role",
             "Head of Model Risk",
             "--answers",
-            "/home/user/riskforge/verification/inputs/answers.yaml",
+            "/home/user/riskforge-rel/verification/inputs/answers.yaml",
             "--review-months",
             "12"
           ],
@@ -81,7 +81,7 @@
             "riskforge",
             "risk",
             "list",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "--project-dir",
             "$OUT/run-a/project"
           ],
@@ -95,8 +95,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "aed4c486-00e2-42e9-b95e-467857846880",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "d589bef0-ea61-4d16-9f2f-d6603ee1a663",
             "--description",
             "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing.",
             "--control-type",
@@ -124,8 +124,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "aed4c486-00e2-42e9-b95e-467857846880",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "d589bef0-ea61-4d16-9f2f-d6603ee1a663",
             "--description",
             "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3.",
             "--control-type",
@@ -149,8 +149,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "f6c25aec-33ab-41b4-bd61-ef97598574ef",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "8f114d3b-e0f1-4be4-9ccc-0fb2ed11d7ed",
             "--description",
             "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code.",
             "--control-type",
@@ -174,8 +174,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "c0b71de9-fd11-4ea2-bfc7-730776f37dca",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "88979633-71e0-482b-a881-bf48621c76d0",
             "--description",
             "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10.",
             "--control-type",
@@ -199,8 +199,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "8c42055a-d12d-4940-9017-5445fa53069d",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "4d19141a-8d22-4826-a17c-cb1fe3ce15c1",
             "--description",
             "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag.",
             "--control-type",
@@ -224,8 +224,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "905e8cd6-cc1d-4488-96d7-6549b49081fc",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "6966164c-554b-4357-9d9e-c438287f0f27",
             "--description",
             "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set.",
             "--control-type",
@@ -249,8 +249,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "e541ddff-41eb-4605-9e19-dc1ec292e188",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "c582db0b-3876-4136-94b6-6acc5f3638e6",
             "--description",
             "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent.",
             "--control-type",
@@ -274,8 +274,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "8b37639c-3b99-44ab-9958-594a5a6efd38",
             "--description",
             "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production.",
             "--control-type",
@@ -299,8 +299,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "85a548ab-a456-4303-b7f2-6aa96b57feb1",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "8b37639c-3b99-44ab-9958-594a5a6efd38",
             "--description",
             "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days.",
             "--control-type",
@@ -324,8 +324,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "60278de0-44dd-4b0b-bb68-08a540c17087",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "3fe03c51-aba5-4ba1-86d4-62610fb9087c",
             "--description",
             "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change.",
             "--control-type",
@@ -349,8 +349,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "6c48e838-0ca7-46d8-b6c0-23fbd4dbfc9e",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "9a85d48a-3a63-46e3-abf7-6a41be972b43",
             "--description",
             "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent.",
             "--control-type",
@@ -374,8 +374,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "f678a8c1-c49b-4477-ae99-73ef8fe4fc80",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "7112e1e6-27c8-4eb1-ada4-5013a7604459",
             "--description",
             "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries.",
             "--control-type",
@@ -399,8 +399,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "d936c7f0-c839-4676-b5ed-17db0ee07392",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "2fd59a99-ade2-443d-9a2b-cde840bac30b",
             "--description",
             "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed.",
             "--control-type",
@@ -428,8 +428,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "a038286b-1ab2-4b1e-ad55-65ce77a41703",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "b4ce87da-906f-4c66-ba3f-b33b02fda8a8",
             "--description",
             "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
             "--control-type",
@@ -453,8 +453,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "555fecb1-8d89-460f-ad6d-cd6d889e0188",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "b0a71cc7-9b13-4a81-8fd9-115a16868fa5",
             "--description",
             "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
             "--control-type",
@@ -478,8 +478,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "27dd0821-f7a3-4aec-9c6f-367164b84f87",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "6b73bccd-c528-419a-a6f4-d6b5615761ec",
             "--description",
             "Show the credit officer the reason codes and the score band next to each score.",
             "--control-type",
@@ -503,8 +503,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "ff5260d1-a237-4ba9-b46d-e9efda7ad0c8",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "a3baa3a9-f450-4d9b-b886-9696a5c81d42",
             "--description",
             "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application.",
             "--control-type",
@@ -528,8 +528,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "c3ff7160-489c-48e0-bc35-cf2aea497241",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "4aec60b2-542b-417e-b420-a88e02fdf67e",
             "--description",
             "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain.",
             "--control-type",
@@ -557,8 +557,8 @@
             "riskforge",
             "risk",
             "accept",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
-            "19dd45f3-1b3d-47bf-afef-f8966416e660",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
+            "9c0ab3b0-4d64-4849-8afd-62f7c8af41c7",
             "--rationale",
             "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted.",
             "--by",
@@ -576,7 +576,7 @@
             "riskforge",
             "tests",
             "generate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "--project-dir",
             "$OUT/run-a/project"
           ],
@@ -589,7 +589,7 @@
           "argv": [
             "riskforge",
             "validate",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "--project-dir",
             "$OUT/run-a/project"
           ],
@@ -602,7 +602,7 @@
           "argv": [
             "riskforge",
             "export",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "-f",
             "json",
             "-o",
@@ -622,7 +622,7 @@
           "argv": [
             "riskforge",
             "export",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "-f",
             "markdown",
             "-o",
@@ -640,7 +640,7 @@
           "argv": [
             "riskforge",
             "export",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "-f",
             "pdf",
             "-o",
@@ -684,7 +684,7 @@
           "argv": [
             "riskforge",
             "export",
-            "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+            "4f9e10da-5529-40a6-84e8-144190ab742c",
             "-f",
             "json",
             "-o",
@@ -700,17 +700,27 @@
           "log": "run-a/logs/31-export-json-again.txt"
         }
       ],
-      "system_id": "2c475c5c-c646-4da8-89a9-03141a0bcfbd",
+      "system_id": "4f9e10da-5529-40a6-84e8-144190ab742c",
       "forced_export": true,
+      "gates": {
+        "G1": "PASS",
+        "G2": "PASS",
+        "G3": "FAIL",
+        "G4": "PASS",
+        "G5": "WARN",
+        "G6": "PASS",
+        "G7": "PASS",
+        "G8": "PASS"
+      },
       "files": {
         "json": "$OUT/run-a/export/rmf.json",
         "markdown": "$OUT/run-a/export/rmf.md",
         "pdf": "$OUT/run-a/export/rmf.pdf"
       },
       "digests": {
-        "json": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23",
-        "markdown": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23",
-        "pdf": "9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+        "json": "55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827",
+        "markdown": "55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827",
+        "pdf": "55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827"
       }
     },
     "b": {
@@ -745,7 +755,7 @@
             "riskforge",
             "system",
             "classify",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "--confirm",
             "--project-dir",
             "$OUT/run-b/project"
@@ -759,7 +769,7 @@
           "argv": [
             "riskforge",
             "assess",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "--project-dir",
             "$OUT/run-b/project",
             "--assessor-name",
@@ -767,7 +777,7 @@
             "--assessor-role",
             "Head of Model Risk",
             "--answers",
-            "/home/user/riskforge/verification/inputs/answers.yaml",
+            "/home/user/riskforge-rel/verification/inputs/answers.yaml",
             "--review-months",
             "12"
           ],
@@ -781,7 +791,7 @@
             "riskforge",
             "risk",
             "list",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "--project-dir",
             "$OUT/run-b/project"
           ],
@@ -795,8 +805,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "2c21a868-67c6-4b88-94b2-d38bfa3c2b17",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "b5c47179-19d9-48dc-bfe4-d903c1063fa1",
             "--description",
             "Remove attributes 9 (personal status and sex), 13 (age) and 20 (foreign worker) from the model inputs. Keep them in a separate table used only for bias testing.",
             "--control-type",
@@ -824,8 +834,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "2c21a868-67c6-4b88-94b2-d38bfa3c2b17",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "b5c47179-19d9-48dc-bfe4-d903c1063fa1",
             "--description",
             "Measure the association of each remaining input with sex, age band and foreign worker status on the 1000 records, and drop or bin any input with Cramer's V above 0.3.",
             "--control-type",
@@ -849,8 +859,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "a789c4f8-f0f9-4365-a163-d8af21176e41",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "61769c34-8e95-4e94-bcc6-0d381a97a649",
             "--description",
             "Report record counts and the share of bad class by the sex part of attribute 9, by age band (under 25, 25 to 59, 60 and over) and by foreign worker flag, and state that married and divorced women share one code.",
             "--control-type",
@@ -874,8 +884,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "130113b2-f951-4b2e-afd5-386bf7a71b12",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "d5fd46b5-7343-41a9-a89a-2086d1d7dcb7",
             "--description",
             "Compute demographic parity difference and equal opportunity difference by sex, age band and foreign worker flag on the hold-out set; block release if any difference is above 0.10.",
             "--control-type",
@@ -899,8 +909,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "d7a750ca-5f28-4656-b862-3e9794f897ff",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "5471d9e9-097d-41f9-a00a-a0c461f92384",
             "--description",
             "Apply the release gate on demographic parity and equal opportunity difference (above 0.10 blocks release) by sex, age band and foreign worker flag.",
             "--control-type",
@@ -924,8 +934,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "19e69a81-d43e-4887-b767-3843306371ae",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "0efe8246-59db-4d04-9460-2cc51fa221a7",
             "--description",
             "Report accuracy, precision, recall, calibration error and cost under the dataset's cost matrix (5 for a bad applicant scored good, 1 for the reverse) per subgroup on the hold-out set.",
             "--control-type",
@@ -949,8 +959,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "4b37d130-8867-4744-8c95-d5207a43f4ac",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "f3c80be3-3552-4df9-a1ef-1a54b7ffc05c",
             "--description",
             "Before release, test on a recent sample of the lender's own applicants with amounts converted from DM to euro, plus edge cases (extreme amount and duration) and small input perturbations; the cost-weighted error must not exceed the hold-out value by more than 10 percent.",
             "--control-type",
@@ -974,8 +984,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "5d3d302e-2073-49bd-bcce-055adca57142",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "94652411-c189-49d7-9986-7bc8927ae7d9",
             "--description",
             "Retrain on recent applicant data from the lender before release, and do not put the model trained only on the 1994 records into production.",
             "--control-type",
@@ -999,8 +1009,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "5d3d302e-2073-49bd-bcce-055adca57142",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "94652411-c189-49d7-9986-7bc8927ae7d9",
             "--description",
             "Compute the population stability index of every input and of the score each month; above 0.25 the lender is alerted and the model is reviewed within 30 days.",
             "--control-type",
@@ -1024,8 +1034,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "99b9e0ac-310c-4f47-bae4-0dacaf8d0437",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "0e5ab9b9-ca21-4486-8871-2738b8d822ba",
             "--description",
             "Track approval rate, observed bad rate at 12 months and cost-weighted error each month against the validation values, with an alert at a 20 percent relative change.",
             "--control-type",
@@ -1049,8 +1059,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "46a818fb-d800-4be0-b4db-7f4dc2b754f3",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "a363ca86-a995-448f-baed-206ebce277a4",
             "--description",
             "Report error rates and cost-weighted error by age band (under 25, 25 to 59, 60 and over) at each release and block release if a band is worse than the overall rate by more than 10 percent.",
             "--control-type",
@@ -1074,8 +1084,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "31e6e9a3-930e-4902-b0c2-a6dcce85f9be",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "50bb65cd-2e0d-49f9-805e-398f00cbee4c",
             "--description",
             "Record the legal basis for using the 1994 records and live applicant data, agreed with the lender's data protection officer, and list the personal data each input carries.",
             "--control-type",
@@ -1099,8 +1109,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "3c3bfa35-3684-4fa4-bdd6-a9e5c247d429",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "21bcc43e-297a-46b2-a80f-8d7ee51f8968",
             "--description",
             "Remove attribute 19 (telephone) as well as attributes 9, 13 and 20 from the model inputs, and document why each remaining input is needed.",
             "--control-type",
@@ -1128,8 +1138,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "26b53f49-4050-47c0-87ff-cea62c06c00b",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "57fbdef6-15ef-4dd2-a7aa-be0c3f5b15fb",
             "--description",
             "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
             "--control-type",
@@ -1153,8 +1163,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "e414a419-d403-4fc8-aa33-ab948c102bab",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "b8ad4b79-1987-4625-8b6b-3884783b182b",
             "--description",
             "Return the four inputs that contributed most to each score as reason codes, for the lender to pass to the applicant on request.",
             "--control-type",
@@ -1178,8 +1188,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "5827c4e7-1b2b-45b4-b3cf-785b543f9c67",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "3964dc4e-0e11-4511-b276-1342b61a29f6",
             "--description",
             "Show the credit officer the reason codes and the score band next to each score.",
             "--control-type",
@@ -1203,8 +1213,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "59cf802d-dc09-4b4e-b991-bbbcb977964b",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "ec06d83d-12ed-4209-b89f-0ba818dddeb9",
             "--description",
             "State in the instructions for use that a refused applicant can ask for a second review by a credit officer who did not make the first decision, and that the score alone must not refuse an application.",
             "--control-type",
@@ -1228,8 +1238,8 @@
             "riskforge",
             "risk",
             "mitigate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "0ebf585f-018b-4c4c-9694-15f46a2bd459",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "62693ec0-988e-4860-b940-a60f4b5b59a1",
             "--description",
             "Add a limitations section to the instructions for use: the training data is from 1994 and in DM, the collection and the meaning of good and bad are not documented, representativeness is unknown, and code A47 is uncertain.",
             "--control-type",
@@ -1257,8 +1267,8 @@
             "riskforge",
             "risk",
             "accept",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
-            "12ce40da-0820-48ef-8f66-509f549b0971",
+            "ab986153-f72e-4b33-a394-4df490505b42",
+            "451eff49-8cd7-4d58-b8b1-6937feeab950",
             "--rationale",
             "The creator, DOI, licence and file dates are recorded, but when, where and from whom the 1994 records were collected is not published and cannot be recovered. The gap is stated in the limitations section, and the model is retrained on recent lender data before release, so the remaining provenance gap is accepted.",
             "--by",
@@ -1276,7 +1286,7 @@
             "riskforge",
             "tests",
             "generate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "--project-dir",
             "$OUT/run-b/project"
           ],
@@ -1289,7 +1299,7 @@
           "argv": [
             "riskforge",
             "validate",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "--project-dir",
             "$OUT/run-b/project"
           ],
@@ -1302,7 +1312,7 @@
           "argv": [
             "riskforge",
             "export",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "-f",
             "json",
             "-o",
@@ -1322,7 +1332,7 @@
           "argv": [
             "riskforge",
             "export",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "-f",
             "markdown",
             "-o",
@@ -1340,7 +1350,7 @@
           "argv": [
             "riskforge",
             "export",
-            "83c4d793-1118-4b38-83be-1f70d94f4263",
+            "ab986153-f72e-4b33-a394-4df490505b42",
             "-f",
             "pdf",
             "-o",
@@ -1380,19 +1390,34 @@
           "log": "run-b/logs/30-verify-project.txt"
         }
       ],
-      "system_id": "83c4d793-1118-4b38-83be-1f70d94f4263",
+      "system_id": "ab986153-f72e-4b33-a394-4df490505b42",
       "forced_export": true,
+      "gates": {
+        "G1": "PASS",
+        "G2": "PASS",
+        "G3": "FAIL",
+        "G4": "PASS",
+        "G5": "WARN",
+        "G6": "PASS",
+        "G7": "PASS",
+        "G8": "PASS"
+      },
       "files": {
         "json": "$OUT/run-b/export/rmf.json",
         "markdown": "$OUT/run-b/export/rmf.md",
         "pdf": "$OUT/run-b/export/rmf.pdf"
       },
       "digests": {
-        "json": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f",
-        "markdown": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f",
-        "pdf": "16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f"
+        "json": "af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218",
+        "markdown": "af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218",
+        "pdf": "af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218"
       }
     }
+  },
+  "baseline": {
+    "file": "rmf.normalised.json",
+    "same": false,
+    "first_difference": "$.cross_references[0].iso42001_refs: only in second"
   },
   "checks": [
     {
@@ -1407,18 +1432,18 @@
     },
     {
       "id": "validate.a",
-      "passed": false,
-      "detail": "see run-a/logs/25-validate.txt; exported with --force"
+      "passed": true,
+      "detail": "gates failing: G3 (a result; exported with --force)"
     },
     {
       "id": "digest.recomputed.a",
       "passed": true,
-      "detail": "file 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23, riskforge.api.content_digest 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+      "detail": "file 55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827, riskforge.api.content_digest 55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827"
     },
     {
       "id": "digest.formats.a",
       "passed": true,
-      "detail": "JSON field 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23; printed {'json': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23', 'markdown': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23', 'pdf': '9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23'}; in Markdown text: True"
+      "detail": "JSON field 55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827; printed {'json': '55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827', 'markdown': '55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827', 'pdf': '55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827'}; in Markdown text: True"
     },
     {
       "id": "verify.api.a",
@@ -1428,12 +1453,12 @@
     {
       "id": "export.markdown.a",
       "passed": true,
-      "detail": "171 lines"
+      "detail": "287 lines"
     },
     {
       "id": "export.pdf.a",
       "passed": true,
-      "detail": "22 pages, 177999 bytes"
+      "detail": "24 pages, 184876 bytes"
     },
     {
       "id": "flow.b",
@@ -1442,18 +1467,18 @@
     },
     {
       "id": "validate.b",
-      "passed": false,
-      "detail": "see run-b/logs/25-validate.txt; exported with --force"
+      "passed": true,
+      "detail": "gates failing: G3 (a result; exported with --force)"
     },
     {
       "id": "digest.recomputed.b",
       "passed": true,
-      "detail": "file 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f, riskforge.api.content_digest 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f"
+      "detail": "file af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218, riskforge.api.content_digest af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218"
     },
     {
       "id": "digest.formats.b",
       "passed": true,
-      "detail": "JSON field 16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f; printed {'json': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f', 'markdown': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f', 'pdf': '16ecb49dd2418a42c5c5973f62b55918d78bb7c453e26fd4167b305ece046c7f'}; in Markdown text: True"
+      "detail": "JSON field af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218; printed {'json': 'af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218', 'markdown': 'af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218', 'pdf': 'af9b226b9dc68b9e302b6f124ee1e5ce4b8b454ff2346088ac46a40e50a06218'}; in Markdown text: True"
     },
     {
       "id": "verify.api.b",
@@ -1463,17 +1488,17 @@
     {
       "id": "export.markdown.b",
       "passed": true,
-      "detail": "171 lines"
+      "detail": "287 lines"
     },
     {
       "id": "export.pdf.b",
       "passed": true,
-      "detail": "22 pages, 177959 bytes"
+      "detail": "24 pages, 184847 bytes"
     },
     {
       "id": "repeat.same_register",
       "passed": true,
-      "detail": "first export 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23, second export 9e53abfb36a7d22a8ed445f185e3ef0e8fc484d72f3a1c170845985f8af4bb23"
+      "detail": "first export 55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827, second export 55c7cb191f3775a63d61c889c6f96d9681ef0753a813fc9916a43bc5fd344827"
     },
     {
       "id": "tamper.rmf_content",
@@ -1483,7 +1508,7 @@
     {
       "id": "tamper.rmf_signature",
       "passed": true,
-      "detail": "byte 79310 changed: verify --file exit 2 (expected 2); restored: exit 0 (expected 0)"
+      "detail": "byte 92185 changed: verify --file exit 2 (expected 2); restored: exit 0 (expected 0)"
     },
     {
       "id": "tamper.register",
@@ -1499,8 +1524,13 @@
       "id": "repeat.two_runs",
       "passed": true,
       "detail": "same RMF after ids and timestamps are replaced by placeholders"
+    },
+    {
+      "id": "repeat.gates",
+      "passed": true,
+      "detail": "run a {'G1': 'PASS', 'G2': 'PASS', 'G3': 'FAIL', 'G4': 'PASS', 'G5': 'WARN', 'G6': 'PASS', 'G7': 'PASS', 'G8': 'PASS'}, run b {'G1': 'PASS', 'G2': 'PASS', 'G3': 'FAIL', 'G4': 'PASS', 'G5': 'WARN', 'G6': 'PASS', 'G7': 'PASS', 'G8': 'PASS'}"
     }
   ],
-  "passed": 19,
-  "failed": 2
+  "passed": 22,
+  "failed": 0
 }

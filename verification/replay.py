@@ -50,12 +50,14 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+SHORT_ID_RE = re.compile(r"(?<![\w-])[0-9a-f]{8}(?![\w-])")
 TIME_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
 VERSION_RE = re.compile(r"RiskForge v\d+\.\d+\.\d+\S*")
 DIGEST_RE = re.compile(r"Content digest \(SHA-256\):\s*([0-9a-f]{64})")
@@ -89,17 +91,31 @@ def normalise_rmf(document: dict[str, Any]) -> dict[str, Any]:
 
     Provenance fields are dropped. Each UUID becomes ``<uuid-N>``, numbered in the
     order it first appears when keys are read in sorted order, so the same item gets
-    the same placeholder wherever it is referenced. Timestamps become ``<time>`` and
-    the RiskForge version in the disclosure becomes ``RiskForge v<version>``.
+    the same placeholder wherever it is referenced. A short id, the first 8 characters
+    of one of those UUIDs on its own (schema 1.2.0 gate details list risks that way),
+    gets the placeholder of its UUID. Timestamps become ``<time>`` and the RiskForge
+    version in the disclosure becomes ``RiskForge v<version>``.
     """
     body = {k: v for k, v in document.items() if k not in PROVENANCE_FIELDS}
     numbers: dict[str, str] = {}
 
-    def uuid_placeholder(match: re.Match[str]) -> str:
-        value = match.group(0)
-        if value not in numbers:
-            numbers[value] = f"<uuid-{len(numbers) + 1}>"
-        return numbers[value]
+    def strings(value: Any) -> Iterator[str]:
+        if isinstance(value, dict):
+            for k in sorted(value):
+                yield from strings(value[k])
+        elif isinstance(value, list):
+            for v in value:
+                yield from strings(v)
+        elif isinstance(value, str):
+            yield value
+
+    for text in strings(body):
+        for found in UUID_RE.findall(text):
+            numbers.setdefault(found, f"<uuid-{len(numbers) + 1}>")
+    prefixes: dict[str, list[str]] = {}
+    for full, placeholder in numbers.items():
+        prefixes.setdefault(full[:8], []).append(placeholder)
+    short = {prefix: hits[0] for prefix, hits in prefixes.items() if len(hits) == 1}
 
     def walk(value: Any) -> Any:
         if isinstance(value, dict):
@@ -107,7 +123,8 @@ def normalise_rmf(document: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, list):
             return [walk(v) for v in value]
         if isinstance(value, str):
-            text = UUID_RE.sub(uuid_placeholder, value)
+            text = UUID_RE.sub(lambda m: numbers[m.group(0)], value)
+            text = SHORT_ID_RE.sub(lambda m: short.get(m.group(0), m.group(0)), text)
             text = TIME_RE.sub("<time>", text)
             return VERSION_RE.sub("RiskForge v<version>", text)
         return value
@@ -221,21 +238,37 @@ def check_decisions(data: Any) -> dict[str, Any]:
     return {"by": by, "mitigations": mitigations, "acceptances": acceptances}
 
 
-def match_risk(items: list[tuple[str, str]], title: str) -> str:
+def match_risk(items: list[tuple[str, str, str]], title: str) -> str:
     """The id of the one item whose title starts with ``title`` (as `risk list` shows it).
 
-    ``items`` are (id, full title) pairs. Raises InputError when no item or more than
-    one item matches, so a decision never lands on the wrong risk.
+    ``items`` are (id, full title, bank question) triples. A bank item also matches on
+    the start of its question: before RiskForge 2.1.0 its title was the question text,
+    and since 2.1.0 its description starts with ``Question <id>: <question>``. Raises
+    InputError when no item or more than one item matches, so a decision never lands on
+    the wrong risk.
     """
     key = title.strip()
     if not key:
         raise InputError("a decision names an empty risk title")
-    hits = [rid for rid, full in items if full.startswith(key) or full[:TITLE_COLUMN] == key]
+    hits = [
+        rid
+        for rid, full, question in items
+        if full.startswith(key) or full[:TITLE_COLUMN] == key or question.startswith(key)
+    ]
     if not hits:
         raise InputError(f"no risk item has a title starting {key!r}")
     if len(hits) > 1:
         raise InputError(f"{len(hits)} risk items have a title starting {key!r}")
     return hits[0]
+
+
+QUESTION_PREFIX = re.compile(r"Question [A-Z]{2}-\d{3}: ")
+
+
+def bank_question(description: str) -> str:
+    """The question of a bank item from its description, or "" for any other item."""
+    found = QUESTION_PREFIX.match(description)
+    return description[found.end() :] if found else ""
 
 
 def redact(argv: list[str], out: Path) -> list[str]:
@@ -346,14 +379,14 @@ def load_yaml(path: Path) -> Any:
         return yaml.safe_load(handle)
 
 
-async def register_titles(project: Path, system_id: str) -> list[tuple[str, str]]:
-    """(id, title) of every risk item, read through the public API without writing."""
+async def register_titles(project: Path, system_id: str) -> list[tuple[str, str, str]]:
+    """(id, title, bank question) of every risk item, read through the public API without writing."""
     import riskforge.api as rf
 
     store = rf.FileStore(project, read_only=True)
     audit = rf.AuditEngine(store, rf.AuditActor(type="api", identity="verification-replay"))
     items = await rf.RiskEngine(store, audit).list_risks(system_id)
-    return [(str(item.id), item.title) for item in items]
+    return [(str(item.id), item.title, bank_question(item.description)) for item in items]
 
 
 async def gate_results(project: Path, system_id: str) -> dict[str, str]:
