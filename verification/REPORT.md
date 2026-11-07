@@ -5,6 +5,8 @@
 **Date of the run:** 4 November 2026
 **Tester:** a separate session that read only the public README, user guide, question bank and `--help`
 
+> This report is the test of 2.0.0, and its findings, counts and coverage are for that run. `results/` now holds a re-run of the same inputs on 2.1.0, the baseline for later releases: see "Re-run on 2.1.0" under Follow-up.
+
 RiskForge records a provider's own risk management decisions. Neither the tool nor this test is a legal opinion, a conformity assessment or a certification. A file that passes every check here is a well-formed, repeatable and tamper-evident record. It is not proof that a system meets Article 9 of Regulation (EU) 2024/1689.
 
 ## Summary

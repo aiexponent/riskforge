@@ -100,6 +100,7 @@ def normalise_rmf(document: dict[str, Any]) -> dict[str, Any]:
     numbers: dict[str, str] = {}
 
     def strings(value: Any) -> Iterator[str]:
+        """Every string in ``value``, in the order ``walk`` reads them."""
         if isinstance(value, dict):
             for k in sorted(value):
                 yield from strings(value[k])
@@ -118,6 +119,7 @@ def normalise_rmf(document: dict[str, Any]) -> dict[str, Any]:
     short = {prefix: hits[0] for prefix, hits in prefixes.items() if len(hits) == 1}
 
     def walk(value: Any) -> Any:
+        """``value`` with its keys sorted and every string normalised."""
         if isinstance(value, dict):
             return {k: walk(value[k]) for k in sorted(value)}
         if isinstance(value, list):
