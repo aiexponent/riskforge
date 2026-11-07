@@ -6,7 +6,7 @@ Versioning: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
-## [2.1.0] - 2026-11-06
+## [2.1.0] - 2026-11-07
 
 Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 does not read: its `riskforge verify --file` exits 3 on a 1.2.0 file. Upgrade every reviewer who checks exported files at the same time. Files written by 2.0.0 (schema 1.1.0) and 1.1.3 (schema 1.0.0) keep verifying.
 
@@ -44,6 +44,10 @@ Upgrade note: the JSON export is now RMF schema 1.2.0, which RiskForge 2.0.0 doe
 ### Security
 
 - The locked dependency versions in `requirements.lock` and `uv.lock` move past advisories published after 2.0.0: Pillow 13.0.0 (WeasyPrint's image library), filelock 4.2.8, Brotli 1.2.1 and packaging 26.3. `pyproject.toml` already allows filelock 4.2.8 and packaging 26.3, and WeasyPrint and FontTools already allow the new Pillow and Brotli, so an install that does not use the lock files is unchanged.
+
+### Known issues
+
+- Bank questions PR-003 (data minimisation) and PR-004 (personal data in training data) still cite no EU AI Act article (D8 of the 2.0.0 independent test). The reference will be added in 2.1.1 once it is checked against the official text of Article 10.
 
 ## [2.0.0] - 2026-10-18
 
