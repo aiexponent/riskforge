@@ -55,6 +55,28 @@ class NormaliseRmf(unittest.TestCase):
         self.assertEqual(got["note"], "risk <uuid-1> was reviewed")
         self.assertEqual(got["disclosure"], "produced using RiskForge v<version> ok")
 
+    def test_a_short_id_in_gate_details_gets_its_uuid_placeholder(self) -> None:
+        """Schema 1.2.0 gate details name risks by the first 8 characters of their id."""
+
+        def doc(first: str, second: str) -> dict:
+            return {
+                "register": {"items": [{"id": first}, {"id": second}]},
+                "validation": {
+                    "gates": [{"details": f"2 risk(s) open: {first[:8]}, {second[:8]}"}]
+                },
+            }
+
+        got = replay.normalise_rmf(doc(A, B))
+        self.assertEqual(
+            got["validation"]["gates"][0]["details"], "2 risk(s) open: <uuid-1>, <uuid-2>"
+        )
+        self.assertEqual(got, replay.normalise_rmf(doc(C, "44444444-4444-4444-8444-444444444444")))
+
+    def test_hex_that_is_not_a_known_short_id_is_kept(self) -> None:
+        digest = "ab" * 32
+        doc = {"register": {"items": [{"id": A}]}, "note": f"deadbeef {digest} 11111111x"}
+        self.assertEqual(replay.normalise_rmf(doc)["note"], f"deadbeef {digest} 11111111x")
+
     def test_numbers_and_booleans_are_kept(self) -> None:
         doc = {"register": {"risk_appetite_threshold": 9, "accepted": False}}
         self.assertEqual(replay.normalise_rmf(doc), doc)
@@ -106,10 +128,16 @@ class FlipOneByte(unittest.TestCase):
 
 class MatchRisk(unittest.TestCase):
     ITEMS = [
-        (A, "Demographic bias in credit scoring outputs"),
-        (B, "Does the system process personal data or special category data?"),
-        (C, "Does the system process personal data at all?"),
+        (A, "Demographic bias in credit scoring outputs", ""),
+        (B, "Does the system process personal data or special category data?", ""),
+        (C, "Does the system process personal data at all?", ""),
     ]
+    # Since 2.1.0 a bank item is titled as the risk, and its question opens the description.
+    BANK_2_1 = [
+        (A, "Demographic bias in credit scoring outputs", ""),
+        (B, "Model uses more personal data than its purpose needs", "Is data minimisation enforced: does the model use only the minimum personal data necessary?"),
+        (C, "Personal data processed without a recorded legal basis", "Does the system process personal data or special category data?"),
+    ]  # fmt: skip
 
     def test_title_as_risk_list_prints_it(self) -> None:
         self.assertEqual(
@@ -135,6 +163,32 @@ class MatchRisk(unittest.TestCase):
             replay.match_risk(self.ITEMS, "Something else")
         with self.assertRaises(replay.InputError):
             replay.match_risk(self.ITEMS, "  ")
+
+    def test_a_2_1_bank_item_matches_on_its_question(self) -> None:
+        """A decision written against a 2.0.0 risk list still finds the item in 2.1.0."""
+        self.assertEqual(replay.match_risk(self.BANK_2_1, "Is data minimisation enforced"), B)
+        self.assertEqual(
+            replay.match_risk(self.BANK_2_1, "Does the system process personal data or special"), C
+        )
+
+    def test_a_2_1_bank_item_matches_on_its_new_title(self) -> None:
+        self.assertEqual(replay.match_risk(self.BANK_2_1, "Model uses more personal data"), B)
+
+    def test_a_title_and_a_question_that_both_match_are_refused(self) -> None:
+        items = [*self.BANK_2_1, ("d", "Is data minimisation enforced in logs", "")]
+        with self.assertRaisesRegex(replay.InputError, "2 risk items"):
+            replay.match_risk(items, "Is data minimisation enforced")
+
+
+class BankQuestion(unittest.TestCase):
+    def test_the_question_follows_the_question_id(self) -> None:
+        self.assertEqual(
+            replay.bank_question("Question PR-003: Is it so? Guide."), "Is it so? Guide."
+        )
+
+    def test_any_other_description_has_no_question(self) -> None:
+        self.assertEqual(replay.bank_question("Pattern risk. Question PR-003: no."), "")
+        self.assertEqual(replay.bank_question(""), "")
 
 
 class CheckInputs(unittest.TestCase):

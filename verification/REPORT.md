@@ -5,6 +5,8 @@
 **Date of the run:** 4 November 2026
 **Tester:** a separate session that read only the public README, user guide, question bank and `--help`
 
+> This report is the test of 2.0.0, and its findings, counts and coverage are for that run. `results/` now holds a re-run of the same inputs on 2.1.0, the baseline for later releases: see "Re-run on 2.1.0" under Follow-up.
+
 RiskForge records a provider's own risk management decisions. Neither the tool nor this test is a legal opinion, a conformity assessment or a certification. A file that passes every check here is a well-formed, repeatable and tamper-evident record. It is not proof that a system meets Article 9 of Regulation (EU) 2024/1689.
 
 ## Summary
@@ -160,4 +162,33 @@ The inputs are in `inputs/`. Without `--update`, nothing is written into the che
 
 ## Follow-up
 
-- **Defects.** D1 to D12 are filed against RiskForge.
+- **Defects.** D1 to D12 are filed against RiskForge. Fixes for all but D8 shipped in RiskForge 2.1.0 (PRD-485). D8 is deferred to 2.1.1 (PRD-516).
+
+### Re-run on 2.1.0 (7 November 2026)
+
+The same inputs, unchanged, were run against riskforge 2.1.0, installed from PyPI with the hashes in `requirements.lock` (wheel `5a4247e8...14b9`, sdist `18a99caa...1a66`). All 22 checks passed, and `results/` now holds that run: the new baseline for later releases. The RMF is schema 1.2.0, the PDF has 24 pages, and the gates are the same as on 2.0.0 except G5, which is now WARN (see D7).
+
+Two changes to the replay were needed first. Neither changes an input or a check:
+- **Risks are matched on their bank question too.** `decisions.yaml` names each risk by the start of its 2.0.0 title, which was the question text. Since 2.1.0 a bank risk is titled as the risk (D3), and its description starts with `Question <id>: <question>`. The replay now accepts a match on either, and still stops when a name matches no item or more than one. Without this, the release workflow's run stopped at the first decision.
+- **Short ids in gate details are normalised.** Schema 1.2.0 lists the risks behind a gate result by the first 8 characters of their ids. The normaliser now replaces these with the placeholder of the full id, as it already did for full ids. Without this, the two runs differed only in those ids.
+
+What the 2.1.0 files show for each defect:
+
+| Defect | In the 2.1.0 run |
+|---|---|
+| D1 | Fixed. `rmf.json` has a `validation` block under the content digest: status FAIL, with G3 FAIL and each gate's result. `rmf.md` says "Exported with --force past failing gates: G3." |
+| D2 | Fixed. Assessment 2026-11-07, review date 2027-11-07. |
+| D3 | Fixed. None of the 28 titles is a question or ends in "..."; the full question is kept in the description. |
+| D4 | Fixed. Each cross-reference lists every reference of its items. `Art.9(2)(a)` lists `MEASURE 2.11`, `GOVERN 1.1`, `MAP 5.1` and `MEASURE 2.10`, and `Annex A.7` and `Clause 6.1`. |
+| D5 | Fixed. The 27 test requirements use 25 metrics, one per question, and cite `Art.9(8)`. Each threshold reads "set by the provider before testing". |
+| D6 | Fixed. All 8 knowledge gaps carry a reason that says they are scored at the default 3 x 3 until assessed. |
+| D7 | Fixed. G5 is WARN, because the inputs give no intended users, inputs, outputs or deployment context. `riskforge system describe` now records them. |
+| D8 | Open, deferred to 2.1.1. PR-003 and PR-004 still have no article reference; the 2.1.0 CHANGELOG lists this as a known issue. |
+| D9 | Fixed. The PDF text has no raw enum values, and the last page reads "riskforge verify --file <JSON export>". |
+| D10 | Opt-in. 2.1.0 records `RISKFORGE_ACTOR`, when it is set, for every write command without a name of its own. The replay does not set it, so this log still names `cli`, "Mara Lindqvist" and "Mara Lindqvist, Head of Model Risk". |
+| D11 | Fixed. `validate --help` says `--force` only changes the exit code and that `validate` never exports. |
+| D12 | Fixed. The README sample id is `PR-006`, the next free id. |
+
+Usability findings 3 (`init --help` lists all 8 categories), 6 (`tests generate --help` states its rule), 7 (`risk list` has a Residual column) and 8 (the Markdown has Test Requirements and Change Log sections) were checked against the 2.1.0 install and the run's files. Findings 1, 2, 4 and 5 are documentation changes in the 2.1.0 user guide and were not re-tested here.
+
+Not redone for 2.1.0: `coverage.csv` and the coverage counts above. They are the tester's marking of the 2.0.0 file, and re-marking them is left to an independent tester.

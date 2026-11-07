@@ -1,33 +1,33 @@
-                           Risk items for 2c475c5c-c646-4da8-89a9-03141a0bcfbd                            
-┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
-┃ ID       ┃ Dimension          ┃ Title                                    ┃ Score ┃ Band     ┃ Accepted ┃
-┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
-│ 8c42055a │ discrimination     │ Demographic bias in credit scoring outpu │ 12    │ high     │ No       │
-│ 555fecb1 │ transparency       │ Lack of explanation for credit decisions │ 9     │ medium   │ No       │
-│ 60278de0 │ health_safety      │ Are system performance metrics (accuracy │ 12    │ high     │ No       │
-│ 6c48e838 │ health_safety      │ Could vulnerable populations (elderly, c │ 12    │ high     │ No       │
-│ 351bedb2 │ fundamental_rights │ Has a fundamental rights impact assessme │ 9     │ medium   │ No       │
-│ ff5260d1 │ fundamental_rights │ Could the system restrict or affect acce │ 12    │ high     │ No       │
-│ f44ccbdf │ fundamental_rights │ Are affected individuals informed of the │ 6     │ medium   │ No       │
-│ f6c25aec │ discrimination     │ Has the training dataset been audited fo │ 16    │ high     │ No       │
-│ c0b71de9 │ discrimination     │ Have demographic parity, equalised odds, │ 16    │ high     │ No       │
-│ aed4c486 │ discrimination     │ Does the system use proxy variables that │ 20    │ critical │ No       │
-│ 25c401d1 │ discrimination     │ Are bias test results documented and rev │ 6     │ medium   │ No       │
-│ f678a8c1 │ privacy            │ Does the system process personal data or │ 20    │ critical │ No       │
-│ 3e189772 │ privacy            │ Has a Data Protection Impact Assessment  │ 9     │ medium   │ No       │
-│ d936c7f0 │ privacy            │ Is data minimisation enforced: does the  │ 12    │ high     │ No       │
-│ 2d133a03 │ privacy            │ Has the training data been scanned for i │ 6     │ medium   │ No       │
-│ 7ff6fe87 │ transparency       │ Are users notified that they are interac │ 9     │ medium   │ No       │
-│ a038286b │ transparency       │ Is an explanation of the system's decisi │ 12    │ high     │ No       │
-│ c3ff7160 │ transparency       │ Does the system documentation include cl │ 9     │ medium   │ No       │
-│ ce393cc6 │ human_oversight    │ Are human reviewers trained on the syste │ 9     │ medium   │ No       │
-│ 0265c848 │ human_oversight    │ Is the human oversight load (volume of c │ 12    │ high     │ No       │
-│ 27dd0821 │ human_oversight    │ Is the system designed to make its reaso │ 12    │ high     │ No       │
-│ e541ddff │ robustness         │ Has the system been tested against out-o │ 16    │ high     │ No       │
-│ 905e8cd6 │ robustness         │ Are accuracy, precision, recall, and cal │ 16    │ high     │ No       │
-│ 3e4bcc98 │ robustness         │ Is there a defined performance floor (mi │ 9     │ medium   │ No       │
-│ 85a548ab │ robustness         │ Are model degradation scenarios (data dr │ 20    │ critical │ No       │
-│ 19dd45f3 │ data_governance    │ Is the provenance of all training, valid │ 12    │ high     │ No       │
-│ 2a4a31b3 │ data_governance    │ Are data quality checks (completeness, c │ 9     │ medium   │ No       │
-│ a3f1e0de │ data_governance    │ Is there a data retention and deletion s │ 4     │ low      │ No       │
-└──────────┴────────────────────┴──────────────────────────────────────────┴───────┴──────────┴──────────┘
+                                 Risk items for 4f9e10da-5529-40a6-84e8-144190ab742c                                 
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID       ┃ Dimension          ┃ Title                                    ┃ Score ┃ Band     ┃ Residual ┃ Accepted ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ 4d19141a │ discrimination     │ Demographic bias in credit scoring outpu │ 12    │ high     │ 12       │ No       │
+│ b0a71cc7 │ transparency       │ Lack of explanation for credit decisions │ 9     │ medium   │ 9        │ No       │
+│ 3fe03c51 │ health_safety      │ Production performance not monitored for │ 12    │ high     │ 12       │ No       │
+│ 9a85d48a │ health_safety      │ System errors may harm vulnerable groups │ 12    │ high     │ 12       │ No       │
+│ bfc52b79 │ fundamental_rights │ No fundamental rights impact assessment  │ 9     │ medium   │ 9        │ No       │
+│ a3baa3a9 │ fundamental_rights │ System may restrict access to rights und │ 12    │ high     │ 12       │ No       │
+│ 52fd5c53 │ fundamental_rights │ Affected people not told of the AI syste │ 6     │ medium   │ 6        │ No       │
+│ 8f114d3b │ discrimination     │ Training data not audited for representa │ 16    │ high     │ 16       │ No       │
+│ 88979633 │ discrimination     │ Fairness metrics not computed for each p │ 16    │ high     │ 16       │ No       │
+│ d589bef0 │ discrimination     │ Proxy variables may encode protected cha │ 20    │ critical │ 20       │ No       │
+│ 58653409 │ discrimination     │ Bias tests not repeated at each model up │ 6     │ medium   │ 6        │ No       │
+│ 7112e1e6 │ privacy            │ System processes personal or special cat │ 20    │ critical │ 20       │ No       │
+│ 470efd58 │ privacy            │ No Data Protection Impact Assessment car │ 9     │ medium   │ 9        │ No       │
+│ 2fd59a99 │ privacy            │ Model uses more personal data than its p │ 12    │ high     │ 12       │ No       │
+│ 516d5b53 │ privacy            │ Personal data in training data not found │ 6     │ medium   │ 6        │ No       │
+│ 1f588c48 │ transparency       │ Users not told they are interacting with │ 9     │ medium   │ 9        │ No       │
+│ b4ce87da │ transparency       │ No explanation of the decision logic ava │ 12    │ high     │ 12       │ No       │
+│ 4aec60b2 │ transparency       │ Documentation omits capability limitatio │ 9     │ medium   │ 9        │ No       │
+│ a29fc827 │ human_oversight    │ Reviewers not trained on the system's ca │ 9     │ medium   │ 9        │ No       │
+│ 45d9b8c1 │ human_oversight    │ Review workload too high for meaningful  │ 12    │ high     │ 12       │ No       │
+│ 6b73bccd │ human_oversight    │ System reasoning not interpretable to hu │ 12    │ high     │ 12       │ No       │
+│ c582db0b │ robustness         │ Not tested on out-of-distribution, edge- │ 16    │ high     │ 16       │ No       │
+│ 6966164c │ robustness         │ Performance metrics not documented for e │ 16    │ high     │ 16       │ No       │
+│ 4d9a0d99 │ robustness         │ No performance floor below which the sys │ 9     │ medium   │ 9        │ No       │
+│ 8b37639c │ robustness         │ Drift not monitored, or no procedure to  │ 20    │ critical │ 20       │ No       │
+│ 9c0ab3b0 │ data_governance    │ Dataset provenance not documented        │ 12    │ high     │ 12       │ No       │
+│ 8f5d52fb │ data_governance    │ Data quality not checked before training │ 9     │ medium   │ 9        │ No       │
+│ a0daef02 │ data_governance    │ No retention and deletion schedule for t │ 4     │ low      │ 4        │ No       │
+└──────────┴────────────────────┴──────────────────────────────────────────┴───────┴──────────┴──────────┴──────────┘
